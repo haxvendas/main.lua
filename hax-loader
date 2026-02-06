@@ -394,9 +394,8 @@ task.spawn(function()
         end
     end)
 end)
-
 -- =============================================
--- TP VIP INSTANTÂNEO - MAIS RÁPIDO E RESPONSIVO (Q avança, Z volta)
+-- TP VIP COM TWEEN RÁPIDO E SUAVE (spam ok, responsivo)
 -- =============================================
 local vipPos = {
     Vector3.new(152.51, 6.85, -134.78),
@@ -417,11 +416,12 @@ local vipNames = {
 }
 
 local curIndex = 0
-local lastTPTime = 0
-local DEBOUNCE_TIME = 0.08  -- tempo mínimo entre TPs (evita travar se spammar)
+local isTweening = false
+local lastInputTime = 0
+local DEBOUNCE = 0.12  -- permite spam rápido, mas evita overload
 
 task.spawn(function()
-    task.wait(1.5)  -- delay menor pra GUI aparecer rápido
+    task.wait(1.8)
     
     local tpGui = Instance.new("ScreenGui")
     tpGui.Name = "VIPTPGui"
@@ -429,7 +429,7 @@ task.spawn(function()
     tpGui.Parent = plr:WaitForChild("PlayerGui")
 
     local frame = Instance.new("Frame", tpGui)
-    frame.Size = UDim2.new(0, 240, 0, 70)
+    frame.Size = UDim2.new(0, 240, 0, 80)
     frame.Position = UDim2.new(0, 15, 0, 15)
     frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
     frame.BorderSizePixel = 0
@@ -440,7 +440,7 @@ task.spawn(function()
     local title = Instance.new("TextLabel", frame)
     title.Size = UDim2.new(1, 0, 0, 25)
     title.BackgroundColor3 = Color3.fromRGB(180, 100, 30)
-    title.Text = " TP VIP RÁPIDO "
+    title.Text = " TP VIP SUAVE RÁPIDO "
     title.TextColor3 = Color3.new(1,1,1)
     title.Font = Enum.Font.GothamBold
     title.TextScaled = true
@@ -449,10 +449,11 @@ task.spawn(function()
     statusLabel.Size = UDim2.new(1, -10, 1, -30)
     statusLabel.Position = UDim2.new(0, 5, 0, 25)
     statusLabel.BackgroundTransparency = 1
-    statusLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+    statusLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
     statusLabel.TextScaled = true
     statusLabel.Font = Enum.Font.Gotham
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.TextYAlignment = Enum.TextYAlignment.Top
     statusLabel.RichText = true
 
     local function updateStatus()
@@ -460,58 +461,76 @@ task.spawn(function()
             statusLabel.Text = "Q → Próxima   Z → Anterior"
         else
             statusLabel.Text = "<font color='rgb(255,220,100)'>Zona " .. curIndex .. "/" .. #vipPos .. 
-                               " - " .. (vipNames[curIndex] or "?") .. "</font>"
+                               " - " .. (vipNames[curIndex] or "?") .. "</font>" ..
+                               (isTweening and "\n<font color='rgb(255,180,100)'>Movendo...</font>" or "")
         end
     end
     updateStatus()
 
-    local function fastTP(targetIndex)
-        if tick() - lastTPTime < DEBOUNCE_TIME then return end
+    local function smoothFastTP(targetIndex)
+        if isTweening or tick() - lastInputTime < DEBOUNCE then return end
         if targetIndex < 1 or targetIndex > #vipPos then return end
 
         local char = plr.Character
         if not char then return end
         
-        local hrp = char:WaitForChild("HumanoidRootPart", 0.2)
+        local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        local targetPos = vipPos[targetIndex] + Vector3.new(0, 4, 0)  -- +4 pra evitar ficar no chão
-        
-        -- TP instantâneo
-        hrp.CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
-        
-        curIndex = targetIndex
-        lastTPTime = tick()
+        isTweening = true
+        lastInputTime = tick()
         updateStatus()
-        
-        -- Notificação curta
-        notify("→ Zona " .. curIndex, Color3.fromRGB(120, 255, 120))
+
+        local targetPos = vipPos[targetIndex] + Vector3.new(0, 4, 0)  -- +4 pra não clipar no chão
+        local distance = (hrp.Position - targetPos).Magnitude
+        local tweenTime = math.clamp(distance / 1200, 0.18, 0.55)  -- rápido: ~1200 studs/seg, max 0.55s
+
+        notify("→ Zona " .. targetIndex, Color3.fromRGB(150, 255, 150))
+
+        local tweenInfo = TweenInfo.new(
+            tweenTime,
+            Enum.EasingStyle.Quad,      -- suave e constante, bom pra movimento rápido
+            Enum.EasingDirection.Out    -- acelera no início, desacelera suave no fim
+        )
+
+        local tween = TS:Create(hrp, tweenInfo, {
+            CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
+        })
+
+        tween:Play()
+
+        tween.Completed:Connect(function()
+            isTweening = false
+            curIndex = targetIndex
+            updateStatus()
+        end)
     end
 
-    -- Input super responsivo
-    UIS.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed or not scriptFullyLoaded then return end
+    -- Input responsivo
+    UIS.InputBegan:Connect(function(input, gpe)
+        if gpe or not scriptFullyLoaded then return end
         
         local key = input.KeyCode
         
         if key == Enum.KeyCode.Q then
             local nextIdx = curIndex + 1
             if nextIdx > #vipPos then nextIdx = 1 end
-            fastTP(nextIdx)
+            smoothFastTP(nextIdx)
             
         elseif key == Enum.KeyCode.Z then
             local prevIdx = curIndex - 1
             if prevIdx < 1 then prevIdx = #vipPos end
-            fastTP(prevIdx)
+            smoothFastTP(prevIdx)
             
         elseif key == Enum.KeyCode.RightShift then
-            fastTP(1)
+            smoothFastTP(1)
         end
     end)
 
     local function onDied()
         curIndex = 0
-        lastTPTime = 0
+        isTweening = false
+        lastInputTime = 0
         updateStatus()
         notify("Morreu → TP resetado", Color3.fromRGB(255, 100, 100))
     end
