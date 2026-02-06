@@ -20,14 +20,17 @@ local controls    = {W=0,S=0,A=0,D=0,Space=0,Ctrl=0}
 local notifyBusy = false
 
 local function notify(msg, cor)
-    if notifyBusy then task.wait(0.3) end
+    if notifyBusy then
+        task.wait(0.3)
+    end
     notifyBusy = true
-    -- NOTIFY OFICIAL
-local function notify(msg, cor)
+
     cor = cor or Color3.fromRGB(0, 170, 255)
+
     task.spawn(function()
-        local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
+        local gui = Instance.new("ScreenGui")
         gui.Name = "HaxNotify"
+        gui.Parent = plr:WaitForChild("PlayerGui")
 
         local main = Instance.new("Frame", gui)
         main.Size = UDim2.new(0, 0, 0, 35)
@@ -70,7 +73,6 @@ local function notify(msg, cor)
             gui:Destroy()
         end)
     end)
-end
 
     task.delay(2.6, function()
         notifyBusy = false
