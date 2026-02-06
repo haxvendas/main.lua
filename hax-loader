@@ -124,39 +124,68 @@ local function applyGodMode()
     end))
 end
 
--- =============================================
--- Server Hop básico
--- =============================================
+-- =========================
+-- SERVER HOP BLINDADO
+-- =========================
 
-local visited = visited or {}
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
+
+-- persiste entre teleports
+local function saveVisited(id)
+    local data = {}
+    if isfile("visited_servers.json") then
+        data = HttpService:JSONDecode(readfile("visited_servers.json"))
+    end
+    data[id] = true
+    writefile("visited_servers.json", HttpService:JSONEncode(data))
+end
+
+local function getVisited()
+    if isfile("visited_servers.json") then
+        return HttpService:JSONDecode(readfile("visited_servers.json"))
+    end
+    return {}
+end
 
 local function serverHop()
-    notify("TROCANDO DE SERVIDOR...", Color3.fromRGB(170, 170, 255))
+    notify("TROCANDO DE SERVIDOR...", Color3.fromRGB(170,170,255))
+
+    local visited = getVisited()
 
     local ok, res = pcall(function()
-        return Http:JSONDecode(
-            game:HttpGetAsync(
-                "https://games.roblox.com/v1/games/"
-                .. game.PlaceId
-                .. "/servers/Public?sortOrder=Asc&limit=100"
-            )
-        )
+        return HttpService:JSONDecode(game:HttpGet(
+            "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Desc&limit=100"
+        ))
     end)
 
     if ok and res and res.data then
-        for _, s in ipairs(res.data) do
-            if s.id ~= game.JobId
-            and not visited[s.id]
-            and s.playing < s.maxPlayers then
-                visited[s.id] = true
-                Teleport:TeleportToPlaceInstance(game.PlaceId, s.id, plr)
+        for _, server in ipairs(res.data) do
+            if server.id ~= game.JobId
+            and not visited[server.id]
+            and server.playing < server.maxPlayers then
+
+                saveVisited(server.id)
+
+                queue_on_teleport([[
+                    repeat task.wait() until game:IsLoaded()
+                ]])
+
+                TeleportService:TeleportToPlaceInstance(
+                    game.PlaceId,
+                    server.id,
+                    plr
+                )
                 return
             end
         end
     end
 
-    -- fallback
-    Teleport:Teleport(game.PlaceId, plr)
+    notify("Nenhum servidor novo encontrado, resetando lista", Color3.fromRGB(255,80,80))
+    delfile("visited_servers.json")
+    TeleportService:Teleport(game.PlaceId, plr)
 end
 
 
