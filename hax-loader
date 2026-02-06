@@ -447,30 +447,21 @@ end)
 -- TP VIP GUI (manual com Q / Z) - CORRIGIDO
 -- =============================================
 local vipPos = {
-    Vector3.new(152.51, 3.35, -134.78),
-    Vector3.new(242.45, 3.40, -139.51),
-    Vector3.new(339.32, 3.40, -139.52),
-    Vector3.new(428.90, -4.75, -336.84),
+    Vector3.new(152.51, 6.85, -134.78),
+    Vector3.new(242.45, 6.90, -139.51),
+    Vector3.new(339.32, 6.90, -139.52),
     Vector3.new(473.20, 3.40, -139.49),
     Vector3.new(643.38, 3.40, -139.51),
-    Vector3.new(756.89, -2.65, -129.51),
-    Vector3.new(756.68, -2.65, 129.51),
-    Vector3.new(907.61, 3.40, 139.51),
-    Vector3.new(1111.70, 9.03, 217.48),
-    Vector3.new(1129.84, 5.34, 527.05),
-    Vector3.new(1553.01, -0.58, 128.89),
-    Vector3.new(1552.78, -2.65, -129.52),
-    Vector3.new(1870.43, 3.16, -138.33),
-    Vector3.new(2400.27, 5.44, -138.29),
-    Vector3.new(2566.71, -6.65, -337.74)
+    Vector3.new(912.72, 5.97, -138.71),
+    Vector3.new(1310.13, 4.99, -139.85),
+    Vector3.new(1845.17, 6.94, -139.64),
+    Vector3.new(2404.92, 7.66, -139.26),
+    Vector3.new(2607.67, 1.12, -133.88)
 }
 
 local vipNames = {
-    "VIP", "VIP 1", "VIP 2", "VIP 3 parkur", "VIP 4", "VIP 5",
-    "VIP grab", "VIP grab 2", "VIP direito", "VIP parkur 2",
-    "VIP parkur 3", "VIP direito 2", "VIP ultimo",
-    "VIP X", "VIP Y", "VIP parkur FINAL"
-}
+    "VIP", "VIP 1", "VIP 2", "VIP 3", "VIP 4", "VIP 5",
+    "VIP 6", "VIP 7", "VIP 8", "VIP FINAL"
 
 local curIndex = 0
 local isTweening = false
