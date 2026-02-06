@@ -124,31 +124,33 @@ local function applyGodMode()
     end))
 end
 
--- =============================================
---              S E R V E R   H O P   (T)
--- =============================================
-
 local function hopServer()
-    print("🔄 HOPPING SERVER... (procurando servidor com poucos players)")
-    
+    notify("🔄 Procurando servidor vazio...", Color3.fromRGB(0,170,255))
+
     local success, servers = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        return Http:JSONDecode(
+            game:HttpGet(
+                "https://games.roblox.com/v1/games/"
+                .. game.PlaceId ..
+                "/servers/Public?sortOrder=Asc&limit=100"
+            )
+        )
     end)
-    
+
     if success and servers and servers.data then
-        for _, v in pairs(servers.data) do
-            if type(v) == "table" and v.playing and v.maxPlayers and v.playing < v.maxPlayers and v.id and #v.id > 10 then
-                print("🚀 Teleportando para servidor com " .. v.playing .. "/" .. v.maxPlayers .. " players")
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
+        for _, v in ipairs(servers.data) do
+            if v.id and v.playing and v.maxPlayers and v.playing < v.maxPlayers then
+                notify("🚀 Indo para servidor "..v.playing.."/"..v.maxPlayers)
+                Teleport:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
                 return
             end
         end
     end
-    
-    -- Fallback: teleport aleatório se não achar
-    print("⚠️ Fallback: teleport aleatório")
-    TeleportService:Teleport(game.PlaceId, plr)
+
+    notify("⚠️ Fallback: hop aleatório")
+    Teleport:Teleport(game.PlaceId, plr)
 end
+
 -- =============================================
 -- Auto Collect (G)
 -- =============================================
@@ -310,7 +312,7 @@ local TS = TweenService
 local UIS = UserInputService
 
 -- NOTIFY
-local function notify(txt)
+local function notifyVIP(txt)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
             Title = "TP VIP",
@@ -414,7 +416,7 @@ local function smoothTP(index)
     local target = vipPos[index] + Vector3.new(0,4,0)
     local duration = math.max((target - hrp.Position).Magnitude / 600, 0.15)
 
-    notify("ZONA: " .. vipNames[index])
+    notifyVIP("ZONA: " .. vipNames[index])
 
     local tween = TS:Create(
         hrp,
@@ -454,7 +456,7 @@ local function onCharacter(char)
         isTweening = false
         manualTP = false
         updateStatus()
-        notify("Morreu → resetado")
+       notifyVIP("Morreu → resetado")
     end)
 end
 
@@ -550,8 +552,8 @@ local TARGETS = {
 -- FUNÇÕES
 -- ================================
 
-local function notify(text)
-	pcall(function()
+local function notifyEvent(text)
+   pcall(function()
 		game.StarterGui:SetCore("SendNotification", {
 			Title = "⚠️ EVENTO DETECTADO",
 			Text = text,
@@ -651,8 +653,9 @@ local function applyESP()
 
 					createHighlight(obj, cfg.Color)
 					createBillboard(obj, label, cfg.Emoji, cfg.Color)
-					notify(cfg.Emoji.." "..label.." SPAWNOU!")
-				end
+					notifyEvent(cfg.Emoji.." "..label.." SPAWNOU!")
+
+			    end
 			end
 		end
 	end
