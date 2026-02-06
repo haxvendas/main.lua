@@ -827,6 +827,48 @@ task.spawn(function()
         applyESP()
     end)
 end)
+-- =============================================
+-- Controles gerais (WASD + teclas especiais F/T/G)
+-- =============================================
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed or not scriptFullyLoaded then return end
+    
+    local k = input.KeyCode
+    
+    if k == Enum.KeyCode.F then 
+        toggleFly()
+        
+    elseif k == Enum.KeyCode.T then 
+        hopServer()
+        
+    elseif k == Enum.KeyCode.G then 
+        autoCollect = not autoCollect
+        if autoCollect then
+            startAutoCollect()
+            notify("AUTO COLLECT 40 SLOTS: ATIVADO", Color3.fromRGB(255, 210, 0))
+        else
+            if collectConn then collectConn:Disconnect() end
+            collectConn = nil
+            notify("AUTO COLLECT: DESATIVADO", Color3.fromRGB(200, 200, 200))
+        end
+        
+    elseif k == Enum.KeyCode.W then controls.W = 1
+    elseif k == Enum.KeyCode.S then controls.S = 1
+    elseif k == Enum.KeyCode.A then controls.A = 1
+    elseif k == Enum.KeyCode.D then controls.D = 1
+    elseif k == Enum.KeyCode.Space then controls.Space = 1
+    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 1 end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    local k = input.KeyCode
+    if k == Enum.KeyCode.W then controls.W = 0
+    elseif k == Enum.KeyCode.S then controls.S = 0
+    elseif k == Enum.KeyCode.A then controls.A = 0
+    elseif k == Enum.KeyCode.D then controls.D = 0
+    elseif k == Enum.KeyCode.Space then controls.Space = 0
+    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 0 end
+end)
 
 -- =============================================
 -- Final
