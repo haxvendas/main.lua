@@ -19,17 +19,15 @@ local godConns    = {}
 local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
 
 local notifyBusy = false
-local scriptFullyLoaded = false  -- OTIMIZAÇÃO: evita rodar coisas cedo demais
+local scriptFullyLoaded = false
 
 -- =============================================
--- Notify Function (corrigida e única)
+-- Notify Function
 -- =============================================
 local function notify(msg, color)
     color = color or Color3.fromRGB(0, 170, 255)
     
-    if notifyBusy then 
-        task.wait(0.5) 
-    end
+    if notifyBusy then task.wait(0.4) end
     notifyBusy = true
     
     task.spawn(function()
@@ -69,7 +67,7 @@ local function notify(msg, color)
             Size = UDim2.new(0, 280, 0, 40)
         }):Play()
         
-        task.wait(3)
+        task.wait(3.2)
         
         local tweenOut = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {
             Size = UDim2.new(0, 0, 0, 40),
@@ -85,46 +83,45 @@ local function notify(msg, color)
 end
 
 -- =============================================
--- Espera personagem carregar (anti-lag no início)
+-- Espera personagem
 -- =============================================
 local function waitForCharacter(timeout)
-    timeout = timeout or 10
+    timeout = timeout or 8
     local start = tick()
-    while not plr.Character and (tick() - start < timeout) do
-        task.wait(0.1)
+    while not plr.Character and tick() - start < timeout do
+        task.wait()
     end
     return plr.Character
 end
 
 -- =============================================
--- Inicialização com delay
+-- Inicialização
 -- =============================================
 task.spawn(function()
-    task.wait(4)  -- OTIMIZAÇÃO: espera 4s para o jogo estabilizar
+    task.wait(2.5)  -- reduzido
     scriptFullyLoaded = true
     enableInfiniteZoom()
     applyGodMode()
-    notify("HAX LOADED! (modo anti-lag)", Color3.fromRGB(0, 170, 255))
+    notify("HAX CARREGADO!", Color3.fromRGB(0, 255, 140))
 end)
 
 -- =============================================
 -- Infinite Zoom
 -- =============================================
-local function enableInfiniteZoom()
+function enableInfiniteZoom()
     if not scriptFullyLoaded then return end
     plr.CameraMaxZoomDistance = 40000
     plr.CameraMinZoomDistance = 0.5
 end
 
 -- =============================================
--- CFly (tecla F)
+-- Fly (F)
 -- =============================================
 local function updateFly()
     if not flying or not scriptFullyLoaded then return end
     local move = Vector3.new(controls.D - controls.A, controls.Space - controls.Ctrl, controls.W - controls.S)
-    if move.Magnitude > 0 then 
-        move = move.Unit 
-    end
+    if move.Magnitude > 0 then move = move.Unit end
+    
     local look = cam.CFrame.LookVector
     local right = cam.CFrame.RightVector
     local vel = look * move.Z + right * move.X + Vector3.new(0, move.Y, 0)
@@ -150,17 +147,17 @@ local function toggleFly()
     
     if flying then
         RunService:BindToRenderStep("CFly", Enum.RenderPriority.Character.Value + 1, updateFly)
-        notify("VOO: ATIVADO", Color3.fromRGB(0, 255, 120))
+        notify("FLY: ATIVADO", Color3.fromRGB(0, 255, 120))
     else
         RunService:UnbindFromRenderStep("CFly")
-        notify("VOO: DESATIVADO", Color3.fromRGB(255, 70, 70))
+        notify("FLY: DESATIVADO", Color3.fromRGB(255, 70, 70))
     end
 end
 
 -- =============================================
--- GodMode Extremo
+-- GodMode
 -- =============================================
-local function applyGodMode()
+function applyGodMode()
     if not scriptFullyLoaded then return end
     local char = waitForCharacter()
     if not char then return end
@@ -169,9 +166,7 @@ local function applyGodMode()
     if not hum then return end
     
     -- Limpa conexões antigas
-    for _, conn in ipairs(godConns) do
-        if conn then conn:Disconnect() end
-    end
+    for _, conn in godConns do pcall(conn.Disconnect, conn) end
     godConns = {}
     
     hum.MaxHealth = math.huge
@@ -185,7 +180,7 @@ local function applyGodMode()
     end))
     
     table.insert(godConns, hum.Died:Connect(function()
-        task.wait(0.15)
+        task.wait(0.1)
         hum.Health = math.huge
         hum:ChangeState(Enum.HumanoidStateType.GettingUp)
     end))
@@ -205,58 +200,50 @@ local function applyGodMode()
 end
 
 -- =============================================
--- Server Hop (tecla T)
+-- Server Hop (T)
 -- =============================================
 local function hopServer()
     if not scriptFullyLoaded then return end
-    notify("🔄 Procurando servidor vazio...", Color3.fromRGB(0,170,255))
+    notify("Procurando servidor vazio...", Color3.fromRGB(0,170,255))
 
     local success, servers = pcall(function()
         return Http:JSONDecode(
-            game:HttpGet(
+            game:HttpGetAsync(
                 "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
             )
         )
     end)
 
     if success and servers and servers.data then
-        for _, v in ipairs(servers.data) do
-            if v.id and v.playing and v.maxPlayers and v.playing < v.maxPlayers then
-                notify("🚀 Indo para servidor " .. v.playing .. "/" .. v.maxPlayers, Color3.fromRGB(0,255,100))
+        for _, v in servers.data do
+            if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                notify("Indo para servidor " .. v.playing .. "/" .. v.maxPlayers, Color3.fromRGB(0,255,100))
                 Teleport:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
                 return
             end
         end
     end
 
-    notify("⚠️ Nenhum servidor vazio encontrado → hop aleatório", Color3.fromRGB(255,140,0))
+    notify("Nenhum servidor vazio → hop aleatório", Color3.fromRGB(255,140,0))
     Teleport:Teleport(game.PlaceId, plr)
 end
 
 -- =============================================
--- Auto Collect 40 Slots SEM TELEPORTE (usando fireproximityprompt)
+-- Auto Collect 40 Slots (G)
 -- =============================================
--- Coloque isso no seu script principal, substitua a função collectMoney antiga
-
-local autoCollect = false  -- toggle
-local collectConn = nil
+local collectConn
 
 local function getMyBase()
     local basesFolder = workspace:FindFirstChild("Bases")
     if not basesFolder then return nil end
     
-    -- Procura pela sua base (pelo UUID ou nome)
-    local myBase = basesFolder:FindFirstChild("{cb337186-e7c6-43a1-8ba7-6e4fd656df37}")  -- UUID específico que você deu
-    if myBase then return myBase end
-    
-    -- Fallback: procura por nome do player
-    for _, base in ipairs(basesFolder:GetChildren()) do
+    for _, base in basesFolder:GetChildren() do
         local titleGui = base:FindFirstChild("Title", true)
         if titleGui then
             local nameLabel = titleGui:FindFirstChild("PlayerName", true) 
                 or titleGui:FindFirstChild("Name", true) 
                 or titleGui:FindFirstChildWhichIsA("TextLabel", true)
-            if nameLabel and (nameLabel.Text == plr.Name or nameLabel.Text == plr.DisplayName or nameLabel.Text:find(plr.Name)) then
+            if nameLabel and (nameLabel.Text == plr.Name or nameLabel.Text == plr.DisplayName or nameLabel.Text:find(plr.Name, 1, true)) then
                 return base
             end
         end
@@ -273,89 +260,67 @@ local function collectAllSlots()
     
     local collected = 0
     
-    -- Loop pelos 40 slots (Slot1 até Slot40)
     for i = 1, 40 do
-        local slotName = "Slot" .. i
-        local slot = slotsFolder:FindFirstChild(slotName)
+        local slot = slotsFolder:FindFirstChild("Slot" .. i)
         if slot then
-            -- Tenta ProximityPrompt primeiro (mais comum)
             local prompt = slot:FindFirstChildOfClass("ProximityPrompt")
-            if prompt and fireproximityprompt then  -- fireproximityprompt disponível no seu executor?
-                fireproximityprompt(prompt)
-                collected += 1
-            else
-                -- Fallback: ClickDetector
-                local clickDetector = slot:FindFirstChildOfClass("ClickDetector")
-                if clickDetector and firesignal then
-                    firesignal(clickDetector.MouseClick)
-                    collected += 1
-                end
+            if prompt then
+                pcall(function()
+                    prompt:InputHoldBegin()
+                    task.wait(0.03)
+                    prompt:InputHoldEnd()
+                end)
+                collected = collected + 1
             end
         end
-        
-        task.wait(0.08)  -- Delay pequeno entre collects (anti-lag/detecção)
+        task.wait(0.06)
     end
     
     return collected > 0
 end
 
--- Loop auto collect (roda a cada 1s)
 local function startAutoCollect()
     if collectConn then collectConn:Disconnect() end
     
-    collectConn = task.spawn(function()
-        while autoCollect do
-            pcall(collectAllSlots)
-            task.wait(1)  -- Coleta completa a cada 1 segundo
+    collectConn = RunService.Heartbeat:Connect(function()
+        if not autoCollect then
+            collectConn:Disconnect()
+            collectConn = nil
+            return
         end
+        pcall(collectAllSlots)
+        task.wait(0.9)  -- ajustável
     end)
 end
-
--- Toggle (tecla G por exemplo)
--- No seu UIS.InputBegan:
--- elseif k == Enum.KeyCode.G then
---     autoCollect = not autoCollect
---     if autoCollect then
---         startAutoCollect()
---         notify("AUTO COLLECT 40 SLOTS: ON (sem TP!)", Color3.fromRGB(0, 255, 0))
---     else
---         notify("AUTO COLLECT: OFF", Color3.fromRGB(255, 0, 0))
---     end
--- end
-
-notify("Auto Collect 40 Slots pronto! (pressione G para toggle)", Color3.fromRGB(0, 255, 100))
 
 -- =============================================
 -- Insta Prompt + Infinite Jump
 -- =============================================
 local function instaPrompt(p)
     if p:IsA("ProximityPrompt") then 
-        p.HoldDuration = 0 
+        p.HoldDuration = 0
         p.RequiresLineOfSight = false
+        p.MaxActivationDistance = 15
     end
 end
 
 task.spawn(function()
-    task.wait(3)  -- OTIMIZAÇÃO: delay para prompts
+    task.wait(1.5)
     workspace.DescendantAdded:Connect(instaPrompt)
-    for _, v in ipairs(workspace:GetDescendants()) do 
-        instaPrompt(v) 
-    end
+    for _, v in workspace:GetDescendants() do instaPrompt(v) end
 end)
 
 UIS.JumpRequest:Connect(function()
     if not scriptFullyLoaded then return end
     local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
-    if hum then 
-        hum:ChangeState(Enum.HumanoidStateType.Jumping) 
-    end
+    if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
 
 -- =============================================
--- GUI de Timers (Celestial / Money Event) – Permanente
+-- GUI Timers (Celestial / Money)
 -- =============================================
 task.spawn(function()
-    task.wait(5)  -- OTIMIZAÇÃO: delay para GUI
+    task.wait(3)
     if plr.PlayerGui:FindFirstChild("EventPanelClean") then
         plr.PlayerGui.EventPanelClean:Destroy()
     end
@@ -377,42 +342,37 @@ task.spawn(function()
 
     local stroke = Instance.new("UIStroke", frame)
     stroke.Color = Color3.fromRGB(0, 200, 255)
-    stroke.Thickness = 2.5
+    stroke.Thickness = 2.2
 
-    local function createEventLabel(name, color, yPos)
-        local lbl = Instance.new("TextLabel")
+    local function createLabel(name, color, y)
+        local lbl = Instance.new("TextLabel", frame)
         lbl.Name = name
         lbl.Size = UDim2.new(1, -20, 0, 35)
-        lbl.Position = UDim2.new(0, 10, 0, yPos)
+        lbl.Position = UDim2.new(0, 10, 0, y)
         lbl.BackgroundTransparency = 1
         lbl.TextColor3 = color
         lbl.TextScaled = true
         lbl.Font = Enum.Font.GothamBold
         lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.Parent = frame
         return lbl
     end
 
-    local celTime = createEventLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
-    local moneyTime = createEventLabel("Money", Color3.fromRGB(255, 220, 80), 45)
+    local celTime = createLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
+    local moneyTime = createLabel("Money", Color3.fromRGB(255, 220, 80), 45)
 
     local celestialLabel, moneyLabel = nil, nil
 
     task.spawn(function()
         while true do
             celestialLabel, moneyLabel = nil, nil
-            for _, obj in ipairs(workspace:GetDescendants()) do
+            for _, obj in workspace:GetDescendants() do
                 if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
                     local t = obj.Text:lower()
-                    if t:find("celestial") or t:find("appears") then 
-                        celestialLabel = obj 
-                    end
-                    if t:find("money") or t:find("event") or t:find("ufo") then 
-                        moneyLabel = obj 
-                    end
+                    if t:find("celestial") or t:find("appears") then celestialLabel = obj end
+                    if t:find("money") or t:find("event") or t:find("ufo") then moneyLabel = obj end
                 end
             end
-            task.wait(4)  -- OTIMIZAÇÃO: checagem mais lenta
+            task.wait(3.5)
         end
     end)
 
@@ -420,11 +380,7 @@ task.spawn(function()
         if celestialLabel and celestialLabel.Parent then
             local txt = celestialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
             celTime.Text = "✨ " .. txt
-            if txt:find("00:") then
-                celTime.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or Color3.fromRGB(255, 150, 50)
-            else
-                celTime.TextColor3 = Color3.fromRGB(255, 150, 50)
-            end
+            celTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,150,50)) or Color3.fromRGB(255,150,50)
         else
             celTime.Text = "✨ Procurando Celestial..."
         end
@@ -432,11 +388,7 @@ task.spawn(function()
         if moneyLabel and moneyLabel.Parent then
             local txt = moneyLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
             moneyTime.Text = "💰 " .. txt
-            if txt:find("00:") then
-                moneyTime.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or Color3.fromRGB(255, 220, 80)
-            else
-                moneyTime.TextColor3 = Color3.fromRGB(255, 220, 80)
-            end
+            moneyTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,220,80)) or Color3.fromRGB(255,220,80)
         else
             moneyTime.Text = "💰 Procurando Evento..."
         end
@@ -444,7 +396,7 @@ task.spawn(function()
 end)
 
 -- =============================================
--- TP VIP GUI (manual com Q / Z) - CORRIGIDO
+-- TP VIP GUI + Controles Q / Z
 -- =============================================
 local vipPos = {
     Vector3.new(152.51, 6.85, -134.78),
@@ -460,15 +412,15 @@ local vipPos = {
 }
 
 local vipNames = {
-    "VIP", "VIP 1", "VIP 2", "VIP 3", "VIP 4", "VIP 5",
-    "VIP 6", "VIP 7", "VIP 8", "VIP FINAL"
+    "VIP", "VIP 1", "VIP 2", "VIP 3", "VIP 4",
+    "VIP 5", "VIP 6", "VIP 7", "VIP 8", "VIP FINAL"
+}
 
 local curIndex = 0
 local isTweening = false
 
--- Cria GUI só depois de um delay (anti-lag)
 task.spawn(function()
-    task.wait(3)
+    task.wait(2)
     
     local tpGui = Instance.new("ScreenGui")
     tpGui.Name = "VIPTPGui"
@@ -505,12 +457,12 @@ task.spawn(function()
 
     local function updateStatus()
         if curIndex == 0 then
-            statusLabel.Text = "Q → Próxima zona\nZ → Zona anterior\nNenhuma selecionada"
+            statusLabel.Text = "Q → Próxima   Z → Anterior\nNenhuma selecionada"
         else
-            statusLabel.Text = "Q → Próxima zona\nZ → Zona anterior\n" ..
-                               "Zona atual: <font color='rgb(255,220,100)'>" .. 
-                               curIndex .. "/" .. #vipPos .. " - " .. (vipNames[curIndex] or "?") .. 
-                               "</font>\n" .. (isTweening and "<font color='rgb(255,100,100)'>MOVENDO...</font>" or "<font color='rgb(100,255,100)'>PRONTO</font>")
+            statusLabel.Text = "Q → Próxima   Z → Anterior\n" ..
+                               "<font color='rgb(255,220,100)'>Zona " .. curIndex .. "/" .. #vipPos .. 
+                               " - " .. (vipNames[curIndex] or "?") .. "</font>\n" ..
+                               (isTweening and "<font color='rgb(255,100,100)'>MOVENDO...</font>" or "<font color='rgb(100,255,100)'>PRONTO</font>")
         end
     end
     updateStatus()
@@ -530,22 +482,15 @@ task.spawn(function()
 
         local targetPos = vipPos[targetIndex] + Vector3.new(0, 3.5, 0)
         local distance = (hrp.Position - targetPos).Magnitude
-        local tweenTime = math.clamp(distance / 800, 0.25, 1.2)  -- tempo proporcional à distância
+        local tweenTime = math.clamp(distance / 800, 0.25, 1.2)
 
         notify("Indo para: " .. (vipNames[targetIndex] or "VIP " .. targetIndex), Color3.fromRGB(255, 180, 60))
 
-        local tweenInfo = TweenInfo.new(
-            tweenTime,
-            Enum.EasingStyle.Linear,
-            Enum.EasingDirection.Out
-        )
-
-        local tween = TS:Create(hrp, tweenInfo, {
-            CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)  -- olha pra frente/oposto
+        local tween = TS:Create(hrp, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), {
+            CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
         })
 
         tween:Play()
-
         tween.Completed:Connect(function()
             isTweening = false
             curIndex = targetIndex
@@ -553,24 +498,27 @@ task.spawn(function()
         end)
     end
 
-    -- Controles Q e Z
-    local connection
-    connection = UIS.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed or not scriptFullyLoaded then return end
+    -- Controles Q e Z (apenas aqui)
+    UIS.InputBegan:Connect(function(input, gpe)
+        if gpe or not scriptFullyLoaded then return end
         
-        if input.KeyCode == Enum.KeyCode.Q then
-            local nextIndex = curIndex + 1
-            if nextIndex > #vipPos then nextIndex = 1 end  -- volta pro 1 se passar do último
-            smoothTP(nextIndex)
+        local key = input.KeyCode
+        
+        if key == Enum.KeyCode.Q then
+            local next = curIndex + 1
+            if next > #vipPos then next = 1 end
+            smoothTP(next)
             
-        elseif input.KeyCode == Enum.KeyCode.Z then
-            local prevIndex = curIndex - 1
-            if prevIndex < 1 then prevIndex = #vipPos end  -- vai pro último se passar do 1
-            smoothTP(prevIndex)
+        elseif key == Enum.KeyCode.Z then
+            local prev = curIndex - 1
+            if prev < 1 then prev = #vipPos end
+            smoothTP(prev)
+            
+        elseif key == Enum.KeyCode.RightShift then
+            smoothTP(1)
         end
     end)
 
-    -- Reset ao morrer
     local function onDied()
         curIndex = 0
         isTweening = false
@@ -580,22 +528,17 @@ task.spawn(function()
 
     if plr.Character then
         local hum = plr.Character:FindFirstChild("Humanoid")
-        if hum then
-            hum.Died:Connect(onDied)
-        end
+        if hum then hum.Died:Connect(onDied) end
     end
-
     plr.CharacterAdded:Connect(function(char)
-        task.wait(0.5)
+        task.wait(0.4)
         local hum = char:WaitForChild("Humanoid", 5)
-        if hum then
-            hum.Died:Connect(onDied)
-        end
-        -- NÃO teleporta automaticamente aqui
+        if hum then hum.Died:Connect(onDied) end
     end)
 end)
+
 -- =============================================
--- Controles gerais
+-- Controles gerais (sem Q/Z duplicados)
 -- =============================================
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe or not scriptFullyLoaded then return end
@@ -607,17 +550,13 @@ UIS.InputBegan:Connect(function(input, gpe)
         hopServer()
     elseif k == Enum.KeyCode.G then 
         autoCollect = not autoCollect
-        notify(autoCollect and "AUTO-COLLECT: ON" or "AUTO-COLLECT: OFF", 
-               autoCollect and Color3.fromRGB(255, 210, 0) or Color3.fromRGB(200, 200, 200))
-    elseif k == Enum.KeyCode.Q then 
-        smoothTP(curIndex + 1)
-    elseif k == Enum.KeyCode.Z then 
-        smoothTP(curIndex - 1)
-    elseif k == Enum.KeyCode.RightShift then 
-        smoothTP(1)
-    end
-    
-    if k == Enum.KeyCode.W then controls.W = 1
+        if autoCollect then
+            startAutoCollect()
+            notify("AUTO COLLECT 40 SLOTS: ON", Color3.fromRGB(255, 210, 0))
+        else
+            notify("AUTO COLLECT: OFF", Color3.fromRGB(200, 200, 200))
+        end
+    elseif k == Enum.KeyCode.W then controls.W = 1
     elseif k == Enum.KeyCode.S then controls.S = 1
     elseif k == Enum.KeyCode.A then controls.A = 1
     elseif k == Enum.KeyCode.D then controls.D = 1
@@ -636,39 +575,30 @@ UIS.InputEnded:Connect(function(input)
 end)
 
 -- =============================================
--- Respawn / Character Added
+-- Character Added / Respawn
 -- =============================================
 local function onCharacterAdded(char)
-    task.wait(0.8)  -- OTIMIZAÇÃO: pequeno delay ao respawn
+    task.wait(0.6)
     applyGodMode()
     enableInfiniteZoom()
 end
 
-if plr.Character then 
-    onCharacterAdded(plr.Character) 
-end
+if plr.Character then onCharacterAdded(plr.Character) end
 plr.CharacterAdded:Connect(onCharacterAdded)
 
 -- =============================================
 -- Remove VIPWalls
 -- =============================================
-local function removeVIPWalls()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.Name:find("VIPWalls") then
+task.spawn(function()
+    task.wait(3)
+    local function tryRemove(obj)
+        if obj.Name == "VIPWalls" and obj:IsA("Model") then
             obj:Destroy()
         end
     end
-end
-
-task.spawn(function()
-    task.wait(5)  -- OTIMIZAÇÃO: delay para remoção
-    removeVIPWalls()
-    workspace.DescendantAdded:Connect(function(obj)
-        if obj.Name:find("VIPWalls") then
-            task.wait(0.2)
-            obj:Destroy()
-        end
-    end)
+    
+    for _, obj in workspace:GetDescendants() do tryRemove(obj) end
+    workspace.DescendantAdded:Connect(tryRemove)
 end)
 
 -- =============================================
@@ -694,7 +624,7 @@ local detected = {}
 
 local function getBaseFolder(path)
     local current = workspace
-    for _, name in ipairs(path) do
+    for _, name in path do
         current = current:FindFirstChild(name)
         if not current then return nil end
     end
@@ -702,12 +632,12 @@ local function getBaseFolder(path)
 end
 
 local function getBrainrotName(rendered)
-    for _, v in ipairs(rendered:GetChildren()) do
-        if v.Name ~= "Root" and v.Name ~= "UniversalHighlight" and v.Name ~= "UniversalBillboard" and (v:IsA("Model") or v:IsA("BasePart")) then
+    for _, v in rendered:GetChildren() do
+        if v.Name ~= "Root" and v.Name ~= "UniversalHighlight" and v.Name ~= "UniversalBillboard" then
             return v.Name
         end
     end
-    return "UNKNOWN BRAINROT"
+    return "UNKNOWN"
 end
 
 local function createHighlight(obj, color)
@@ -740,10 +670,13 @@ local function createBillboard(obj, label, emoji, color)
     txt.Font = Enum.Font.GothamBold
     
     task.spawn(function()
-        while obj.Parent and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") do
-            local d = (plr.Character.HumanoidRootPart.Position - obj:GetPivot().Position).Magnitude
-            txt.Text = emoji.." "..label.."\n📏 "..math.floor(d).." studs"
-            task.wait(0.3)  -- OTIMIZAÇÃO: update mais lento
+        while obj.Parent do
+            local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local d = (hrp.Position - obj:GetPivot().Position).Magnitude
+                txt.Text = emoji.." "..label.."\n📏 "..math.floor(d).." studs"
+            end
+            task.wait(0.4)
         end
     end)
 end
@@ -754,39 +687,38 @@ end
 
 local function applyESP()
     if not scriptFullyLoaded then return end
-    for _, target in ipairs(TARGETS) do
+    for _, target in TARGETS do
         local base = getBaseFolder(target.Path)
         if not base then continue end
         
-        for _, obj in ipairs(base:GetChildren()) do
+        for _, obj in base:GetChildren() do
             if obj.Name == target.Match and not detected[obj] then
                 detected[obj] = true
                 
                 local cfg = CONFIG[target.Type]
                 local label = target.Label or ""
-                
                 if target.IsBrainrot then
                     label = target.Type:upper() .. " – " .. getBrainrotName(obj)
                 end
                 
                 createHighlight(obj, cfg.Color)
                 createBillboard(obj, label, cfg.Emoji, cfg.Color)
-                notifyEvent(cfg.Emoji .. " " .. label .. " SPAWNOU!")
+                notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
             end
         end
     end
 end
 
 task.spawn(function()
-    task.wait(7)  -- OTIMIZAÇÃO: delay para ESP
+    task.wait(4)
     applyESP()
     workspace.DescendantAdded:Connect(function()
-        task.wait(0.3)  -- OTIMIZAÇÃO: delay em added
+        task.wait(0.25)
         applyESP()
     end)
 end)
 
 -- =============================================
--- Inicialização final
+-- Final
 -- =============================================
-notify("HAX INICIANDO... Aguarde 5-8s", Color3.fromRGB(255, 200, 0))
+notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0))
