@@ -677,8 +677,8 @@ UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     local k = input.KeyCode
     if k == Enum.KeyCode.F then toggleFly()
-    elseif k == Enum.KeyCode.T then serverHop()
-    elseif k == Enum.KeyCode.G then 
+   elseif k == Enum.KeyCode.T then hopServer()
+   elseif k == Enum.KeyCode.G then 
         autoCollect = not autoCollect
         notify(autoCollect and "AUTO-COLLECT: ON" or "AUTO-COLLECT: OFF", autoCollect and Color3.fromRGB(255, 210, 0) or Color3.fromRGB(200, 200, 200))
     elseif k == Enum.KeyCode.Q then smoothTP(curIndex + 1)
