@@ -396,7 +396,7 @@ task.spawn(function()
 end)
 
 -- =============================================
--- TP VIP GUI + Controles Q / Z (MÁXIMA RESPONSIVIDADE - spam livre)
+-- TP VIP INSTANTÂNEO - MAIS RÁPIDO E RESPONSIVO (Q avança, Z volta)
 -- =============================================
 local vipPos = {
     Vector3.new(152.51, 6.85, -134.78),
@@ -417,32 +417,11 @@ local vipNames = {
 }
 
 local curIndex = 0
-local lastTP = 0
-local DEBOUNCE_TIME = 0.05   -- tempo mínimo entre TPs (evita travar se spammar)
-
--- Cache do personagem pra ficar mais rápido
-local cachedHRP = nil
-
-local function getHRP()
-    if cachedHRP and cachedHRP.Parent then
-        return cachedHRP
-    end
-    
-    local char = plr.Character
-    if not char then return nil end
-    
-    cachedHRP = char:FindFirstChild("HumanoidRootPart")
-    return cachedHRP
-end
-
--- Atualiza cache quando personagem renasce
-plr.CharacterAdded:Connect(function(char)
-    task.wait(0.3)
-    cachedHRP = char:WaitForChild("HumanoidRootPart", 5)
-end)
+local lastTPTime = 0
+local DEBOUNCE_TIME = 0.08  -- tempo mínimo entre TPs (evita travar se spammar)
 
 task.spawn(function()
-    task.wait(1.5)  -- carrega rápido, mas dá tempo pro GUI aparecer
+    task.wait(1.5)  -- delay menor pra GUI aparecer rápido
     
     local tpGui = Instance.new("ScreenGui")
     tpGui.Name = "VIPTPGui"
@@ -474,120 +453,80 @@ task.spawn(function()
     statusLabel.TextScaled = true
     statusLabel.Font = Enum.Font.Gotham
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-    statusLabel.TextYAlignment = Enum.TextYAlignment.Top
     statusLabel.RichText = true
 
     local function updateStatus()
         if curIndex == 0 then
             statusLabel.Text = "Q → Próxima   Z → Anterior"
         else
-            statusLabel.Text = "Zona " .. curIndex .. "/" .. #vipPos .. " - " ..
-                               "<font color='rgb(255,220,100)'>" .. (vipNames[curIndex] or "?") .. "</font>"
+            statusLabel.Text = "<font color='rgb(255,220,100)'>Zona " .. curIndex .. "/" .. #vipPos .. 
+                               " - " .. (vipNames[curIndex] or "?") .. "</font>"
         end
     end
     updateStatus()
 
-    local function instantTP(targetIndex)
-        if tick() - lastTP < DEBOUNCE_TIME then return end
+    local function fastTP(targetIndex)
+        if tick() - lastTPTime < DEBOUNCE_TIME then return end
         if targetIndex < 1 or targetIndex > #vipPos then return end
 
-        local hrp = getHRP()
-        if not hrp then
-            notify("Personagem não carregado, tenta de novo", Color3.fromRGB(255, 150, 80))
-            return
-        end
-
-        local targetPos = vipPos[targetIndex] + Vector3.new(0, 3.8, 0)
+        local char = plr.Character
+        if not char then return end
         
-        -- TP instantâneo + orientação
+        local hrp = char:WaitForChild("HumanoidRootPart", 0.2)
+        if not hrp then return end
+
+        local targetPos = vipPos[targetIndex] + Vector3.new(0, 4, 0)  -- +4 pra evitar ficar no chão
+        
+        -- TP instantâneo
         hrp.CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
         
         curIndex = targetIndex
-        lastTP = tick()
+        lastTPTime = tick()
         updateStatus()
         
-        -- Notificação opcional (pode comentar se ficar irritante)
-        -- notify("→ Zona " .. targetIndex, Color3.fromRGB(120, 255, 180))
+        -- Notificação curta
+        notify("→ Zona " .. curIndex, Color3.fromRGB(120, 255, 120))
     end
 
-    -- Bind principal de input
-    local inputConn
-    inputConn = UIS.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
+    -- Input super responsivo
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed or not scriptFullyLoaded then return end
         
         local key = input.KeyCode
         
         if key == Enum.KeyCode.Q then
             local nextIdx = curIndex + 1
             if nextIdx > #vipPos then nextIdx = 1 end
-            instantTP(nextIdx)
+            fastTP(nextIdx)
             
         elseif key == Enum.KeyCode.Z then
             local prevIdx = curIndex - 1
             if prevIdx < 1 then prevIdx = #vipPos end
-            instantTP(prevIdx)
+            fastTP(prevIdx)
             
         elseif key == Enum.KeyCode.RightShift then
-            instantTP(1)
+            fastTP(1)
         end
     end)
 
-    -- Reset ao morrer
     local function onDied()
         curIndex = 0
-        lastTP = 0
+        lastTPTime = 0
         updateStatus()
+        notify("Morreu → TP resetado", Color3.fromRGB(255, 100, 100))
     end
-
-    plr.CharacterAdded:Connect(function(char)
-        local hum = char:WaitForChild("Humanoid", 8)
-        if hum then
-            hum.Died:Connect(onDied)
-        end
-    end)
 
     if plr.Character then
         local hum = plr.Character:FindFirstChild("Humanoid")
         if hum then hum.Died:Connect(onDied) end
     end
-end)
--- =============================================
--- Controles gerais (sem Q/Z duplicados)
--- =============================================
-UIS.InputBegan:Connect(function(input, gpe)
-    if gpe or not scriptFullyLoaded then return end
-    local k = input.KeyCode
     
-    if k == Enum.KeyCode.F then 
-        toggleFly()
-    elseif k == Enum.KeyCode.T then 
-        hopServer()
-    elseif k == Enum.KeyCode.G then 
-        autoCollect = not autoCollect
-        if autoCollect then
-            startAutoCollect()
-            notify("AUTO COLLECT 40 SLOTS: ON", Color3.fromRGB(255, 210, 0))
-        else
-            notify("AUTO COLLECT: OFF", Color3.fromRGB(200, 200, 200))
-        end
-    elseif k == Enum.KeyCode.W then controls.W = 1
-    elseif k == Enum.KeyCode.S then controls.S = 1
-    elseif k == Enum.KeyCode.A then controls.A = 1
-    elseif k == Enum.KeyCode.D then controls.D = 1
-    elseif k == Enum.KeyCode.Space then controls.Space = 1
-    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 1 end
+    plr.CharacterAdded:Connect(function(char)
+        task.wait(0.3)
+        local hum = char:WaitForChild("Humanoid", 3)
+        if hum then hum.Died:Connect(onDied) end
+    end)
 end)
-
-UIS.InputEnded:Connect(function(input)
-    local k = input.KeyCode
-    if k == Enum.KeyCode.W then controls.W = 0
-    elseif k == Enum.KeyCode.S then controls.S = 0
-    elseif k == Enum.KeyCode.A then controls.A = 0
-    elseif k == Enum.KeyCode.D then controls.D = 0
-    elseif k == Enum.KeyCode.Space then controls.Space = 0
-    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 0 end
-end)
-
 -- =============================================
 -- Character Added / Respawn
 -- =============================================
