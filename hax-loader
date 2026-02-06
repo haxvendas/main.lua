@@ -396,7 +396,7 @@ task.spawn(function()
 end)
 
 -- =============================================
--- TP VIP GUI + Controles Q / Z (INSTANTÂNEO - spam livre)
+-- TP VIP GUI + Controles Q / Z (MÁXIMA RESPONSIVIDADE - spam livre)
 -- =============================================
 local vipPos = {
     Vector3.new(152.51, 6.85, -134.78),
@@ -417,9 +417,32 @@ local vipNames = {
 }
 
 local curIndex = 0
+local lastTP = 0
+local DEBOUNCE_TIME = 0.05   -- tempo mínimo entre TPs (evita travar se spammar)
+
+-- Cache do personagem pra ficar mais rápido
+local cachedHRP = nil
+
+local function getHRP()
+    if cachedHRP and cachedHRP.Parent then
+        return cachedHRP
+    end
+    
+    local char = plr.Character
+    if not char then return nil end
+    
+    cachedHRP = char:FindFirstChild("HumanoidRootPart")
+    return cachedHRP
+end
+
+-- Atualiza cache quando personagem renasce
+plr.CharacterAdded:Connect(function(char)
+    task.wait(0.3)
+    cachedHRP = char:WaitForChild("HumanoidRootPart", 5)
+end)
 
 task.spawn(function()
-    task.wait(2)
+    task.wait(1.5)  -- carrega rápido, mas dá tempo pro GUI aparecer
     
     local tpGui = Instance.new("ScreenGui")
     tpGui.Name = "VIPTPGui"
@@ -427,7 +450,7 @@ task.spawn(function()
     tpGui.Parent = plr:WaitForChild("PlayerGui")
 
     local frame = Instance.new("Frame", tpGui)
-    frame.Size = UDim2.new(0, 240, 0, 80)
+    frame.Size = UDim2.new(0, 240, 0, 70)
     frame.Position = UDim2.new(0, 15, 0, 15)
     frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
     frame.BorderSizePixel = 0
@@ -438,7 +461,7 @@ task.spawn(function()
     local title = Instance.new("TextLabel", frame)
     title.Size = UDim2.new(1, 0, 0, 25)
     title.BackgroundColor3 = Color3.fromRGB(180, 100, 30)
-    title.Text = " TP VIP INSTANTÂNEO "
+    title.Text = " TP VIP RÁPIDO "
     title.TextColor3 = Color3.new(1,1,1)
     title.Font = Enum.Font.GothamBold
     title.TextScaled = true
@@ -447,7 +470,7 @@ task.spawn(function()
     statusLabel.Size = UDim2.new(1, -10, 1, -30)
     statusLabel.Position = UDim2.new(0, 5, 0, 25)
     statusLabel.BackgroundTransparency = 1
-    statusLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
+    statusLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
     statusLabel.TextScaled = true
     statusLabel.Font = Enum.Font.Gotham
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -456,38 +479,41 @@ task.spawn(function()
 
     local function updateStatus()
         if curIndex == 0 then
-            statusLabel.Text = "Q → Próxima   Z → Anterior\nNenhuma selecionada"
+            statusLabel.Text = "Q → Próxima   Z → Anterior"
         else
-            statusLabel.Text = "Q → Próxima   Z → Anterior\n" ..
-                               "<font color='rgb(255,220,100)'>Zona " .. curIndex .. "/" .. #vipPos .. 
-                               " - " .. (vipNames[curIndex] or "?") .. "</font>"
+            statusLabel.Text = "Zona " .. curIndex .. "/" .. #vipPos .. " - " ..
+                               "<font color='rgb(255,220,100)'>" .. (vipNames[curIndex] or "?") .. "</font>"
         end
     end
     updateStatus()
 
     local function instantTP(targetIndex)
+        if tick() - lastTP < DEBOUNCE_TIME then return end
         if targetIndex < 1 or targetIndex > #vipPos then return end
 
-        local char = plr.Character
-        if not char then return end
-        
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
+        local hrp = getHRP()
+        if not hrp then
+            notify("Personagem não carregado, tenta de novo", Color3.fromRGB(255, 150, 80))
+            return
+        end
 
-        local targetPos = vipPos[targetIndex] + Vector3.new(0, 3.5, 0)
+        local targetPos = vipPos[targetIndex] + Vector3.new(0, 3.8, 0)
         
-        -- Teleporte instantâneo
+        -- TP instantâneo + orientação
         hrp.CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
         
         curIndex = targetIndex
+        lastTP = tick()
         updateStatus()
         
-        notify("TP → " .. (vipNames[targetIndex] or "VIP " .. targetIndex), Color3.fromRGB(100, 255, 180))
+        -- Notificação opcional (pode comentar se ficar irritante)
+        -- notify("→ Zona " .. targetIndex, Color3.fromRGB(120, 255, 180))
     end
 
-    -- Controles Q e Z (spam livre)
-    UIS.InputBegan:Connect(function(input, gpe)
-        if gpe or not scriptFullyLoaded then return end
+    -- Bind principal de input
+    local inputConn
+    inputConn = UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
         
         local key = input.KeyCode
         
@@ -506,23 +532,25 @@ task.spawn(function()
         end
     end)
 
+    -- Reset ao morrer
     local function onDied()
         curIndex = 0
+        lastTP = 0
         updateStatus()
-        notify("Morreu → TP VIP resetado", Color3.fromRGB(255, 80, 80))
     end
+
+    plr.CharacterAdded:Connect(function(char)
+        local hum = char:WaitForChild("Humanoid", 8)
+        if hum then
+            hum.Died:Connect(onDied)
+        end
+    end)
 
     if plr.Character then
         local hum = plr.Character:FindFirstChild("Humanoid")
         if hum then hum.Died:Connect(onDied) end
     end
-    plr.CharacterAdded:Connect(function(char)
-        task.wait(0.4)
-        local hum = char:WaitForChild("Humanoid", 5)
-        if hum then hum.Died:Connect(onDied) end
-    end)
 end)
-
 -- =============================================
 -- Controles gerais (sem Q/Z duplicados)
 -- =============================================
