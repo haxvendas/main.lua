@@ -330,14 +330,9 @@ local UIS = UserInputService
 
 -- NOTIFY
 local function notifyVIP(txt)
-    pcall(function()
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "TP VIP",
-            Text = txt,
-            Duration = 2
-        })
-    end)
+    notify(txt, Color3.fromRGB(255, 170, 0))
 end
+
 
 -- POSIÇÕES VIP
 local vipPos = {
@@ -570,13 +565,7 @@ local TARGETS = {
 -- ================================
 
 local function notifyEvent(text)
-   pcall(function()
-		game.StarterGui:SetCore("SendNotification", {
-			Title = "⚠️ EVENTO DETECTADO",
-			Text = text,
-			Duration = 5
-		})
-	end)
+    notify("👁️ "..text, Color3.fromRGB(255, 60, 60))
 end
 
 -- Caminha até a pasta base
