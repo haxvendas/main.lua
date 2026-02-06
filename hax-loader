@@ -396,7 +396,7 @@ task.spawn(function()
 end)
 
 -- =============================================
--- TP VIP GUI + Controles Q / Z
+-- TP VIP GUI + Controles Q / Z (INSTANTÂNEO - spam livre)
 -- =============================================
 local vipPos = {
     Vector3.new(152.51, 6.85, -134.78),
@@ -417,7 +417,6 @@ local vipNames = {
 }
 
 local curIndex = 0
-local isTweening = false
 
 task.spawn(function()
     task.wait(2)
@@ -439,7 +438,7 @@ task.spawn(function()
     local title = Instance.new("TextLabel", frame)
     title.Size = UDim2.new(1, 0, 0, 25)
     title.BackgroundColor3 = Color3.fromRGB(180, 100, 30)
-    title.Text = " TP VIP MANUAL "
+    title.Text = " TP VIP INSTANTÂNEO "
     title.TextColor3 = Color3.new(1,1,1)
     title.Font = Enum.Font.GothamBold
     title.TextScaled = true
@@ -461,14 +460,12 @@ task.spawn(function()
         else
             statusLabel.Text = "Q → Próxima   Z → Anterior\n" ..
                                "<font color='rgb(255,220,100)'>Zona " .. curIndex .. "/" .. #vipPos .. 
-                               " - " .. (vipNames[curIndex] or "?") .. "</font>\n" ..
-                               (isTweening and "<font color='rgb(255,100,100)'>MOVENDO...</font>" or "<font color='rgb(100,255,100)'>PRONTO</font>")
+                               " - " .. (vipNames[curIndex] or "?") .. "</font>"
         end
     end
     updateStatus()
 
-    local function smoothTP(targetIndex)
-        if isTweening then return end
+    local function instantTP(targetIndex)
         if targetIndex < 1 or targetIndex > #vipPos then return end
 
         local char = plr.Character
@@ -477,51 +474,40 @@ task.spawn(function()
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        isTweening = true
-        updateStatus()
-
         local targetPos = vipPos[targetIndex] + Vector3.new(0, 3.5, 0)
-        local distance = (hrp.Position - targetPos).Magnitude
-        local tweenTime = math.clamp(distance / 800, 0.25, 1.2)
-
-        notify("Indo para: " .. (vipNames[targetIndex] or "VIP " .. targetIndex), Color3.fromRGB(255, 180, 60))
-
-        local tween = TS:Create(hrp, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), {
-            CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
-        })
-
-        tween:Play()
-        tween.Completed:Connect(function()
-            isTweening = false
-            curIndex = targetIndex
-            updateStatus()
-        end)
+        
+        -- Teleporte instantâneo
+        hrp.CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
+        
+        curIndex = targetIndex
+        updateStatus()
+        
+        notify("TP → " .. (vipNames[targetIndex] or "VIP " .. targetIndex), Color3.fromRGB(100, 255, 180))
     end
 
-    -- Controles Q e Z (apenas aqui)
+    -- Controles Q e Z (spam livre)
     UIS.InputBegan:Connect(function(input, gpe)
         if gpe or not scriptFullyLoaded then return end
         
         local key = input.KeyCode
         
         if key == Enum.KeyCode.Q then
-            local next = curIndex + 1
-            if next > #vipPos then next = 1 end
-            smoothTP(next)
+            local nextIdx = curIndex + 1
+            if nextIdx > #vipPos then nextIdx = 1 end
+            instantTP(nextIdx)
             
         elseif key == Enum.KeyCode.Z then
-            local prev = curIndex - 1
-            if prev < 1 then prev = #vipPos end
-            smoothTP(prev)
+            local prevIdx = curIndex - 1
+            if prevIdx < 1 then prevIdx = #vipPos end
+            instantTP(prevIdx)
             
         elseif key == Enum.KeyCode.RightShift then
-            smoothTP(1)
+            instantTP(1)
         end
     end)
 
     local function onDied()
         curIndex = 0
-        isTweening = false
         updateStatus()
         notify("Morreu → TP VIP resetado", Color3.fromRGB(255, 80, 80))
     end
