@@ -418,62 +418,69 @@ local CONFIG = {
 }
 
 -- ================================
--- LISTA DE ALVOS (CAMINHO COMPLETO)
+-- ALVOS
 -- ================================
 
 local TARGETS = {
 	-- LUCKY BLOCKS
 	{
-		Path = {"ActiveLuckyBlocks", "EventSpawnLuckyBlock_Celestial"},
+		Path = {"ActiveLuckyBlocks"},
+		Match = "EventSpawnLuckyBlock_Celestial",
 		Type = "Celestial",
 		Label = "CELESTIAL LUCKY BLOCK"
 	},
 	{
-		Path = {"ActiveLuckyBlocks", "EventSpawnLuckyBlock_Divine"},
+		Path = {"ActiveLuckyBlocks"},
+		Match = "EventSpawnLuckyBlock_Divine",
 		Type = "Divine",
 		Label = "DIVINE LUCKY BLOCK"
 	},
 
 	-- EVENTOS
 	{
-		Path = {"ActiveLuckyBlocks", "SnakeWavesEventLuckyBlock_Celestial"},
+		Path = {"ActiveLuckyBlocks"},
+		Match = "SnakeWavesEventLuckyBlock_Celestial",
 		Type = "Celestial",
 		Label = "CELESTIAL SNAKE WAVES"
 	},
 	{
-		Path = {"ActiveLuckyBlocks", "SnakeWavesEventLuckyBlock_Divine"},
+		Path = {"ActiveLuckyBlocks"},
+		Match = "SnakeWavesEventLuckyBlock_Divine",
 		Type = "Divine",
 		Label = "DIVINE SNAKE WAVES"
 	},
 	{
-		Path = {"ActiveLuckyBlocks", "PortalsEventLuckyBlock_Celestial"},
+		Path = {"ActiveLuckyBlocks"},
+		Match = "PortalsEventLuckyBlock_Celestial",
 		Type = "Celestial",
 		Label = "CELESTIAL PORTAL"
 	},
 	{
-		Path = {"ActiveLuckyBlocks", "PortalsEventLuckyBlock_Divine"},
+		Path = {"ActiveLuckyBlocks"},
+		Match = "PortalsEventLuckyBlock_Divine",
 		Type = "Divine",
 		Label = "DIVINE PORTAL"
 	},
 
-	-- BRAINROTS (LOCAL NOVO)
+	-- BRAINROTS
 	{
-		Path = {"ActiveBrainrots", "Celestial", "RenderedBrainrot"},
+		Path = {"ActiveBrainrots", "Celestial"},
+		Match = "RenderedBrainrot",
 		Type = "Celestial",
-		Label = "BRAINROT"
+		IsBrainrot = true
 	},
 	{
-		Path = {"ActiveBrainrots", "Divine", "RenderedBrainrot"},
+		Path = {"ActiveBrainrots", "Divine"},
+		Match = "RenderedBrainrot",
 		Type = "Divine",
-		Label = "BRAINROT"
+		IsBrainrot = true
 	}
 }
 
 -- ================================
--- FUNÇÕES AUXILIARES
+-- FUNÇÕES
 -- ================================
 
--- NOTIFICAÇÃO
 local function notify(text)
 	pcall(function()
 		game.StarterGui:SetCore("SendNotification", {
@@ -484,21 +491,19 @@ local function notify(text)
 	end)
 end
 
--- BUSCAR OBJETO PELO CAMINHO
-local function findByPath(path)
+-- Caminha até a pasta base
+local function getBaseFolder(path)
 	local current = workspace
 	for _, name in ipairs(path) do
 		current = current:FindFirstChild(name)
-		if not current then
-			return nil
-		end
+		if not current then return nil end
 	end
 	return current
 end
 
--- PEGAR NOME REAL DO BRAINROT (IGNORA ROOT)
-local function getBrainrotName(renderedBrainrot)
-	for _, v in ipairs(renderedBrainrot:GetChildren()) do
+-- Nome real do Brainrot (ignora Root)
+local function getBrainrotName(rendered)
+	for _, v in ipairs(rendered:GetChildren()) do
 		if v.Name ~= "Root"
 			and v.Name ~= "UniversalHighlight"
 			and v.Name ~= "UniversalBillboard"
@@ -506,7 +511,6 @@ local function getBrainrotName(renderedBrainrot)
 			return v.Name
 		end
 	end
-
 	return "UNKNOWN BRAINROT"
 end
 
@@ -514,7 +518,6 @@ end
 -- ESP VISUAL
 -- ================================
 
--- HIGHLIGHT
 local function createHighlight(obj, color)
 	if obj:FindFirstChild("UniversalHighlight") then return end
 
@@ -522,72 +525,66 @@ local function createHighlight(obj, color)
 	h.Name = "UniversalHighlight"
 	h.Adornee = obj
 	h.FillColor = color
-	h.OutlineColor = Color3.fromRGB(255, 255, 255)
+	h.OutlineColor = Color3.fromRGB(255,255,255)
 	h.FillTransparency = 0.45
-	h.OutlineTransparency = 0
 	h.Parent = obj
 end
 
--- BILLBOARD + DISTÂNCIA
 local function createBillboard(obj, label, emoji, color)
 	if obj:FindFirstChild("UniversalBillboard") then return end
 
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "UniversalBillboard"
-	billboard.Size = UDim2.new(0, 260, 0, 70)
-	billboard.StudsOffset = Vector3.new(0, 4, 0)
-	billboard.AlwaysOnTop = true
-	billboard.Parent = obj
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "UniversalBillboard"
+	bb.Size = UDim2.new(0, 260, 0, 70)
+	bb.StudsOffset = Vector3.new(0, 4, 0)
+	bb.AlwaysOnTop = true
+	bb.Parent = obj
 
-	local text = Instance.new("TextLabel")
-	text.Size = UDim2.new(1, 0, 1, 0)
-	text.BackgroundTransparency = 1
-	text.TextColor3 = color
-	text.TextStrokeTransparency = 0
-	text.TextScaled = true
-	text.Font = Enum.Font.GothamBold
-	text.Parent = billboard
+	local txt = Instance.new("TextLabel")
+	txt.Size = UDim2.new(1,0,1,0)
+	txt.BackgroundTransparency = 1
+	txt.TextColor3 = color
+	txt.TextStrokeTransparency = 0
+	txt.TextScaled = true
+	txt.Font = Enum.Font.GothamBold
+	txt.Parent = bb
 
 	task.spawn(function()
-		while obj.Parent
-			and player.Character
-			and player.Character:FindFirstChild("HumanoidRootPart") do
-
-			local dist = (
-				player.Character.HumanoidRootPart.Position
-				- obj:GetPivot().Position
-			).Magnitude
-
-			text.Text = emoji.." "..label.."\n📏 "..math.floor(dist).." studs"
+		while obj.Parent and player.Character and player.Character:FindFirstChild("HumanoidRootPart") do
+			local d = (player.Character.HumanoidRootPart.Position - obj:GetPivot().Position).Magnitude
+			txt.Text = emoji.." "..label.."\n📏 "..math.floor(d).." studs"
 			task.wait(0.2)
 		end
 	end)
 end
 
 -- ================================
--- APLICAR ESP
+-- APLICAR ESP (MULTI)
 -- ================================
 
 local detected = {}
 
 local function applyESP()
 	for _, target in ipairs(TARGETS) do
-		local obj = findByPath(target.Path)
-		if obj and not detected[obj] then
-			detected[obj] = true
+		local base = getBaseFolder(target.Path)
+		if base then
+			for _, obj in ipairs(base:GetChildren()) do
+				if obj.Name == target.Match and not detected[obj] then
+					detected[obj] = true
 
-			local cfg = CONFIG[target.Type]
-			local label = target.Label
+					local cfg = CONFIG[target.Type]
+					local label = target.Label or ""
 
-			-- BRAINROT → NOME REAL (CELESTIAL E DIVINE)
-			if table.find(target.Path, "ActiveBrainrots") then
-				local realName = getBrainrotName(obj)
-				label = target.Type:upper().." – "..realName
+					if target.IsBrainrot then
+						local realName = getBrainrotName(obj)
+						label = target.Type:upper().." – "..realName
+					end
+
+					createHighlight(obj, cfg.Color)
+					createBillboard(obj, label, cfg.Emoji, cfg.Color)
+					notify(cfg.Emoji.." "..label.." SPAWNOU!")
+				end
 			end
-
-			createHighlight(obj, cfg.Color)
-			createBillboard(obj, label, cfg.Emoji, cfg.Color)
-			notify(cfg.Emoji.." "..label.." SPAWNOU!")
 		end
 	end
 end
@@ -596,15 +593,12 @@ end
 -- EXECUÇÃO
 -- ================================
 
--- CHECK INICIAL
 applyESP()
 
--- CHECK CONTÍNUO (SPAWNS NOVOS)
 workspace.DescendantAdded:Connect(function()
-	task.wait(0.2)
+	task.wait(0.15)
 	applyESP()
 end)
-
 
 
 -- =============================================
