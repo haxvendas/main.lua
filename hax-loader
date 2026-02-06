@@ -19,6 +19,7 @@ local godConns    = {}
 local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
 
 local notifyBusy = false
+local scriptFullyLoaded = false  -- OTIMIZAÇÃO: evita rodar coisas cedo demais
 
 -- =============================================
 -- Notify Function (corrigida e única)
@@ -27,7 +28,7 @@ local function notify(msg, color)
     color = color or Color3.fromRGB(0, 170, 255)
     
     if notifyBusy then 
-        task.wait(0.4) 
+        task.wait(0.5) 
     end
     notifyBusy = true
     
@@ -68,7 +69,7 @@ local function notify(msg, color)
             Size = UDim2.new(0, 280, 0, 40)
         }):Play()
         
-        task.wait(2.8)
+        task.wait(3)
         
         local tweenOut = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {
             Size = UDim2.new(0, 0, 0, 40),
@@ -84,20 +85,42 @@ local function notify(msg, color)
 end
 
 -- =============================================
+-- Espera personagem carregar (anti-lag no início)
+-- =============================================
+local function waitForCharacter(timeout)
+    timeout = timeout or 10
+    local start = tick()
+    while not plr.Character and (tick() - start < timeout) do
+        task.wait(0.1)
+    end
+    return plr.Character
+end
+
+-- =============================================
+-- Inicialização com delay
+-- =============================================
+task.spawn(function()
+    task.wait(4)  -- OTIMIZAÇÃO: espera 4s para o jogo estabilizar
+    scriptFullyLoaded = true
+    enableInfiniteZoom()
+    applyGodMode()
+    notify("HAX LOADED! (modo anti-lag)", Color3.fromRGB(0, 170, 255))
+end)
+
+-- =============================================
 -- Infinite Zoom
 -- =============================================
 local function enableInfiniteZoom()
-    if plr then
-        plr.CameraMaxZoomDistance = 40000
-        plr.CameraMinZoomDistance = 0.5
-    end
+    if not scriptFullyLoaded then return end
+    plr.CameraMaxZoomDistance = 40000
+    plr.CameraMinZoomDistance = 0.5
 end
 
 -- =============================================
 -- CFly (tecla F)
 -- =============================================
 local function updateFly()
-    if not flying then return end
+    if not flying or not scriptFullyLoaded then return end
     local move = Vector3.new(controls.D - controls.A, controls.Space - controls.Ctrl, controls.W - controls.S)
     if move.Magnitude > 0 then 
         move = move.Unit 
@@ -113,8 +136,9 @@ local function updateFly()
 end
 
 local function toggleFly()
+    if not scriptFullyLoaded then return end
     flying = not flying
-    local char = plr.Character
+    local char = waitForCharacter()
     if not char then return end
     
     local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -137,11 +161,18 @@ end
 -- GodMode Extremo
 -- =============================================
 local function applyGodMode()
-    local char = plr.Character
+    if not scriptFullyLoaded then return end
+    local char = waitForCharacter()
     if not char then return end
     
     local hum = char:FindFirstChildOfClass("Humanoid")
     if not hum then return end
+    
+    -- Limpa conexões antigas
+    for _, conn in ipairs(godConns) do
+        if conn then conn:Disconnect() end
+    end
+    godConns = {}
     
     hum.MaxHealth = math.huge
     hum.Health = math.huge
@@ -154,7 +185,7 @@ local function applyGodMode()
     end))
     
     table.insert(godConns, hum.Died:Connect(function()
-        task.wait(0.1)
+        task.wait(0.15)
         hum.Health = math.huge
         hum:ChangeState(Enum.HumanoidStateType.GettingUp)
     end))
@@ -177,6 +208,7 @@ end
 -- Server Hop (tecla T)
 -- =============================================
 local function hopServer()
+    if not scriptFullyLoaded then return end
     notify("🔄 Procurando servidor vazio...", Color3.fromRGB(0,170,255))
 
     local success, servers = pcall(function()
@@ -237,7 +269,7 @@ local function collectMoney()
         local collectPart = item:FindFirstChild("Collect") or item:FindFirstChildWhichIsA("BasePart", true)
         if collectPart and collectPart:IsA("BasePart") then 
             hrp.CFrame = collectPart.CFrame * CFrame.new(0, 4, 0)
-            task.wait(0.12)  -- um pouco mais lento para evitar detecção
+            task.wait(0.15)  -- OTIMIZAÇÃO: mais lento para evitar detecção e lag
         end
     end
     
@@ -245,11 +277,12 @@ local function collectMoney()
 end
 
 task.spawn(function()
+    task.wait(6)  -- OTIMIZAÇÃO: começa depois
     while true do
-        if autoCollect then 
+        if autoCollect and scriptFullyLoaded then 
             pcall(collectMoney) 
         end
-        task.wait(0.45)
+        task.wait(0.6)  -- OTIMIZAÇÃO: intervalo maior
     end
 end)
 
@@ -263,12 +296,16 @@ local function instaPrompt(p)
     end
 end
 
-workspace.DescendantAdded:Connect(instaPrompt)
-for _, v in ipairs(workspace:GetDescendants()) do 
-    instaPrompt(v) 
-end
+task.spawn(function()
+    task.wait(3)  -- OTIMIZAÇÃO: delay para prompts
+    workspace.DescendantAdded:Connect(instaPrompt)
+    for _, v in ipairs(workspace:GetDescendants()) do 
+        instaPrompt(v) 
+    end
+end)
 
 UIS.JumpRequest:Connect(function()
+    if not scriptFullyLoaded then return end
     local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
     if hum then 
         hum:ChangeState(Enum.HumanoidStateType.Jumping) 
@@ -278,90 +315,93 @@ end)
 -- =============================================
 -- GUI de Timers (Celestial / Money Event) – Permanente
 -- =============================================
-if plr.PlayerGui:FindFirstChild("EventPanelClean") then
-    plr.PlayerGui.EventPanelClean:Destroy()
-end
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "EventPanelClean"
-gui.IgnoreGuiInset = true
-gui.ResetOnSpawn = false
-gui.Parent = plr:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 280, 0, 90)
-frame.Position = UDim2.new(1, -300, 1, -110)
-frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
-frame.BackgroundTransparency = 0.25
-frame.BorderSizePixel = 0
-
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
-
-local stroke = Instance.new("UIStroke", frame)
-stroke.Color = Color3.fromRGB(0, 200, 255)
-stroke.Thickness = 2.5
-
-local function createEventLabel(name, color, yPos)
-    local lbl = Instance.new("TextLabel")
-    lbl.Name = name
-    lbl.Size = UDim2.new(1, -20, 0, 35)
-    lbl.Position = UDim2.new(0, 10, 0, yPos)
-    lbl.BackgroundTransparency = 1
-    lbl.TextColor3 = color
-    lbl.TextScaled = true
-    lbl.Font = Enum.Font.GothamBold
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = frame
-    return lbl
-end
-
-local celTime = createEventLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
-local moneyTime = createEventLabel("Money", Color3.fromRGB(255, 220, 80), 45)
-
-local celestialLabel, moneyLabel = nil, nil
-
 task.spawn(function()
-    while true do
-        celestialLabel, moneyLabel = nil, nil
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
-                local t = obj.Text:lower()
-                if t:find("celestial") or t:find("appears") then 
-                    celestialLabel = obj 
-                end
-                if t:find("money") or t:find("event") or t:find("ufo") then 
-                    moneyLabel = obj 
+    task.wait(5)  -- OTIMIZAÇÃO: delay para GUI
+    if plr.PlayerGui:FindFirstChild("EventPanelClean") then
+        plr.PlayerGui.EventPanelClean:Destroy()
+    end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "EventPanelClean"
+    gui.IgnoreGuiInset = true
+    gui.ResetOnSpawn = false
+    gui.Parent = plr:WaitForChild("PlayerGui")
+
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 280, 0, 90)
+    frame.Position = UDim2.new(1, -300, 1, -110)
+    frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
+    frame.BackgroundTransparency = 0.25
+    frame.BorderSizePixel = 0
+
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
+
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(0, 200, 255)
+    stroke.Thickness = 2.5
+
+    local function createEventLabel(name, color, yPos)
+        local lbl = Instance.new("TextLabel")
+        lbl.Name = name
+        lbl.Size = UDim2.new(1, -20, 0, 35)
+        lbl.Position = UDim2.new(0, 10, 0, yPos)
+        lbl.BackgroundTransparency = 1
+        lbl.TextColor3 = color
+        lbl.TextScaled = true
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Parent = frame
+        return lbl
+    end
+
+    local celTime = createEventLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
+    local moneyTime = createEventLabel("Money", Color3.fromRGB(255, 220, 80), 45)
+
+    local celestialLabel, moneyLabel = nil, nil
+
+    task.spawn(function()
+        while true do
+            celestialLabel, moneyLabel = nil, nil
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
+                    local t = obj.Text:lower()
+                    if t:find("celestial") or t:find("appears") then 
+                        celestialLabel = obj 
+                    end
+                    if t:find("money") or t:find("event") or t:find("ufo") then 
+                        moneyLabel = obj 
+                    end
                 end
             end
+            task.wait(4)  -- OTIMIZAÇÃO: checagem mais lenta
         end
-        task.wait(2.5)
-    end
-end)
+    end)
 
-RunService.RenderStepped:Connect(function()
-    if celestialLabel and celestialLabel.Parent then
-        local txt = celestialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-        celTime.Text = "✨ " .. txt
-        if txt:find("00:") then
-            celTime.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or Color3.fromRGB(255, 150, 50)
+    RunService.RenderStepped:Connect(function()
+        if celestialLabel and celestialLabel.Parent then
+            local txt = celestialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
+            celTime.Text = "✨ " .. txt
+            if txt:find("00:") then
+                celTime.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or Color3.fromRGB(255, 150, 50)
+            else
+                celTime.TextColor3 = Color3.fromRGB(255, 150, 50)
+            end
         else
-            celTime.TextColor3 = Color3.fromRGB(255, 150, 50)
+            celTime.Text = "✨ Procurando Celestial..."
         end
-    else
-        celTime.Text = "✨ Procurando Celestial..."
-    end
-    
-    if moneyLabel and moneyLabel.Parent then
-        local txt = moneyLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-        moneyTime.Text = "💰 " .. txt
-        if txt:find("00:") then
-            moneyTime.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or Color3.fromRGB(255, 220, 80)
+        
+        if moneyLabel and moneyLabel.Parent then
+            local txt = moneyLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
+            moneyTime.Text = "💰 " .. txt
+            if txt:find("00:") then
+                moneyTime.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or Color3.fromRGB(255, 220, 80)
+            else
+                moneyTime.TextColor3 = Color3.fromRGB(255, 220, 80)
+            end
         else
-            moneyTime.TextColor3 = Color3.fromRGB(255, 220, 80)
+            moneyTime.Text = "💰 Procurando Evento..."
         end
-    else
-        moneyTime.Text = "💰 Procurando Evento..."
-    end
+    end)
 end)
 
 -- =============================================
@@ -396,83 +436,103 @@ local vipNames = {
 local curIndex = 0
 local isTweening = false
 
-local tpGui = Instance.new("ScreenGui")
-tpGui.Name = "VIPTPGui"
-tpGui.ResetOnSpawn = false
-tpGui.Parent = plr.PlayerGui
+task.spawn(function()
+    task.wait(4)  -- OTIMIZAÇÃO: delay para GUI TP
+    local tpGui = Instance.new("ScreenGui")
+    tpGui.Name = "VIPTPGui"
+    tpGui.ResetOnSpawn = false
+    tpGui.Parent = plr.PlayerGui
 
-local f = Instance.new("Frame", tpGui)
-f.Size = UDim2.new(0, 235, 0, 78)
-f.Position = UDim2.new(0, 12, 0, 12)
-f.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
-f.Active = true
-f.Draggable = true
-Instance.new("UICorner", f)
+    local f = Instance.new("Frame", tpGui)
+    f.Size = UDim2.new(0, 235, 0, 78)
+    f.Position = UDim2.new(0, 12, 0, 12)
+    f.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+    f.Active = true
+    f.Draggable = true
+    Instance.new("UICorner", f)
 
-local title = Instance.new("TextLabel", f)
-title.Size = UDim2.new(1,0,0,22)
-title.BackgroundColor3 = Color3.fromRGB(200,130,30)
-title.Text = "🌀 TP VIP by HAX"
-title.TextColor3 = Color3.new(1,1,1)
-title.TextScaled = true
-title.Font = Enum.Font.GothamBold
+    local title = Instance.new("TextLabel", f)
+    title.Size = UDim2.new(1,0,0,22)
+    title.BackgroundColor3 = Color3.fromRGB(200,130,30)
+    title.Text = "🌀 TP VIP by HAX"
+    title.TextColor3 = Color3.new(1,1,1)
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
 
-local status = Instance.new("TextLabel", f)
-status.Size = UDim2.new(1,0,1,-22)
-status.Position = UDim2.new(0,0,0,22)
-status.BackgroundTransparency = 1
-status.TextColor3 = Color3.fromRGB(170,170,255)
-status.TextScaled = true
-status.Font = Enum.Font.Gotham
-status.Text = "Q → Avança   Z ← Volta\nZona: Nenhuma selecionada\nPRONTO"
+    local status = Instance.new("TextLabel", f)
+    status.Size = UDim2.new(1,0,1,-22)
+    status.Position = UDim2.new(0,0,0,22)
+    status.BackgroundTransparency = 1
+    status.TextColor3 = Color3.fromRGB(170,170,255)
+    status.TextScaled = true
+    status.Font = Enum.Font.Gotham
+    status.Text = "Q → Avança   Z ← Volta\nZona: Nenhuma selecionada\nPRONTO"
 
-local function updateStatus()
-    if curIndex == 0 then
-        status.Text = "Q → Avança   Z ← Volta\nZona: Nenhuma selecionada\nPRONTO"
-    else
-        status.Text = string.format(
-            "Q → Avança   Z ← Volta\nZona: %d/%d - %s\n%s",
-            curIndex, #vipPos, vipNames[curIndex] or "?", 
-            isTweening and "MOVENDO..." or "PRONTO"
-        )
+    local function updateStatus()
+        if curIndex == 0 then
+            status.Text = "Q → Avança   Z ← Volta\nZona: Nenhuma selecionada\nPRONTO"
+        else
+            status.Text = string.format(
+                "Q → Avança   Z ← Volta\nZona: %d/%d - %s\n%s",
+                curIndex, #vipPos, vipNames[curIndex] or "?", 
+                isTweening and "MOVENDO..." or "PRONTO"
+            )
+        end
     end
-end
-updateStatus()
-
-local function smoothTP(index)
-    index = math.clamp(index, 0, #vipPos)
-    if index == 0 or isTweening then return end
-    
-    local char = plr.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    isTweening = true
     updateStatus()
-    
-    local target = vipPos[index] + Vector3.new(0, 4, 0)
-    local distance = (target - hrp.Position).Magnitude
-    local duration = math.max(distance / 600, 0.18)
-    
-    notify("ZONA: " .. (vipNames[index] or "VIP "..index), Color3.fromRGB(255, 170, 0))
-    
-    local tween = TS:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
-        CFrame = CFrame.lookAt(target, target + Vector3.new(0,0,-10))
-    })
-    tween:Play()
-    
-    tween.Completed:Connect(function()
-        isTweening = false
-        curIndex = index
+
+    local function smoothTP(index)
+        if not scriptFullyLoaded then return end
+        index = math.clamp(index, 0, #vipPos)
+        if index == 0 or isTweening then return end
+        
+        local char = waitForCharacter()
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        isTweening = true
         updateStatus()
-    end)
-end
+        
+        local target = vipPos[index] + Vector3.new(0, 4, 0)
+        local distance = (target - hrp.Position).Magnitude
+        local duration = math.max(distance / 600, 0.2)
+        
+        notify("ZONA: " .. (vipNames[index] or "VIP "..index), Color3.fromRGB(255, 170, 0))
+        
+        local tween = TS:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+            CFrame = CFrame.lookAt(target, target + Vector3.new(0,0,-10))
+        })
+        tween:Play()
+        
+        tween.Completed:Connect(function()
+            isTweening = false
+            curIndex = index
+            updateStatus()
+        end)
+    end
+
+    -- Reset ao morrer (sem TP auto)
+    local function onCharacter(char)
+        local hum = char:WaitForChild("Humanoid")
+        hum.Died:Connect(function()
+            curIndex = 0
+            isTweening = false
+            updateStatus()
+            notify("Morreu → resetado TP VIP", Color3.fromRGB(255, 170, 0))
+        end)
+    end
+
+    if plr.Character then
+        onCharacter(plr.Character)
+    end
+    plr.CharacterAdded:Connect(onCharacter)
+end)
 
 -- =============================================
 -- Controles gerais
 -- =============================================
 UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
+    if gpe or not scriptFullyLoaded then return end
     local k = input.KeyCode
     
     if k == Enum.KeyCode.F then 
@@ -513,11 +573,9 @@ end)
 -- Respawn / Character Added
 -- =============================================
 local function onCharacterAdded(char)
-    task.wait(0.6)
+    task.wait(0.8)  -- OTIMIZAÇÃO: pequeno delay ao respawn
     applyGodMode()
     enableInfiniteZoom()
-    updateStatus()
-    smoothTP(1)  -- vai para a primeira zona VIP ao respawn (opcional – pode remover)
 end
 
 if plr.Character then 
@@ -536,11 +594,15 @@ local function removeVIPWalls()
     end
 end
 
-removeVIPWalls()
-workspace.DescendantAdded:Connect(function(obj)
-    if obj.Name:find("VIPWalls") then
-        task.defer(obj.Destroy, obj)
-    end
+task.spawn(function()
+    task.wait(5)  -- OTIMIZAÇÃO: delay para remoção
+    removeVIPWalls()
+    workspace.DescendantAdded:Connect(function(obj)
+        if obj.Name:find("VIPWalls") then
+            task.wait(0.2)
+            obj:Destroy()
+        end
+    end)
 end)
 
 -- =============================================
@@ -615,7 +677,7 @@ local function createBillboard(obj, label, emoji, color)
         while obj.Parent and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") do
             local d = (plr.Character.HumanoidRootPart.Position - obj:GetPivot().Position).Magnitude
             txt.Text = emoji.." "..label.."\n📏 "..math.floor(d).." studs"
-            task.wait(0.25)
+            task.wait(0.3)  -- OTIMIZAÇÃO: update mais lento
         end
     end)
 end
@@ -625,6 +687,7 @@ local function notifyEvent(text)
 end
 
 local function applyESP()
+    if not scriptFullyLoaded then return end
     for _, target in ipairs(TARGETS) do
         local base = getBaseFolder(target.Path)
         if not base then continue end
@@ -648,16 +711,16 @@ local function applyESP()
     end
 end
 
-applyESP()
-workspace.DescendantAdded:Connect(function()
-    task.wait(0.12)
+task.spawn(function()
+    task.wait(7)  -- OTIMIZAÇÃO: delay para ESP
     applyESP()
+    workspace.DescendantAdded:Connect(function()
+        task.wait(0.3)  -- OTIMIZAÇÃO: delay em added
+        applyESP()
+    end)
 end)
 
 -- =============================================
 -- Inicialização final
 -- =============================================
-enableInfiniteZoom()
-applyGodMode()
-updateStatus()
-notify("HAX LOADED! | F = Fly | G = AutoCollect | T = Hop | Q/Z = TP VIP", Color3.fromRGB(0, 170, 255))
+notify("HAX INICIANDO... Aguarde 5-8s", Color3.fromRGB(255, 200, 0))
