@@ -551,17 +551,17 @@ task.spawn(function()
 end)
 
 -- =============================================
--- TP SECUNDÁRIO COM TWEEN RÁPIDO (R = Próxima, C = Anterior) - LINEAR
+-- TP SECUNDÁRIO COM TWEEN RÁPIDO (R = Próxima, C = Anterior) - LINEAR, sem ciclo
 -- =============================================
--- INSIRA ESTE BLOCO APÓS O BLOCO DO TP VIP (antes dos controles gerais)
 local vipPos2 = {
-    -- ADICIONE SUAS POSIÇÕES AQUI (igual ao VIP ou novas)
-   Vector3.new(428.90, -1.25, -336.84),  -- Exemplo: copie ou edite
-     Vector3.new(2566.71, -3.15, -337.74))
+    Vector3.new(428.90, -1.25, -336.84),
+    Vector3.new(2566.71, -3.15, -337.74)
+    -- Adicione mais posições aqui se quiser expandir depois
 }
 
 local vipNames2 = {
-    "1", " FINAL"  -- Edite os nomes
+    "SEC 1", "SEC FINAL"
+    -- Edite os nomes conforme necessário
 }
 
 local curIndex2 = 0
@@ -570,14 +570,131 @@ local lastInputTime2 = 0
 local DEBOUNCE2 = 0.12
 
 task.spawn(function()
-    task.wait(1.8)
+    task.wait(1.9)  -- pequeno delay pra não sobrepor a GUI principal
     
     local tpGui2 = Instance.new("ScreenGui")
-    tpGui2.Name = "VIPTPGui2"
+    tpGui2.Name = "SecTPGui"
     tpGui2.ResetOnSpawn = false
     tpGui2.Parent = plr:WaitForChild("PlayerGui")
 
-    local frame2 = Instance.new("Frame",
+    local frame2 = Instance.new("Frame", tpGui2)
+    frame2.Size = UDim2.new(0, 220, 0, 70)
+    frame2.Position = UDim2.new(0, 15, 0, 100)  -- abaixo da GUI principal
+    frame2.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+    frame2.BorderSizePixel = 0
+    frame2.Active = true
+    frame2.Draggable = true
+    Instance.new("UICorner", frame2).CornerRadius = UDim.new(0, 8)
+
+    local title2 = Instance.new("TextLabel", frame2)
+    title2.Size = UDim2.new(1, 0, 0, 25)
+    title2.BackgroundColor3 = Color3.fromRGB(140, 80, 180)
+    title2.Text = " TP SECUNDÁRIO "
+    title2.TextColor3 = Color3.new(1,1,1)
+    title2.Font = Enum.Font.GothamBold
+    title2.TextScaled = true
+
+    local statusLabel2 = Instance.new("TextLabel", frame2)
+    statusLabel2.Size = UDim2.new(1, -10, 1, -30)
+    statusLabel2.Position = UDim2.new(0, 5, 0, 25)
+    statusLabel2.BackgroundTransparency = 1
+    statusLabel2.TextColor3 = Color3.fromRGB(200, 180, 255)
+    statusLabel2.TextScaled = true
+    statusLabel2.Font = Enum.Font.Gotham
+    statusLabel2.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel2.RichText = true
+
+    local function updateStatus2()
+        if curIndex2 == 0 then
+            statusLabel2.Text = "R → Próxima   C → Anterior"
+        else
+            local nextTxt = (curIndex2 < #vipPos2) and "R → Próxima" or "<font color='rgb(200,200,200)'>R: Fim</font>"
+            local prevTxt = (curIndex2 > 1) and "C → Anterior" or "<font color='rgb(200,200,200)'>C: Início</font>"
+            statusLabel2.Text = nextTxt .. "   " .. prevTxt .. "\n" ..
+                                "<font color='rgb(220,200,255)'>Zona " .. curIndex2 .. "/" .. #vipPos2 .. 
+                                " - " .. (vipNames2[curIndex2] or "?") .. "</font>" ..
+                                (isTweening2 and "\n<font color='rgb(255,180,100)'>Movendo...</font>" or "")
+        end
+    end
+    updateStatus2()
+
+    local function smoothFastTP2(targetIndex)
+        if isTweening2 or tick() - lastInputTime2 < DEBOUNCE2 then return end
+        if targetIndex < 1 or targetIndex > #vipPos2 then return end
+
+        local char = plr.Character
+        if not char then return end
+        
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        isTweening2 = true
+        lastInputTime2 = tick()
+        updateStatus2()
+
+        local targetPos = vipPos2[targetIndex] + Vector3.new(0, 4, 0)
+        local distance = (hrp.Position - targetPos).Magnitude
+        local tweenTime = math.clamp(distance / 1200, 0.18, 0.55)
+
+        notify("→ SEC " .. targetIndex, Color3.fromRGB(200, 150, 255))
+
+        local tweenInfo = TweenInfo.new(
+            tweenTime,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out
+        )
+
+        local tween = TS:Create(hrp, tweenInfo, {
+            CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
+        })
+
+        tween:Play()
+
+        tween.Completed:Connect(function()
+            isTweening2 = false
+            curIndex2 = targetIndex
+            updateStatus2()
+        end)
+    end
+
+    -- Bind das teclas R e C (só aqui, sem duplicar no global)
+    UIS.InputBegan:Connect(function(input, gpe)
+        if gpe or not scriptFullyLoaded then return end
+        
+        local key = input.KeyCode
+        
+        if key == Enum.KeyCode.R then
+            local nextIdx = curIndex2 + 1
+            smoothFastTP2(nextIdx)
+            
+        elseif key == Enum.KeyCode.C then
+            local prevIdx = curIndex2 - 1
+            smoothFastTP2(prevIdx)
+            
+        elseif key == Enum.KeyCode.RightControl then  -- opcional: reset pro 1
+            smoothFastTP2(1)
+        end
+    end)
+
+    local function onDied2()
+        curIndex2 = 0
+        isTweening2 = false
+        lastInputTime2 = 0
+        updateStatus2()
+        notify("Morreu → TP SEC resetado", Color3.fromRGB(255, 120, 120))
+    end
+
+    if plr.Character then
+        local hum = plr.Character:FindFirstChild("Humanoid")
+        if hum then hum.Died:Connect(onDied2) end
+    end
+    
+    plr.CharacterAdded:Connect(function(char)
+        task.wait(0.3)
+        local hum = char:WaitForChild("Humanoid", 3)
+        if hum then hum.Died:Connect(onDied2) end
+    end)
+end)
 -- =============================================
 -- Character Added / Respawn
 -- =============================================
