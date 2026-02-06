@@ -549,6 +549,35 @@ task.spawn(function()
         if hum then hum.Died:Connect(onDied) end
     end)
 end)
+
+-- =============================================
+-- TP SECUNDÁRIO COM TWEEN RÁPIDO (R = Próxima, C = Anterior) - LINEAR
+-- =============================================
+-- INSIRA ESTE BLOCO APÓS O BLOCO DO TP VIP (antes dos controles gerais)
+local vipPos2 = {
+    -- ADICIONE SUAS POSIÇÕES AQUI (igual ao VIP ou novas)
+   Vector3.new(428.90, -1.25, -336.84),  -- Exemplo: copie ou edite
+     Vector3.new(2566.71, -3.15, -337.74))
+}
+
+local vipNames2 = {
+    "1", " FINAL"  -- Edite os nomes
+}
+
+local curIndex2 = 0
+local isTweening2 = false
+local lastInputTime2 = 0
+local DEBOUNCE2 = 0.12
+
+task.spawn(function()
+    task.wait(1.8)
+    
+    local tpGui2 = Instance.new("ScreenGui")
+    tpGui2.Name = "VIPTPGui2"
+    tpGui2.ResetOnSpawn = false
+    tpGui2.Parent = plr:WaitForChild("PlayerGui")
+
+    local frame2 = Instance.new("Frame",
 -- =============================================
 -- Character Added / Respawn
 -- =============================================
