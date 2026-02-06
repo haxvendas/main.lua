@@ -203,17 +203,12 @@ end
 -- Server Hop (T)
 -- =============================================
 local function hopServer()
-    if not scriptFullyLoaded then return end
-    notify("Tentando Server Hop...", Color3.fromRGB(0,170,255))
-
-    local success, response = pcall(function()
-        return game:HttpGetAsync("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=10")
+    notify("Tentando hop...", Color3.fromRGB(0,170,255))
+    local success, err = pcall(function()
+        Teleport:Teleport(game.PlaceId, plr)  -- hop aleatório simples como fallback
     end)
-
-    if success then
-        notify("Request OK! Resposta: " .. string.sub(response, 1, 100) .. "...", Color3.fromRGB(0,255,100))
-    else
-        notify("ERRO no HttpGet: " .. tostring(response), Color3.fromRGB(255,80,80))
+    if not success then
+        notify("Hop falhou: " .. tostring(err), Color3.fromRGB(255,80,80))
     end
 end
 
