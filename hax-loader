@@ -234,20 +234,29 @@ local function hopServer()
 end
 
 -- =============================================
--- Auto Collect (tecla G)
+-- Auto Collect 40 Slots SEM TELEPORTE (usando fireproximityprompt)
 -- =============================================
+-- Coloque isso no seu script principal, substitua a função collectMoney antiga
+
+local autoCollect = false  -- toggle
+local collectConn = nil
+
 local function getMyBase()
     local basesFolder = workspace:FindFirstChild("Bases")
     if not basesFolder then return nil end
     
-    for _, base in basesFolder:GetChildren() do
+    -- Procura pela sua base (pelo UUID ou nome)
+    local myBase = basesFolder:FindFirstChild("{cb337186-e7c6-43a1-8ba7-6e4fd656df37}")  -- UUID específico que você deu
+    if myBase then return myBase end
+    
+    -- Fallback: procura por nome do player
+    for _, base in ipairs(basesFolder:GetChildren()) do
         local titleGui = base:FindFirstChild("Title", true)
         if titleGui then
             local nameLabel = titleGui:FindFirstChild("PlayerName", true) 
                 or titleGui:FindFirstChild("Name", true) 
                 or titleGui:FindFirstChildWhichIsA("TextLabel", true)
-            
-            if nameLabel and (nameLabel.Text == plr.Name or nameLabel.Text == plr.DisplayName or nameLabel.Text:find(plr.Name, 1, true)) then
+            if nameLabel and (nameLabel.Text == plr.Name or nameLabel.Text == plr.DisplayName or nameLabel.Text:find(plr.Name)) then
                 return base
             end
         end
@@ -255,36 +264,66 @@ local function getMyBase()
     return nil
 end
 
-local function collectMoney()
+local function collectAllSlots()
     local base = getMyBase()
-    if not base then return end
+    if not base then return false end
     
-    local slots = base:FindFirstChild("Slots") or base:FindFirstChild("Collectables") or base:FindFirstChild("Drops")
-    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-    if not slots or not hrp then return end
+    local slotsFolder = base:FindFirstChild("Slots")
+    if not slotsFolder then return false end
     
-    local originalCFrame = hrp.CFrame
+    local collected = 0
     
-    for _, item in ipairs(slots:GetChildren()) do
-        local collectPart = item:FindFirstChild("Collect") or item:FindFirstChildWhichIsA("BasePart", true)
-        if collectPart and collectPart:IsA("BasePart") then 
-            hrp.CFrame = collectPart.CFrame * CFrame.new(0, 4, 0)
-            task.wait(0.15)  -- OTIMIZAÇÃO: mais lento para evitar detecção e lag
+    -- Loop pelos 40 slots (Slot1 até Slot40)
+    for i = 1, 40 do
+        local slotName = "Slot" .. i
+        local slot = slotsFolder:FindFirstChild(slotName)
+        if slot then
+            -- Tenta ProximityPrompt primeiro (mais comum)
+            local prompt = slot:FindFirstChildOfClass("ProximityPrompt")
+            if prompt and fireproximityprompt then  -- fireproximityprompt disponível no seu executor?
+                fireproximityprompt(prompt)
+                collected += 1
+            else
+                -- Fallback: ClickDetector
+                local clickDetector = slot:FindFirstChildOfClass("ClickDetector")
+                if clickDetector and firesignal then
+                    firesignal(clickDetector.MouseClick)
+                    collected += 1
+                end
+            end
         end
+        
+        task.wait(0.08)  -- Delay pequeno entre collects (anti-lag/detecção)
     end
     
-    hrp.CFrame = originalCFrame
+    return collected > 0
 end
 
-task.spawn(function()
-    task.wait(6)  -- OTIMIZAÇÃO: começa depois
-    while true do
-        if autoCollect and scriptFullyLoaded then 
-            pcall(collectMoney) 
+-- Loop auto collect (roda a cada 1s)
+local function startAutoCollect()
+    if collectConn then collectConn:Disconnect() end
+    
+    collectConn = task.spawn(function()
+        while autoCollect do
+            pcall(collectAllSlots)
+            task.wait(1)  -- Coleta completa a cada 1 segundo
         end
-        task.wait(0.6)  -- OTIMIZAÇÃO: intervalo maior
-    end
-end)
+    end)
+end
+
+-- Toggle (tecla G por exemplo)
+-- No seu UIS.InputBegan:
+-- elseif k == Enum.KeyCode.G then
+--     autoCollect = not autoCollect
+--     if autoCollect then
+--         startAutoCollect()
+--         notify("AUTO COLLECT 40 SLOTS: ON (sem TP!)", Color3.fromRGB(0, 255, 0))
+--     else
+--         notify("AUTO COLLECT: OFF", Color3.fromRGB(255, 0, 0))
+--     end
+-- end
+
+notify("Auto Collect 40 Slots pronto! (pressione G para toggle)", Color3.fromRGB(0, 255, 100))
 
 -- =============================================
 -- Insta Prompt + Infinite Jump
@@ -405,7 +444,7 @@ task.spawn(function()
 end)
 
 -- =============================================
--- TP VIP GUI (manual com Q / Z)
+-- TP VIP GUI (manual com Q / Z) - CORRIGIDO
 -- =============================================
 local vipPos = {
     Vector3.new(152.51, 3.35, -134.78),
@@ -436,96 +475,133 @@ local vipNames = {
 local curIndex = 0
 local isTweening = false
 
+-- Cria GUI só depois de um delay (anti-lag)
 task.spawn(function()
-    task.wait(4)  -- OTIMIZAÇÃO: delay para GUI TP
+    task.wait(3)
+    
     local tpGui = Instance.new("ScreenGui")
     tpGui.Name = "VIPTPGui"
     tpGui.ResetOnSpawn = false
-    tpGui.Parent = plr.PlayerGui
+    tpGui.Parent = plr:WaitForChild("PlayerGui")
 
-    local f = Instance.new("Frame", tpGui)
-    f.Size = UDim2.new(0, 235, 0, 78)
-    f.Position = UDim2.new(0, 12, 0, 12)
-    f.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
-    f.Active = true
-    f.Draggable = true
-    Instance.new("UICorner", f)
+    local frame = Instance.new("Frame", tpGui)
+    frame.Size = UDim2.new(0, 240, 0, 80)
+    frame.Position = UDim2.new(0, 15, 0, 15)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    frame.BorderSizePixel = 0
+    frame.Active = true
+    frame.Draggable = true
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
 
-    local title = Instance.new("TextLabel", f)
-    title.Size = UDim2.new(1,0,0,22)
-    title.BackgroundColor3 = Color3.fromRGB(200,130,30)
-    title.Text = "🌀 TP VIP by HAX"
+    local title = Instance.new("TextLabel", frame)
+    title.Size = UDim2.new(1, 0, 0, 25)
+    title.BackgroundColor3 = Color3.fromRGB(180, 100, 30)
+    title.Text = " TP VIP MANUAL "
     title.TextColor3 = Color3.new(1,1,1)
-    title.TextScaled = true
     title.Font = Enum.Font.GothamBold
+    title.TextScaled = true
 
-    local status = Instance.new("TextLabel", f)
-    status.Size = UDim2.new(1,0,1,-22)
-    status.Position = UDim2.new(0,0,0,22)
-    status.BackgroundTransparency = 1
-    status.TextColor3 = Color3.fromRGB(170,170,255)
-    status.TextScaled = true
-    status.Font = Enum.Font.Gotham
-    status.Text = "Q → Avança   Z ← Volta\nZona: Nenhuma selecionada\nPRONTO"
+    local statusLabel = Instance.new("TextLabel", frame)
+    statusLabel.Size = UDim2.new(1, -10, 1, -30)
+    statusLabel.Position = UDim2.new(0, 5, 0, 25)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
+    statusLabel.TextScaled = true
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.TextYAlignment = Enum.TextYAlignment.Top
+    statusLabel.RichText = true
 
     local function updateStatus()
         if curIndex == 0 then
-            status.Text = "Q → Avança   Z ← Volta\nZona: Nenhuma selecionada\nPRONTO"
+            statusLabel.Text = "Q → Próxima zona\nZ → Zona anterior\nNenhuma selecionada"
         else
-            status.Text = string.format(
-                "Q → Avança   Z ← Volta\nZona: %d/%d - %s\n%s",
-                curIndex, #vipPos, vipNames[curIndex] or "?", 
-                isTweening and "MOVENDO..." or "PRONTO"
-            )
+            statusLabel.Text = "Q → Próxima zona\nZ → Zona anterior\n" ..
+                               "Zona atual: <font color='rgb(255,220,100)'>" .. 
+                               curIndex .. "/" .. #vipPos .. " - " .. (vipNames[curIndex] or "?") .. 
+                               "</font>\n" .. (isTweening and "<font color='rgb(255,100,100)'>MOVENDO...</font>" or "<font color='rgb(100,255,100)'>PRONTO</font>")
         end
     end
     updateStatus()
 
-    local function smoothTP(index)
-        if not scriptFullyLoaded then return end
-        index = math.clamp(index, 0, #vipPos)
-        if index == 0 or isTweening then return end
+    local function smoothTP(targetIndex)
+        if isTweening then return end
+        if targetIndex < 1 or targetIndex > #vipPos then return end
+
+        local char = plr.Character
+        if not char then return end
         
-        local char = waitForCharacter()
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-        
+
         isTweening = true
         updateStatus()
-        
-        local target = vipPos[index] + Vector3.new(0, 4, 0)
-        local distance = (target - hrp.Position).Magnitude
-        local duration = math.max(distance / 600, 0.2)
-        
-        notify("ZONA: " .. (vipNames[index] or "VIP "..index), Color3.fromRGB(255, 170, 0))
-        
-        local tween = TS:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
-            CFrame = CFrame.lookAt(target, target + Vector3.new(0,0,-10))
+
+        local targetPos = vipPos[targetIndex] + Vector3.new(0, 3.5, 0)
+        local distance = (hrp.Position - targetPos).Magnitude
+        local tweenTime = math.clamp(distance / 800, 0.25, 1.2)  -- tempo proporcional à distância
+
+        notify("Indo para: " .. (vipNames[targetIndex] or "VIP " .. targetIndex), Color3.fromRGB(255, 180, 60))
+
+        local tweenInfo = TweenInfo.new(
+            tweenTime,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.Out
+        )
+
+        local tween = TS:Create(hrp, tweenInfo, {
+            CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)  -- olha pra frente/oposto
         })
+
         tween:Play()
-        
+
         tween.Completed:Connect(function()
             isTweening = false
-            curIndex = index
+            curIndex = targetIndex
             updateStatus()
         end)
     end
 
-    -- Reset ao morrer (sem TP auto)
-    local function onCharacter(char)
-        local hum = char:WaitForChild("Humanoid")
-        hum.Died:Connect(function()
-            curIndex = 0
-            isTweening = false
-            updateStatus()
-            notify("Morreu → resetado TP VIP", Color3.fromRGB(255, 170, 0))
-        end)
+    -- Controles Q e Z
+    local connection
+    connection = UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed or not scriptFullyLoaded then return end
+        
+        if input.KeyCode == Enum.KeyCode.Q then
+            local nextIndex = curIndex + 1
+            if nextIndex > #vipPos then nextIndex = 1 end  -- volta pro 1 se passar do último
+            smoothTP(nextIndex)
+            
+        elseif input.KeyCode == Enum.KeyCode.Z then
+            local prevIndex = curIndex - 1
+            if prevIndex < 1 then prevIndex = #vipPos end  -- vai pro último se passar do 1
+            smoothTP(prevIndex)
+        end
+    end)
+
+    -- Reset ao morrer
+    local function onDied()
+        curIndex = 0
+        isTweening = false
+        updateStatus()
+        notify("Morreu → TP VIP resetado", Color3.fromRGB(255, 80, 80))
     end
 
     if plr.Character then
-        onCharacter(plr.Character)
+        local hum = plr.Character:FindFirstChild("Humanoid")
+        if hum then
+            hum.Died:Connect(onDied)
+        end
     end
-    plr.CharacterAdded:Connect(onCharacter)
+
+    plr.CharacterAdded:Connect(function(char)
+        task.wait(0.5)
+        local hum = char:WaitForChild("Humanoid", 5)
+        if hum then
+            hum.Died:Connect(onDied)
+        end
+        -- NÃO teleporta automaticamente aqui
+    end)
 end)
 
 -- =============================================
