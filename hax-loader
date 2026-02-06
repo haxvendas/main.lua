@@ -297,7 +297,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 -- =============================================
--- TP VIP GUI by HAX (RESET NO 0 APENAS POR COMANDO)
+-- TP VIP GUI by HAX (MANUAL ONLY)
 -- =============================================
 
 -- SERVIÇOS
@@ -309,13 +309,15 @@ local plr = Players.LocalPlayer
 local TS = TweenService
 local UIS = UserInputService
 
--- NOTIFY SIMPLES (ajuste se já tiver o seu)
-local function notify(txt, color)
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "TP VIP",
-        Text = txt,
-        Duration = 2
-    })
+-- NOTIFY
+local function notify(txt)
+    pcall(function()
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "TP VIP",
+            Text = txt,
+            Duration = 2
+        })
+    end)
 end
 
 -- POSIÇÕES VIP
@@ -346,8 +348,9 @@ local vipNames = {
 }
 
 -- ESTADO
-local curIndex = 0 -- 👈 começa em 0 (neutro)
+local curIndex = 0
 local isTweening = false
+local manualTP = false -- 👈 CONTROLE ABSOLUTO
 
 -- GUI
 local tpGui = Instance.new("ScreenGui", plr.PlayerGui)
@@ -364,7 +367,7 @@ Instance.new("UICorner", f)
 
 local title = Instance.new("TextLabel", f)
 title.Size = UDim2.new(1,0,0,22)
-title.BackgroundColor3 = Color3.fromRGB(200, 130, 30)
+title.BackgroundColor3 = Color3.fromRGB(200,130,30)
 title.Text = "🌀 TP VIP by HAX"
 title.TextColor3 = Color3.new(1,1,1)
 title.TextScaled = true
@@ -378,7 +381,6 @@ status.TextColor3 = Color3.fromRGB(170,170,255)
 status.TextScaled = true
 status.Font = Enum.Font.Gotham
 
--- STATUS
 local function updateStatus()
     if curIndex == 0 then
         status.Text = "Q → Avança   Z ← Volta\nZona: Nenhuma selecionada\nPRONTO"
@@ -392,25 +394,27 @@ local function updateStatus()
         )
     end
 end
-
 updateStatus()
 
--- TP SUAVE (IGNORA 0)
+-- TP SUAVE (SÓ MANUAL)
 local function smoothTP(index)
-    if index == 0 then return end -- 👈 NUNCA TP AUTOMÁTICO
+    if not manualTP then return end -- 🔒 BLOQUEIO TOTAL
+    if index == 0 then return end
 
     index = math.clamp(index, 1, #vipPos)
+
     local char = plr.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp or isTweening then return end
 
     isTweening = true
+    manualTP = false -- consome o comando
     updateStatus()
 
-    local target = vipPos[index] + Vector3.new(0, 4, 0)
+    local target = vipPos[index] + Vector3.new(0,4,0)
     local duration = math.max((target - hrp.Position).Magnitude / 600, 0.15)
 
-    notify("ZONA: " .. vipNames[index], Color3.fromRGB(255,160,0))
+    notify("ZONA: " .. vipNames[index])
 
     local tween = TS:Create(
         hrp,
@@ -431,30 +435,32 @@ UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
 
     if input.KeyCode == Enum.KeyCode.Q then
+        manualTP = true
         curIndex = math.clamp(curIndex + 1, 0, #vipPos)
         smoothTP(curIndex)
 
     elseif input.KeyCode == Enum.KeyCode.Z then
+        manualTP = true
         curIndex = math.clamp(curIndex - 1, 0, #vipPos)
         smoothTP(curIndex)
     end
 end)
 
--- RESET AO MORRER (SEM TP)
+-- RESET AO MORRER (ZERO ABSOLUTO)
 local function onCharacter(char)
     local hum = char:WaitForChild("Humanoid")
     hum.Died:Connect(function()
         curIndex = 0
         isTweening = false
+        manualTP = false
         updateStatus()
-        notify("Morreu → índice resetado", Color3.fromRGB(255,80,80))
+        notify("Morreu → resetado")
     end)
 end
 
 if plr.Character then
     onCharacter(plr.Character)
 end
-
 plr.CharacterAdded:Connect(onCharacter)
 
 -- ================================
