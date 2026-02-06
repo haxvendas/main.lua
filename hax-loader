@@ -603,7 +603,6 @@ task.spawn(function()
         -- NÃO teleporta automaticamente aqui
     end)
 end)
-
 -- =============================================
 -- Controles gerais
 -- =============================================
