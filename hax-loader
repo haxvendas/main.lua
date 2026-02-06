@@ -204,28 +204,17 @@ end
 -- =============================================
 local function hopServer()
     if not scriptFullyLoaded then return end
-    notify("Procurando servidor vazio...", Color3.fromRGB(0,170,255))
+    notify("Tentando Server Hop...", Color3.fromRGB(0,170,255))
 
-    local success, servers = pcall(function()
-        return Http:JSONDecode(
-            game:HttpGetAsync(
-                "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-            )
-        )
+    local success, response = pcall(function()
+        return game:HttpGetAsync("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=10")
     end)
 
-    if success and servers and servers.data then
-        for _, v in servers.data do
-            if v.playing < v.maxPlayers and v.id ~= game.JobId then
-                notify("Indo para servidor " .. v.playing .. "/" .. v.maxPlayers, Color3.fromRGB(0,255,100))
-                Teleport:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
-                return
-            end
-        end
+    if success then
+        notify("Request OK! Resposta: " .. string.sub(response, 1, 100) .. "...", Color3.fromRGB(0,255,100))
+    else
+        notify("ERRO no HttpGet: " .. tostring(response), Color3.fromRGB(255,80,80))
     end
-
-    notify("Nenhum servidor vazio → hop aleatório", Color3.fromRGB(255,140,0))
-    Teleport:Teleport(game.PlaceId, plr)
 end
 
 -- =============================================
