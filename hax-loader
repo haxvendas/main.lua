@@ -545,12 +545,12 @@ end)
 local vipPos2 = {
     Vector3.new(428.90, -1.25, -336.84),
     Vector3.new(2566.71, -3.15, -337.74)
-    -- Adicione mais posições aqui se quiser expandir depois
+    -- Adicione mais posições aqui se quiser (ex: , Vector3.new(x,y,z))
 }
 
 local vipNames2 = {
     "SEC 1", "SEC FINAL"
-    -- Edite os nomes conforme necessário
+    -- Edite se quiser nomes melhores
 }
 
 local curIndex2 = 0
@@ -559,7 +559,7 @@ local lastInputTime2 = 0
 local DEBOUNCE2 = 0.12
 
 task.spawn(function()
-    task.wait(1.9)  -- pequeno delay pra não sobrepor a GUI principal
+    task.wait(2.0)  -- delay pra não conflitar com a GUI VIP
     
     local tpGui2 = Instance.new("ScreenGui")
     tpGui2.Name = "SecTPGui"
@@ -568,7 +568,7 @@ task.spawn(function()
 
     local frame2 = Instance.new("Frame", tpGui2)
     frame2.Size = UDim2.new(0, 220, 0, 70)
-    frame2.Position = UDim2.new(0, 15, 0, 100)  -- abaixo da GUI principal
+    frame2.Position = UDim2.new(0, 15, 0, 100)  -- abaixo da GUI principal pra não sobrepor
     frame2.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
     frame2.BorderSizePixel = 0
     frame2.Active = true
@@ -646,7 +646,7 @@ task.spawn(function()
         end)
     end
 
-    -- Bind das teclas R e C (só aqui, sem duplicar no global)
+    -- Binds só aqui (R avança, C volta)
     UIS.InputBegan:Connect(function(input, gpe)
         if gpe or not scriptFullyLoaded then return end
         
@@ -660,12 +660,12 @@ task.spawn(function()
             local prevIdx = curIndex2 - 1
             smoothFastTP2(prevIdx)
             
-        elseif key == Enum.KeyCode.RightControl then  -- opcional: reset pro 1
+        elseif key == Enum.KeyCode.RightControl then  -- opcional: vai pro 1
             smoothFastTP2(1)
         end
     end)
 
-    local function onDied2()
+    local function onDiedSec()
         curIndex2 = 0
         isTweening2 = false
         lastInputTime2 = 0
@@ -675,13 +675,13 @@ task.spawn(function()
 
     if plr.Character then
         local hum = plr.Character:FindFirstChild("Humanoid")
-        if hum then hum.Died:Connect(onDied2) end
+        if hum then hum.Died:Connect(onDiedSec) end
     end
     
     plr.CharacterAdded:Connect(function(char)
         task.wait(0.3)
         local hum = char:WaitForChild("Humanoid", 3)
-        if hum then hum.Died:Connect(onDied2) end
+        if hum then hum.Died:Connect(onDiedSec) end
     end)
 end)
 -- =============================================
