@@ -204,87 +204,77 @@ function applyGodMode()
     end))
 end
 
--- =====================================
--- SERVER HOP ROBUSTO (ANTI FREEZE)
--- =====================================
+-- ===============================
+-- RECONNECT TOGGLE (T)
+-- ===============================
 
-if not game:IsLoaded() then
-	game.Loaded:Wait()
-end
-
-local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
 local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 
-local player = Players.LocalPlayer
-local PLACE_ID = game.PlaceId
-local CURRENT_JOB = game.JobId
+local ENABLED = false
 
-local trying = false
-local visited = {}
+-- erros que NÃO devem reconectar
+local reconnectDisabledList = {
+	[Enum.ConnectionError.DisconnectLuaKick] = true,
+	[Enum.ConnectionError.DisconnectSecurityKeyMismatch] = true,
+	[Enum.ConnectionError.DisconnectNewSecurityKeyMismatch] = true,
+	[Enum.ConnectionError.DisconnectDuplicateTicket] = true,
+	[Enum.ConnectionError.DisconnectWrongVersion] = true,
+	[Enum.ConnectionError.DisconnectProtocolMismatch] = true,
+	[Enum.ConnectionError.DisconnectBadhash] = true,
+	[Enum.ConnectionError.DisconnectIllegalTeleport] = true,
+	[Enum.ConnectionError.DisconnectDuplicatePlayer] = true,
+	[Enum.ConnectionError.DisconnectCloudEditKick] = true,
+	[Enum.ConnectionError.DisconnectOnRemoteSysStats] = true,
+	[Enum.ConnectionError.DisconnectRaknetErrors] = true,
+	[Enum.ConnectionError.PlacelaunchFlooded] = true,
+	[Enum.ConnectionError.PlacelaunchHashException] = true,
+	[Enum.ConnectionError.PlacelaunchHashExpired] = true,
+	[Enum.ConnectionError.PlacelaunchUnauthorized] = true,
+	[Enum.ConnectionError.PlacelaunchUserLeft] = true,
+	[Enum.ConnectionError.PlacelaunchRestricted] = true,
+}
 
--- =========================
--- BUSCAR SERVIDORES
--- =========================
-local function getServers(cursor)
-	local url = "https://games.roblox.com/v1/games/"
-		.. PLACE_ID
-		.. "/servers/Public?sortOrder=Asc&limit=100"
-
-	if cursor then
-		url ..= "&cursor=" .. cursor
+-- ===============================
+-- TOGGLE NA TECLA T
+-- ===============================
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.T then
+		ENABLED = not ENABLED
+		warn("[RECONNECT]", ENABLED and "ATIVADO" or "DESATIVADO")
 	end
+end)
 
-	local success, result = pcall(function()
-		return HttpService:JSONDecode(game:HttpGet(url))
-	end)
+-- ===============================
+-- DETECTAR DISCONNECT
+-- ===============================
+GuiService.ErrorMessageChanged:Connect(function()
+	if not ENABLED then return end
 
-	if success then
-		return result
-	end
-	return nil
-end
+	local errorCode = GuiService:GetErrorCode()
+	local errorType = GuiService:GetErrorType()
 
--- =========================
--- SERVER HOP
--- =========================
-local function serverHop()
-	if trying then return end
-	trying = true
+	if errorType == Enum.ConnectionError.DisconnectErrors
+		and not reconnectDisabledList[errorCode] then
 
-	notify("🔄 Procurando servidor...", Color3.fromRGB(120,180,255))
+		warn("[RECONNECT] Disconnect detectado, tentando reconectar...")
 
-	task.spawn(function()
-		while true do
-			local data = getServers()
-
-			if data and data.data then
-				for _, server in ipairs(data.data) do
-					if server.id ~= CURRENT_JOB
-						and server.playing < server.maxPlayers
-						and not visited[server.id] then
-
-						visited[server.id] = true
-
-						notify("🚀 Trocando de servidor...", Color3.fromRGB(120,255,120))
-
-						pcall(function()
-							TeleportService:TeleportToPlaceInstance(
-								PLACE_ID,
-								server.id,
-								player
-							)
-						end)
-
-						return
-					end
-				end
+		task.spawn(function()
+			while ENABLED do
+				task.wait(5)
+				pcall(function()
+					TeleportService:TeleportToPlaceInstance(
+						game.PlaceId,
+						game.JobId
+					)
+				end)
 			end
+		end)
+	end
+end)
 
-			task.wait(2)
-		end
-	end)
-end
 
 
 -- =============================================
