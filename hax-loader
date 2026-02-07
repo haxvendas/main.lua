@@ -797,6 +797,25 @@ task.spawn(function()
         applyESP()
     end)
 end)
+local player = game:GetService("Players").LocalPlayer
+local backpack = player:WaitForChild("Backpack")
+
+local NOVO_TAMANHO = Vector3.new(40, 40, 40)   -- ajuste aqui o quanto quer aumentar
+
+for _, tool in ipairs(backpack:GetChildren()) do
+    if tool:IsA("Tool") then
+        local hitbox = tool:FindFirstChild("Hitbox", true)  -- procura em toda a hierarquia da tool
+        
+        if hitbox and hitbox:IsA("BasePart") then
+            hitbox.Size = NOVO_TAMANHO
+            hitbox.Transparency = 0.7               -- opcional: pra você ver o tamanho (deixe 1 se quiser invisível)
+            hitbox.CanCollide = false               -- quase sempre já é false, mas garante
+            print("Hitbox aumentada na ferramenta: " .. tool.Name)
+        end
+    end
+end
+
+print("Finalizado! Todas as hitboxes encontradas foram aumentadas.")
 -- =============================================
 -- Controles gerais (WASD + teclas especiais F/T/G)
 -- =============================================
