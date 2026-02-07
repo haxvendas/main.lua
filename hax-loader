@@ -260,6 +260,9 @@ local hopping = false
             return
         end
     end
+hopping = false
+notify("❌ Nenhum servidor válido encontrado", Color3.fromRGB(255, 100, 100))
+
 
 notify("🔁 Nenhum servidor válido, tentando novamente...", Color3.fromRGB(255, 200, 120))
 
