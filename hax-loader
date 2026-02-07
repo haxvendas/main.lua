@@ -23,6 +23,8 @@ local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
 local smoothFastTP
 local smoothFastTP2
 
+getgenv().AUTO_REJOIN_ENABLED = false
+
 local notifyBusy = false
 local scriptFullyLoaded = false
 
@@ -236,43 +238,32 @@ local reconnectDisabledList = {
 	[Enum.ConnectionError.PlacelaunchRestricted] = true,
 }
 
--- ===============================
--- TOGGLE NA TECLA T
--- ===============================
-UserInputService.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if input.KeyCode == Enum.KeyCode.T then
-		ENABLED = not ENABLED
-		warn("[RECONNECT]", ENABLED and "ATIVADO" or "DESATIVADO")
-	end
-end)
+-- ================================
+-- SISTEMA AUTO REJOIN
+-- ================================
 
--- ===============================
--- DETECTAR DISCONNECT
--- ===============================
-GuiService.ErrorMessageChanged:Connect(function()
-	if not ENABLED then return end
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
 
-	local errorCode = GuiService:GetErrorCode()
-	local errorType = GuiService:GetErrorType()
+local Players = game:GetService("Players")
+local TP      = game:GetService("TeleportService")
 
-	if errorType == Enum.ConnectionError.DisconnectErrors
-		and not reconnectDisabledList[errorCode] then
+local player = Players.LocalPlayer
+local rejoining = false
 
-		warn("[RECONNECT] Disconnect detectado, tentando reconectar...")
+local function rejoin()
+    if rejoining then return end
+    rejoining = true
 
-		task.spawn(function()
-			while ENABLED do
-				task.wait(5)
-				pcall(function()
-					TeleportService:TeleportToPlaceInstance(
-						game.PlaceId,
-						game.JobId
-					)
-				end)
-			end
-		end)
-	end
+    task.wait(2)
+    TP:Teleport(game.PlaceId, player)
+end
+
+game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+    if getgenv().AUTO_REJOIN_ENABLED and child.Name == "ErrorPrompt" then
+        rejoin()
+    end
 end)
 
 
@@ -962,6 +953,9 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
 
     elseif k == Enum.KeyCode.H then
         toggleHitboxExpander()
+
+ elseif k == Enum.KeyCode.T then
+        getgenv().AUTO_REJOIN_ENABLED = not getgenv().AUTO_REJOIN_ENABLED
 
     elseif k == Enum.KeyCode.G then
         autoCollect = not autoCollect
