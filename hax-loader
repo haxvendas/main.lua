@@ -207,7 +207,7 @@ local function hopServer()
     local success, err = pcall(function()
         Teleport:Teleport(game.PlaceId, plr)  -- hop aleatório simples como fallback
     end)
-    if not success then
+   if server.id ~= game.JobId then  -- qualquer servidor diferente do atual
         notify("Hop falhou: " .. tostring(err), Color3.fromRGB(255,80,80))
     end
 end
