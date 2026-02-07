@@ -12,11 +12,16 @@ local Teleport    = game:GetService("TeleportService")
 local plr         = Players.LocalPlayer
 local cam         = workspace.CurrentCamera
 
+local backpack = plr:WaitForChild("Backpack")
+
 local flying      = false
 local flySpeed    = 2.5
 local autoCollect = false
 local godConns    = {}
 local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
+
+local smoothFastTP
+local smoothFastTP2
 
 local notifyBusy = false
 local scriptFullyLoaded = false
@@ -433,7 +438,8 @@ task.spawn(function()
     end
     updateStatus()
 
-    local function smoothFastTP(targetIndex)
+    function smoothFastTP(targetIndex)
+
         if isTweening or tick() - lastInputTime < DEBOUNCE then return end
         if targetIndex < 1 or targetIndex > #vipPos then return end  -- BLOQUEIA ciclo!
 
@@ -558,7 +564,8 @@ task.spawn(function()
     end
     updateStatus2()
 
-    local function smoothFastTP2(targetIndex)
+    function smoothFastTP2(targetIndex)
+
         if isTweening2 or tick() - lastInputTime2 < DEBOUNCE2 then return end
         
         -- Ciclo infinito: wrap around
@@ -882,7 +889,8 @@ plr.CharacterAdded:Connect(function(char)
     end
 end)
 
-backpack.ChildAdded:Connect(function(child)
+getBackpack().ChildAdded:Connect(function(child)
+
     if hitboxExpanded and child:IsA("Tool") then
         task.wait(0.3)
         expandHitboxes()
