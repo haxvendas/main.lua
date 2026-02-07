@@ -919,7 +919,8 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     elseif k == Enum.KeyCode.H then
         toggleHitboxExpander()
 
-elseif k == Enum.KeyCode.T then hopServer()
+elseif input.KeyCode == Enum.KeyCode.T then
+        hopServer()
 
     elseif k == Enum.KeyCode.G then
         autoCollect = not autoCollect
