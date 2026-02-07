@@ -472,28 +472,7 @@ task.spawn(function()
         end)
     end
 
-    -- Input responsivo
-    UIS.InputBegan:Connect(function(input, gpe)
-        if gpe or not scriptFullyLoaded then return end
-        
-        local key = input.KeyCode
-        
-        if key == Enum.KeyCode.Q then
-            local nextIdx = curIndex + 1
-            -- Removeu: if nextIdx > #vipPos then nextIdx = 1 end
-            smoothFastTP(nextIdx)  -- Se >10, ignora automaticamente
-            
-        elseif key == Enum.KeyCode.Z then
-            local prevIdx = curIndex - 1
-            -- Removeu: if prevIdx < 1 then prevIdx = #vipPos end
-            smoothFastTP(prevIdx)  -- Se <1, ignora automaticamente
-            
-        elseif key == Enum.KeyCode.RightShift then
-            smoothFastTP(1)
-        end
-    end)
-
-    local function onDied()
+   local function onDied()
         curIndex = 0
         isTweening = false
         lastInputTime = 0
@@ -621,26 +600,7 @@ task.spawn(function()
         end)
     end
 
-    -- Binds só aqui (R avança, C volta)
-    UIS.InputBegan:Connect(function(input, gpe)
-        if gpe or not scriptFullyLoaded then return end
-        
-        local key = input.KeyCode
-        
-        if key == Enum.KeyCode.R then
-            local nextIdx = curIndex2 + 1
-            smoothFastTP2(nextIdx)
-            
-        elseif key == Enum.KeyCode.C then
-            local prevIdx = curIndex2 - 1
-            smoothFastTP2(prevIdx)
-            
-        elseif key == Enum.KeyCode.RightControl then  -- opcional: vai pro 1
-            smoothFastTP2(1)
-        end
-    end)
-
-    local function onDiedSec()
+  local function onDiedSec()
         curIndex2 = 0
         isTweening2 = false
         lastInputTime2 = 0
