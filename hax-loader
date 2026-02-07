@@ -947,33 +947,48 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
         
     elseif k == Enum.KeyCode.G then
         autoCollect = not autoCollect
+        
         if autoCollect then
-            startAutoCollect()
-            notify("AUTO COLLECT 40 SLOTS: ATIVADO", Color3.fromRGB(255, 210, 0))
+            -- Removido startAutoCollect() porque não existe
+            -- O loop while true já cuida do auto collect
+            notify("AUTO COLLECT: ATIVADO (coleta a cada ~0.4s)", Color3.fromRGB(255, 210, 0))
         else
-            if collectConn then collectConn:Disconnect() end
-            collectConn = nil
+            -- Removido collectConn porque não existe
             notify("AUTO COLLECT: DESATIVADO", Color3.fromRGB(200, 200, 200))
         end
         
-    elseif k == Enum.KeyCode.W then controls.W = 1
-    elseif k == Enum.KeyCode.S then controls.S = 1
-    elseif k == Enum.KeyCode.A then controls.A = 1
-    elseif k == Enum.KeyCode.D then controls.D = 1
-    elseif k == Enum.KeyCode.Space then controls.Space = 1
-    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 1 end
+    elseif k == Enum.KeyCode.W then 
+        controls.W = 1
+    elseif k == Enum.KeyCode.S then 
+        controls.S = 1
+    elseif k == Enum.KeyCode.A then 
+        controls.A = 1
+    elseif k == Enum.KeyCode.D then 
+        controls.D = 1
+    elseif k == Enum.KeyCode.Space then 
+        controls.Space = 1
+    elseif k == Enum.KeyCode.LeftControl then 
+        controls.Ctrl = 1 
+    end
 end)
 
 UIS.InputEnded:Connect(function(input)
     local k = input.KeyCode
-    if k == Enum.KeyCode.W then controls.W = 0
-    elseif k == Enum.KeyCode.S then controls.S = 0
-    elseif k == Enum.KeyCode.A then controls.A = 0
-    elseif k == Enum.KeyCode.D then controls.D = 0
-    elseif k == Enum.KeyCode.Space then controls.Space = 0
-    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 0 end
+    
+    if k == Enum.KeyCode.W then 
+        controls.W = 0
+    elseif k == Enum.KeyCode.S then 
+        controls.S = 0
+    elseif k == Enum.KeyCode.A then 
+        controls.A = 0
+    elseif k == Enum.KeyCode.D then 
+        controls.D = 0
+    elseif k == Enum.KeyCode.Space then 
+        controls.Space = 0
+    elseif k == Enum.KeyCode.LeftControl then 
+        controls.Ctrl = 0 
+    end
 end)
-
 -- =============================================
 -- Final
 -- =============================================
