@@ -206,40 +206,30 @@ function applyGodMode()
 end
 
 -- =============================================
--- Server Hop básico
+--              S E R V E R   H O P   (T)
 -- =============================================
 
-local visited = visited or {}
-
-local function serverHop()
-    notify("TROCANDO DE SERVIDOR...", Color3.fromRGB(170, 170, 255))
-
-    local ok, res = pcall(function()
-        return Http:JSONDecode(
-            game:HttpGetAsync(
-                "https://games.roblox.com/v1/games/"
-                .. game.PlaceId
-                .. "/servers/Public?sortOrder=Asc&limit=100"
-            )
-        )
+local function hopServer()
+    print("🔄 HOPPING SERVER... (procurando servidor com poucos players)")
+    
+    local success, servers = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
     end)
-
-    if ok and res and res.data then
-        for _, s in ipairs(res.data) do
-            if s.id ~= game.JobId
-            and not visited[s.id]
-            and s.playing < s.maxPlayers then
-                visited[s.id] = true
-                Teleport:TeleportToPlaceInstance(game.PlaceId, s.id, plr)
+    
+    if success and servers and servers.data then
+        for _, v in pairs(servers.data) do
+            if type(v) == "table" and v.playing and v.maxPlayers and v.playing < v.maxPlayers and v.id and #v.id > 10 then
+                print("🚀 Teleportando para servidor com " .. v.playing .. "/" .. v.maxPlayers .. " players")
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
                 return
             end
         end
     end
-
-    -- fallback
-    Teleport:Teleport(game.PlaceId, plr)
+    
+    -- Fallback: teleport aleatório se não achar
+    print("⚠️ Fallback: teleport aleatório")
+    TeleportService:Teleport(game.PlaceId, plr)
 end
-
 
 
 
@@ -929,7 +919,7 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     elseif k == Enum.KeyCode.H then
         toggleHitboxExpander()
 
-elseif k == Enum.KeyCode.T then serverHop()
+elseif k == Enum.KeyCode.T then hopServer()
 
     elseif k == Enum.KeyCode.G then
         autoCollect = not autoCollect
