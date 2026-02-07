@@ -204,23 +204,91 @@ function applyGodMode()
     end))
 end
 
--- =============================================
--- Server Hop (T)
--- =============================================
-local function hopServer()
-    notify("Procurando servidor...", Color3.fromRGB(100, 200, 255))
-    local servers = Http:JSONDecode(Http:GetAsync(
-        "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-    ))
-    
-    for _, v in servers.data do
-        if v.playing < v.maxPlayers and v.id ~= game.JobId then
-            Teleport:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
-            return
-        end
-    end
-    notify("Nenhum servidor encontrado", Color3.fromRGB(255, 90, 90))
+-- =====================================
+-- SERVER HOP ROBUSTO (ANTI FREEZE)
+-- =====================================
+
+if not game:IsLoaded() then
+	game.Loaded:Wait()
 end
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+local PLACE_ID = game.PlaceId
+local CURRENT_JOB = game.JobId
+
+local trying = false
+local visited = {}
+
+-- =========================
+-- BUSCAR SERVIDORES
+-- =========================
+local function getServers(cursor)
+	local url = "https://games.roblox.com/v1/games/"
+		.. PLACE_ID
+		.. "/servers/Public?sortOrder=Asc&limit=100"
+
+	if cursor then
+		url ..= "&cursor=" .. cursor
+	end
+
+	local success, result = pcall(function()
+		return HttpService:JSONDecode(game:HttpGet(url))
+	end)
+
+	if success then
+		return result
+	end
+	return nil
+end
+
+-- =========================
+-- SERVER HOP
+-- =========================
+local function serverHop()
+	if trying then return end
+	trying = true
+
+	while true do
+		local data = getServers()
+
+		if not data or not data.data then
+			task.wait(2)
+			continue
+		end
+
+		for _, server in ipairs(data.data) do
+			if server.id ~= CURRENT_JOB
+				and server.playing < server.maxPlayers
+				and not visited[server.id] then
+
+				visited[server.id] = true
+				print("Teleportando para:", server.id)
+
+				pcall(function()
+					TeleportService:TeleportToPlaceInstance(
+						PLACE_ID,
+						server.id,
+						player
+					)
+				end)
+
+				task.wait(5)
+			end
+		end
+
+		task.wait(2)
+	end
+end
+
+-- =========================
+-- EXECUTAR
+-- =========================
+serverHop()
+
 
 
 -- =============================================
@@ -907,7 +975,7 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
         toggleFly()
 
     elseif k == Enum.KeyCode.T then
-        hopServer()
+       serverHop()
 
     elseif k == Enum.KeyCode.H then
         toggleHitboxExpander()
