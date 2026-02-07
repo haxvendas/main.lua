@@ -929,23 +929,23 @@ backpack.ChildAdded:Connect(function(child)
     end
 end)
 -- =============================================
--- Controles gerais (WASD + teclas especiais F/T/G)
+-- Controles gerais (WASD + teclas especiais F/T/G/H)
 -- =============================================
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or not scriptFullyLoaded then return end
     
     local k = input.KeyCode
     
-    if k == Enum.KeyCode.F then 
+    if k == Enum.KeyCode.F then
         toggleFly()
         
-    elseif k == Enum.KeyCode.T then 
+    elseif k == Enum.KeyCode.T then
         hopServer()
-
-        elseif k == Enum.KeyCode.H then 
+        
+    elseif k == Enum.KeyCode.H then
         toggleHitboxExpander()
-
-    elseif k == Enum.KeyCode.G then 
+        
+    elseif k == Enum.KeyCode.G then
         autoCollect = not autoCollect
         if autoCollect then
             startAutoCollect()
