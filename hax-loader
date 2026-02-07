@@ -207,19 +207,60 @@ end
 -- =============================================
 -- Server Hop (T)
 -- =============================================
-local function hopServer()
-    notify("Procurando servidor...", Color3.fromRGB(100, 200, 255))
-    local servers = Http:JSONDecode(Http:GetAsync(
-        "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-    ))
-    
-    for _, v in servers.data do
-        if v.playing < v.maxPlayers and v.id ~= game.JobId then
-            Teleport:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
+
+-- ===============================
+-- SERVER HOP (DROP-IN)
+-- ===============================
+local HttpService      = game:GetService("HttpService")
+local TeleportService  = game:GetService("TeleportService")
+local Players          = game:GetService("Players")
+
+local visitedServers = visitedServers or {}
+
+function hopServer()
+    local placeId = game.PlaceId
+    local currentJob = game.JobId
+
+    visitedServers[currentJob] = true
+
+    notify("🔄 Procurando servidor...", Color3.fromRGB(120, 180, 255))
+
+
+    local servers
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(
+            game:HttpGet(
+                "https://games.roblox.com/v1/games/" ..
+                placeId ..
+                "/servers/Public?sortOrder=Asc&limit=100"
+            )
+        )
+    end)
+
+    if not success or not result or not result.data then
+        warn("[ServerHop] Falha ao buscar servidores")
+        return
+    end
+
+    servers = result.data
+
+    for _, server in ipairs(servers) do
+        if server.id ~= currentJob
+        and not visitedServers[server.id]
+        and server.playing < server.maxPlayers then
+
+            visitedServers[server.id] = true
+
+            TeleportService:TeleportToPlaceInstance(
+                placeId,
+                server.id,
+                Players.LocalPlayer
+            )
             return
         end
     end
-    notify("Nenhum servidor encontrado", Color3.fromRGB(255, 90, 90))
+
+    warn("[ServerHop] Nenhum servidor válido encontrado")
 end
 
 -- =============================================
