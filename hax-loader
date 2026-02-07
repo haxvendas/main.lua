@@ -509,12 +509,12 @@ task.spawn(function()
 end)
 
 -- =============================================
--- TP SECUNDÁRIO COM TWEEN RÁPIDO (R = Próxima, C = Anterior) - LINEAR, sem ciclo
+-- TP SECUNDÁRIO COM TWEEN RÁPIDO (R = Próxima, C = Anterior) - CICLO INFINITO
 -- =============================================
 local vipPos2 = {
     Vector3.new(428.90, -1.25, -336.84),
     Vector3.new(2566.71, -3.15, -337.74)
-    -- Adicione mais posições aqui se quiser (ex: , Vector3.new(x,y,z))
+    -- Adicione mais posições aqui se quiser expandir (ex: , Vector3.new(x,y,z))
 }
 
 local vipNames2 = {
@@ -537,7 +537,7 @@ task.spawn(function()
 
     local frame2 = Instance.new("Frame", tpGui2)
     frame2.Size = UDim2.new(0, 220, 0, 70)
-    frame2.Position = UDim2.new(0, 15, 0, 100)  -- abaixo da GUI principal pra não sobrepor
+    frame2.Position = UDim2.new(0, 15, 0, 100)  -- abaixo da GUI principal
     frame2.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
     frame2.BorderSizePixel = 0
     frame2.Active = true
@@ -566,9 +566,7 @@ task.spawn(function()
         if curIndex2 == 0 then
             statusLabel2.Text = "R → Próxima   C → Anterior"
         else
-            local nextTxt = (curIndex2 < #vipPos2) and "R → Próxima" or "<font color='rgb(200,200,200)'>R: Fim</font>"
-            local prevTxt = (curIndex2 > 1) and "C → Anterior" or "<font color='rgb(200,200,200)'>C: Início</font>"
-            statusLabel2.Text = nextTxt .. "   " .. prevTxt .. "\n" ..
+            statusLabel2.Text = "R → Próxima   C → Anterior\n" ..
                                 "<font color='rgb(220,200,255)'>Zona " .. curIndex2 .. "/" .. #vipPos2 .. 
                                 " - " .. (vipNames2[curIndex2] or "?") .. "</font>" ..
                                 (isTweening2 and "\n<font color='rgb(255,180,100)'>Movendo...</font>" or "")
@@ -578,7 +576,10 @@ task.spawn(function()
 
     local function smoothFastTP2(targetIndex)
         if isTweening2 or tick() - lastInputTime2 < DEBOUNCE2 then return end
-        if targetIndex < 1 or targetIndex > #vipPos2 then return end
+        
+        -- Ciclo infinito: wrap around
+        if targetIndex > #vipPos2 then targetIndex = 1 end
+        if targetIndex < 1 then targetIndex = #vipPos2 end
 
         local char = plr.Character
         if not char then return end
