@@ -214,7 +214,7 @@ end
 local HttpService      = game:GetService("HttpService")
 local TeleportService  = game:GetService("TeleportService")
 local Players          = game:GetService("Players")
-
+local hopping = false
 local visitedServers = visitedServers or {}
 
 function hopServer()
@@ -222,7 +222,6 @@ function hopServer()
     local currentJob = game.JobId
 
     visitedServers[currentJob] = true
-local hopping = false
 
     notify("🔄 Procurando servidor...", Color3.fromRGB(120, 180, 255))
 
