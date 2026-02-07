@@ -208,7 +208,7 @@ end
 -- Server Hop (T)
 -- =============================================
 -- =============================================
--- SERVER HOP (JamJam adaptado p/ SEU HUB)
+-- SERVER HOP (FINAL / FUNCIONAL)
 -- =============================================
 
 local Http = game:GetService("HttpService")
@@ -217,7 +217,6 @@ local Players = game:GetService("Players")
 
 local visitedServers = visitedServers or {}
 local hopping = false
-local cursor = nil
 
 function hopServer()
     if hopping then return end
@@ -231,53 +230,62 @@ function hopServer()
 
     task.spawn(function()
         while hopping do
-            local url =
-                "https://games.roblox.com/v1/games/" ..
-                placeId ..
-                "/servers/Public?sortOrder=Asc&limit=100" ..
-                (cursor and "&cursor=" .. cursor or "")
+            local cursor = nil
+            local found = false
 
-            local ok, data = pcall(function()
-                return Http:JSONDecode(Http:GetAsync(url))
-            end)
+            repeat
+                local url =
+                    "https://games.roblox.com/v1/games/" ..
+                    placeId ..
+                    "/servers/Public?sortOrder=Asc&limit=100" ..
+                    (cursor and "&cursor=" .. cursor or "")
 
-            if ok and data and data.data then
-                for _, server in ipairs(data.data) do
-                    if server.id ~= currentJob
-                    and not visitedServers[server.id]
-                    and server.playing < server.maxPlayers then
+                local ok, data = pcall(function()
+                    return Http:JSONDecode(Http:GetAsync(url))
+                end)
 
-                        visitedServers[server.id] = true
+                if ok and data and data.data then
+                    for _, server in ipairs(data.data) do
+                        if server.id ~= currentJob
+                        and not visitedServers[server.id]
+                        and server.playing < server.maxPlayers then
 
-                        notify(
-                            "🚀 Trocando (" ..
-                            server.playing .. "/" .. server.maxPlayers .. ")",
-                            Color3.fromRGB(100,255,150)
-                        )
+                            visitedServers[server.id] = true
+                            found = true
 
-                        Teleport:TeleportToPlaceInstance(
-                            placeId,
-                            server.id,
-                            Players.LocalPlayer
-                        )
-                        return
+                            notify(
+                                "🚀 Entrando (" ..
+                                server.playing .. "/" .. server.maxPlayers .. ")",
+                                Color3.fromRGB(100,255,150)
+                            )
+
+                            Teleport:TeleportToPlaceInstance(
+                                placeId,
+                                server.id,
+                                Players.LocalPlayer
+                            )
+                            return
+                        end
                     end
+
+                    cursor = data.nextPageCursor
+                else
+                    cursor = nil
                 end
 
-                cursor = data.nextPageCursor
-            else
-                notify("⚠️ Falha ao buscar servidores", Color3.fromRGB(255,100,100))
-            end
+                task.wait(0.25)
+            until not cursor or found
 
-            -- se acabou a página, reinicia
-            if not cursor then
-                notify("🔁 Nenhum servidor válido, tentando novamente...", Color3.fromRGB(255,200,120))
-            end
+            notify(
+                "🔁 Nenhum servidor livre, tentando novamente...",
+                Color3.fromRGB(255,200,120)
+            )
 
-            task.wait(2)
+            task.wait(2.5)
         end
     end)
 end
+
 
 -- =============================================
 -- Auto Collect (G)
