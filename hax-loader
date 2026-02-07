@@ -207,16 +207,16 @@ end
 -- =============================================
 -- Server Hop (T)
 -- =============================================
-
 -- ===============================
--- SERVER HOP (DROP-IN / AUTO RETRY)
+-- SERVER HOP (ESTÁVEL / AUTO)
 -- ===============================
-local HttpService      = game:GetService("HttpService")
-local TeleportService  = game:GetService("TeleportService")
-local Players          = game:GetService("Players")
 
-local hopping = false
+local Http = game:GetService("HttpService")
+local Teleport = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+
 local visitedServers = visitedServers or {}
+local hopping = false
 
 function hopServer()
     if hopping then return end
@@ -228,44 +228,49 @@ function hopServer()
 
     notify("🔄 Procurando servidor...", Color3.fromRGB(120, 180, 255))
 
-    local success, result = pcall(function()
-        return HttpService:JSONDecode(
-            game:HttpGet(
+    task.spawn(function()
+        local cursor = nil
+
+        while hopping do
+            local url =
                 "https://games.roblox.com/v1/games/" ..
                 placeId ..
-                "/servers/Public?sortOrder=Asc&limit=100"
-            )
-        )
-    end)
+                "/servers/Public?sortOrder=Asc&limit=100" ..
+                (cursor and "&cursor=" .. cursor or "")
 
-    if not success or not result or not result.data then
-        hopping = false
-        warn("[ServerHop] Falha ao buscar servidores")
-        return
-    end
+            local ok, res = pcall(function()
+                return Http:JSONDecode(Http:GetAsync(url))
+            end)
 
-    for _, server in ipairs(result.data) do
-        if server.id ~= currentJob
-        and not visitedServers[server.id]
-        and server.playing < server.maxPlayers then
+            if ok and res and res.data then
+                for _, server in ipairs(res.data) do
+                    if server.id ~= currentJob
+                    and not visitedServers[server.id]
+                    and server.playing < server.maxPlayers then
 
-            visitedServers[server.id] = true
+                        visitedServers[server.id] = true
 
-            TeleportService:TeleportToPlaceInstance(
-                placeId,
-                server.id,
-                Players.LocalPlayer
-            )
-            return -- aqui ele nunca volta, pq teleportou
+                        notify(
+                            "🚀 Trocando de servidor (" ..
+                            server.playing .. "/" .. server.maxPlayers .. ")",
+                            Color3.fromRGB(100, 255, 150)
+                        )
+
+                        Teleport:TeleportToPlaceInstance(
+                            placeId,
+                            server.id,
+                            Players.LocalPlayer
+                        )
+                        return
+                    end
+                end
+
+                cursor = res.nextPageCursor
+            end
+
+            cursor = nil -- reinicia páginas
+            task.wait(2)
         end
-    end
-
-    -- não achou → tenta de novo
-    notify("🔁 Nenhum servidor válido, tentando novamente...", Color3.fromRGB(255, 200, 120))
-
-    task.delay(2, function()
-        hopping = false
-        hopServer()
     end)
 end
 
