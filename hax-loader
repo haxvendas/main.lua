@@ -815,7 +815,7 @@ for _, tool in ipairs(backpack:GetChildren()) do
     end
 end
 
-print("Finalizado! Todas as hitboxes encontradas foram aumentadas.")
+print("Finalizado! Todas as hitboxes encontradas foram aumentadas.") 
 -- =============================================
 -- Controles gerais (WASD + teclas especiais F/T/G)
 -- =============================================
