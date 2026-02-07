@@ -207,83 +207,19 @@ end
 -- =============================================
 -- Server Hop (T)
 -- =============================================
--- =============================================
--- SERVER HOP (FINAL / FUNCIONAL)
--- =============================================
-
-local Http = game:GetService("HttpService")
-local Teleport = game:GetService("TeleportService")
-local Players = game:GetService("Players")
-
-local visitedServers = visitedServers or {}
-local hopping = false
-
-function hopServer()
-    if hopping then return end
-    hopping = true
-
-    local placeId = game.PlaceId
-    local currentJob = game.JobId
-    visitedServers[currentJob] = true
-
-    notify("🔄 Procurando servidor...", Color3.fromRGB(120,180,255))
-
-    task.spawn(function()
-        while hopping do
-            local cursor = nil
-            local found = false
-
-            repeat
-                local url =
-                    "https://games.roblox.com/v1/games/" ..
-                    placeId ..
-                    "/servers/Public?sortOrder=Asc&limit=100" ..
-                    (cursor and "&cursor=" .. cursor or "")
-
-                local ok, data = pcall(function()
-                    return Http:JSONDecode(Http:GetAsync(url))
-                end)
-
-                if ok and data and data.data then
-                    for _, server in ipairs(data.data) do
-                        if server.id ~= currentJob
-                        and not visitedServers[server.id]
-                        and server.playing < server.maxPlayers then
-
-                            visitedServers[server.id] = true
-                            found = true
-
-                            notify(
-                                "🚀 Entrando (" ..
-                                server.playing .. "/" .. server.maxPlayers .. ")",
-                                Color3.fromRGB(100,255,150)
-                            )
-
-                            Teleport:TeleportToPlaceInstance(
-                                placeId,
-                                server.id,
-                                Players.LocalPlayer
-                            )
-                            return
-                        end
-                    end
-
-                    cursor = data.nextPageCursor
-                else
-                    cursor = nil
-                end
-
-                task.wait(0.25)
-            until not cursor or found
-
-            notify(
-                "🔁 Nenhum servidor livre, tentando novamente...",
-                Color3.fromRGB(255,200,120)
-            )
-
-            task.wait(2.5)
+local function hopServer()
+    notify("Procurando servidor...", Color3.fromRGB(100, 200, 255))
+    local servers = Http:JSONDecode(Http:GetAsync(
+        "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+    ))
+    
+    for _, v in servers.data do
+        if v.playing < v.maxPlayers and v.id ~= game.JobId then
+            Teleport:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
+            return
         end
-    end)
+    end
+    notify("Nenhum servidor encontrado", Color3.fromRGB(255, 90, 90))
 end
 
 
