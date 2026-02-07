@@ -889,16 +889,14 @@ plr.CharacterAdded:Connect(function(char)
     end
 end)
 
-getBackpack().ChildAdded:Connect(function(child)
+backpack.ChildAdded:Connect(function(child)
+
 
     if hitboxExpanded and child:IsA("Tool") then
         task.wait(0.3)
         expandHitboxes()
     end
 end)
--- =============================================
--- Controles gerais - TODOS os binds em UM lugar só
--- =============================================
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or not scriptFullyLoaded then return end
     
@@ -941,7 +939,19 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     elseif k == Enum.KeyCode.Space then controls.Space = 1
     elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 1
     end
+end)  -- ⬅️ ESSE end estava faltando
+UIS.InputEnded:Connect(function(input)
+    local k = input.KeyCode
+
+    if k == Enum.KeyCode.W then controls.W = 0
+    elseif k == Enum.KeyCode.S then controls.S = 0
+    elseif k == Enum.KeyCode.A then controls.A = 0
+    elseif k == Enum.KeyCode.D then controls.D = 0
+    elseif k == Enum.KeyCode.Space then controls.Space = 0
+    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 0
+    end
 end)
+
 
 -- =============================================
 -- Final
