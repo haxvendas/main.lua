@@ -666,12 +666,13 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ESP Celestial / Divine / Brainrots (AUTO EVENT)
+-- ESP Celestial / Divine / Brainrots / Arcade Ticket (AUTO EVENT)
 -- =============================================
 
 local CONFIG = {
     Celestial = { Color = Color3.fromRGB(255, 200, 50),  Emoji = "🌟" },
-    Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" }
+    Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" },
+    Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" }
 }
 
 local TARGETS = {
@@ -682,6 +683,9 @@ local TARGETS = {
     -- Brainrots
     {Path = {"ActiveBrainrots", "Celestial"}, Match = "RenderedBrainrot", Type = "Celestial", IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
+
+    -- Arcade Tickets
+    {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
 }
 
 local detected = {}
@@ -711,6 +715,14 @@ local function getBrainrotName(rendered)
         end
     end
     return "UNKNOWN"
+end
+
+local function getRealObject(obj)
+    -- garante que o ESP fique no MODEL e não na Part
+    if obj:IsA("BasePart") and obj.Parent then
+        return obj.Parent
+    end
+    return obj
 end
 
 local function createHighlight(obj, color)
@@ -766,7 +778,8 @@ local function applyESP()
         if not base then continue end
 
         for _, obj in base:GetChildren() do
-            if detected[obj] then continue end
+            local realObj = getRealObject(obj)
+            if detected[realObj] then continue end
 
             local matched = false
 
@@ -777,7 +790,7 @@ local function applyESP()
             end
 
             if matched then
-                detected[obj] = true
+                detected[realObj] = true
 
                 local cfg = CONFIG[target.Type]
                 local label
@@ -785,11 +798,11 @@ local function applyESP()
                 if target.IsBrainrot then
                     label = target.Type:upper() .. " – " .. getBrainrotName(obj)
                 else
-                    label = target.Type:upper() .. " EVENT"
+                    label = target.Label or (target.Type:upper() .. " EVENT")
                 end
 
-                createHighlight(obj, cfg.Color)
-                createBillboard(obj, label, cfg.Emoji, cfg.Color)
+                createHighlight(realObj, cfg.Color)
+                createBillboard(realObj, label, cfg.Emoji, cfg.Color)
                 notifyEvent(cfg.Emoji.." "..label.." DETECTADO!")
             end
         end
@@ -804,6 +817,7 @@ task.spawn(function()
         applyESP()
     end)
 end)
+
 
 -- =============================================
 -- Hitbox Expander com Toggle (H)
