@@ -209,24 +209,25 @@ end
 -- =============================================
 
 -- ===============================
--- SERVER HOP (DROP-IN)
+-- SERVER HOP (DROP-IN / AUTO RETRY)
 -- ===============================
 local HttpService      = game:GetService("HttpService")
 local TeleportService  = game:GetService("TeleportService")
 local Players          = game:GetService("Players")
+
 local hopping = false
 local visitedServers = visitedServers or {}
 
 function hopServer()
+    if hopping then return end
+    hopping = true
+
     local placeId = game.PlaceId
     local currentJob = game.JobId
-
     visitedServers[currentJob] = true
 
     notify("🔄 Procurando servidor...", Color3.fromRGB(120, 180, 255))
 
-
-    local servers
     local success, result = pcall(function()
         return HttpService:JSONDecode(
             game:HttpGet(
@@ -238,13 +239,12 @@ function hopServer()
     end)
 
     if not success or not result or not result.data then
+        hopping = false
         warn("[ServerHop] Falha ao buscar servidores")
         return
     end
 
-    servers = result.data
-
-    for _, server in ipairs(servers) do
+    for _, server in ipairs(result.data) do
         if server.id ~= currentJob
         and not visitedServers[server.id]
         and server.playing < server.maxPlayers then
@@ -256,19 +256,18 @@ function hopServer()
                 server.id,
                 Players.LocalPlayer
             )
-            return
+            return -- aqui ele nunca volta, pq teleportou
         end
     end
-hopping = false
-notify("❌ Nenhum servidor válido encontrado", Color3.fromRGB(255, 100, 100))
 
+    -- não achou → tenta de novo
+    notify("🔁 Nenhum servidor válido, tentando novamente...", Color3.fromRGB(255, 200, 120))
 
-notify("🔁 Nenhum servidor válido, tentando novamente...", Color3.fromRGB(255, 200, 120))
-
-task.delay(2, function()
-    hopping = false
-    hopServer()
-end)
+    task.delay(2, function()
+        hopping = false
+        hopServer()
+    end)
+end
 
 
 -- =============================================
