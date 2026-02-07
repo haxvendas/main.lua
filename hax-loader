@@ -203,13 +203,18 @@ end
 -- Server Hop (T)
 -- =============================================
 local function hopServer()
-    notify("Tentando hop...", Color3.fromRGB(0,170,255))
-    local success, err = pcall(function()
-        Teleport:Teleport(game.PlaceId, plr)  -- hop aleatório simples como fallback
-    end)
-   if server.id ~= game.JobId then  -- qualquer servidor diferente do atual
-        notify("Hop falhou: " .. tostring(err), Color3.fromRGB(255,80,80))
+    notify("Procurando servidor...", Color3.fromRGB(100, 200, 255))
+    local servers = Http:JSONDecode(Http:GetAsync(
+        "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+    ))
+    
+    for _, v in servers.data do
+        if v.playing < v.maxPlayers and v.id ~= game.JobId then
+            Teleport:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
+            return
+        end
     end
+    notify("Nenhum servidor encontrado", Color3.fromRGB(255, 90, 90))
 end
 
 -- =============================================
@@ -797,25 +802,132 @@ task.spawn(function()
         applyESP()
     end)
 end)
-local player = game:GetService("Players").LocalPlayer
-local backpack = player:WaitForChild("Backpack")
+-- =============================================
+-- Hitbox Expander com Toggle (H)
+-- =============================================
 
-local NOVO_TAMANHO = Vector3.new(40, 40, 40)   -- ajuste aqui o quanto quer aumentar
+local hitboxExpanded = false
+local originalSizes = {}           -- guarda tamanhos originais por tool
+local NOVO_TAMANHO = Vector3.new(40, 40, 40)
+local HITBOX_TRANSPARENCY = 0.7   -- 1 = invisível, 0.7 = semi-visível pra debug
 
-for _, tool in ipairs(backpack:GetChildren()) do
-    if tool:IsA("Tool") then
-        local hitbox = tool:FindFirstChild("Hitbox", true)  -- procura em toda a hierarquia da tool
+local function expandHitboxes()
+    local backpack = plr:WaitForChild("Backpack")
+    local character = plr.Character
+    
+    -- Salva tamanhos originais (só na primeira expansão)
+    if not hitboxExpanded then
+        originalSizes = {}
         
-        if hitbox and hitbox:IsA("BasePart") then
-            hitbox.Size = NOVO_TAMANHO
-            hitbox.Transparency = 0.7               -- opcional: pra você ver o tamanho (deixe 1 se quiser invisível)
-            hitbox.CanCollide = false               -- quase sempre já é false, mas garante
-            print("Hitbox aumentada na ferramenta: " .. tool.Name)
+        -- Backpack
+        for _, tool in backpack:GetChildren() do
+            if tool:IsA("Tool") then
+                local hitbox = tool:FindFirstChild("Hitbox", true)
+                if hitbox and hitbox:IsA("BasePart") then
+                    originalSizes[tool] = hitbox.Size
+                end
+            end
         end
+        
+        -- Character (ferramentas equipadas)
+        if character then
+            for _, tool in character:GetChildren() do
+                if tool:IsA("Tool") then
+                    local hitbox = tool:FindFirstChild("Hitbox", true)
+                    if hitbox and hitbox:IsA("BasePart") then
+                        originalSizes[tool] = hitbox.Size
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Aplica novo tamanho
+    local count = 0
+    
+    -- Backpack
+    for _, tool in backpack:GetChildren() do
+        if tool:IsA("Tool") then
+            local hitbox = tool:FindFirstChild("Hitbox", true)
+            if hitbox and hitbox:IsA("BasePart") then
+                hitbox.Size = NOVO_TAMANHO
+                hitbox.Transparency = HITBOX_TRANSPARENCY
+                hitbox.CanCollide = false
+                count += 1
+            end
+        end
+    end
+    
+    -- Character (equipada)
+    if character then
+        for _, tool in character:GetChildren() do
+            if tool:IsA("Tool") then
+                local hitbox = tool:FindFirstChild("Hitbox", true)
+                if hitbox and hitbox:IsA("BasePart") then
+                    hitbox.Size = NOVO_TAMANHO
+                    hitbox.Transparency = HITBOX_TRANSPARENCY
+                    hitbox.CanCollide = false
+                    count += 1
+                end
+            end
+        end
+    end
+    
+    return count
+end
+
+local function restoreHitboxes()
+    local count = 0
+    
+    for tool, originalSize in pairs(originalSizes) do
+        if tool and tool.Parent then  -- ainda existe?
+            local hitbox = tool:FindFirstChild("Hitbox", true)
+            if hitbox and hitbox:IsA("BasePart") then
+                hitbox.Size = originalSize
+                hitbox.Transparency = 0   -- ou valor original do jogo
+                count += 1
+            end
+        end
+    end
+    
+    -- Limpa se tool foi destruída
+    originalSizes = {}
+    return count
+end
+
+local function toggleHitboxExpander()
+    hitboxExpanded = not hitboxExpanded
+    
+    local count
+    
+    if hitboxExpanded then
+        count = expandHitboxes()
+        if count > 0 then
+            notify("HITBOX EXPANDER: ATIVADO (" .. count .. " ferramentas)", Color3.fromRGB(255, 180, 60))
+        else
+            notify("Nenhuma hitbox encontrada para expandir", Color3.fromRGB(255, 100, 100))
+            hitboxExpanded = false  -- reverte se nada mudou
+        end
+    else
+        count = restoreHitboxes()
+        notify("HITBOX EXPANDER: DESATIVADO", Color3.fromRGB(180, 180, 180))
     end
 end
 
-print("Finalizado! Todas as hitboxes encontradas foram aumentadas.") 
+-- Aplicar novamente quando tool é adicionada/equipada (opcional, mas melhora)
+plr.CharacterAdded:Connect(function(char)
+    task.wait(0.8)
+    if hitboxExpanded then
+        expandHitboxes()  -- reaplica se já estava ligado
+    end
+end)
+
+backpack.ChildAdded:Connect(function(child)
+    if hitboxExpanded and child:IsA("Tool") then
+        task.wait(0.3)
+        expandHitboxes()
+    end
+end)
 -- =============================================
 -- Controles gerais (WASD + teclas especiais F/T/G)
 -- =============================================
@@ -829,7 +941,10 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
         
     elseif k == Enum.KeyCode.T then 
         hopServer()
-        
+
+        elseif k == Enum.KeyCode.H then 
+        toggleHitboxExpander()
+
     elseif k == Enum.KeyCode.G then 
         autoCollect = not autoCollect
         if autoCollect then
