@@ -666,20 +666,20 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ESP Celestial / Divine / Brainrots
+-- ESP Celestial / Divine / Brainrots (AUTO EVENT)
 -- =============================================
+
 local CONFIG = {
     Celestial = { Color = Color3.fromRGB(255, 200, 50),  Emoji = "🌟" },
     Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" }
 }
 
 local TARGETS = {
-    {Path = {"ActiveLuckyBlocks"}, Match = "EventSpawnLuckyBlock_Celestial",    Type = "Celestial", Label = "CELESTIAL LUCKY BLOCK"},
-    {Path = {"ActiveLuckyBlocks"}, Match = "EventSpawnLuckyBlock_Divine",      Type = "Divine",    Label = "DIVINE LUCKY BLOCK"},
-    {Path = {"ActiveLuckyBlocks"}, Match = "SnakeWavesEventLuckyBlock_Celestial", Type = "Celestial", Label = "CELESTIAL SNAKE WAVES"},
-    {Path = {"ActiveLuckyBlocks"}, Match = "SnakeWavesEventLuckyBlock_Divine",    Type = "Divine",    Label = "DIVINE SNAKE WAVES"},
-    {Path = {"ActiveLuckyBlocks"}, Match = "PortalsEventLuckyBlock_Celestial",    Type = "Celestial", Label = "CELESTIAL PORTAL"},
-    {Path = {"ActiveLuckyBlocks"}, Match = "PortalsEventLuckyBlock_Divine",       Type = "Divine",    Label = "DIVINE PORTAL"},
+    -- Lucky Blocks (qualquer evento)
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Celestial"}, Type = "Celestial"},
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Divine"},    Type = "Divine"},
+
+    -- Brainrots
     {Path = {"ActiveBrainrots", "Celestial"}, Match = "RenderedBrainrot", Type = "Celestial", IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
 }
@@ -693,6 +693,15 @@ local function getBaseFolder(path)
         if not current then return nil end
     end
     return current
+end
+
+local function nameMatches(objName, words)
+    for _, w in words do
+        if not string.find(objName, w) then
+            return false
+        end
+    end
+    return true
 end
 
 local function getBrainrotName(rendered)
@@ -717,7 +726,7 @@ end
 
 local function createBillboard(obj, label, emoji, color)
     if obj:FindFirstChild("UniversalBillboard") then return end
-    
+
     local bb = Instance.new("BillboardGui")
     bb.Name = "UniversalBillboard"
     bb.Size = UDim2.new(0, 260, 0, 70)
@@ -732,7 +741,7 @@ local function createBillboard(obj, label, emoji, color)
     txt.TextStrokeTransparency = 0
     txt.TextScaled = true
     txt.Font = Enum.Font.GothamBold
-    
+
     task.spawn(function()
         while obj.Parent do
             local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
@@ -751,23 +760,37 @@ end
 
 local function applyESP()
     if not scriptFullyLoaded then return end
+
     for _, target in TARGETS do
         local base = getBaseFolder(target.Path)
         if not base then continue end
-        
+
         for _, obj in base:GetChildren() do
-            if obj.Name == target.Match and not detected[obj] then
+            if detected[obj] then continue end
+
+            local matched = false
+
+            if target.Match and obj.Name == target.Match then
+                matched = true
+            elseif target.Contains and nameMatches(obj.Name, target.Contains) then
+                matched = true
+            end
+
+            if matched then
                 detected[obj] = true
-                
+
                 local cfg = CONFIG[target.Type]
-                local label = target.Label or ""
+                local label
+
                 if target.IsBrainrot then
                     label = target.Type:upper() .. " – " .. getBrainrotName(obj)
+                else
+                    label = target.Type:upper() .. " EVENT"
                 end
-                
+
                 createHighlight(obj, cfg.Color)
                 createBillboard(obj, label, cfg.Emoji, cfg.Color)
-                notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
+                notifyEvent(cfg.Emoji.." "..label.." DETECTADO!")
             end
         end
     end
@@ -777,10 +800,11 @@ task.spawn(function()
     task.wait(4)
     applyESP()
     workspace.DescendantAdded:Connect(function()
-        task.wait(0.25)
+        task.wait(0.2)
         applyESP()
     end)
 end)
+
 -- =============================================
 -- Hitbox Expander com Toggle (H)
 -- =============================================
