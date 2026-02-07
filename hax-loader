@@ -960,9 +960,6 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     if k == Enum.KeyCode.F then
         toggleFly()
 
-    elseif k == Enum.KeyCode.T then
-       serverHop()
-
     elseif k == Enum.KeyCode.H then
         toggleHitboxExpander()
 
