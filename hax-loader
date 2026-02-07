@@ -252,37 +252,40 @@ local function serverHop()
 	if trying then return end
 	trying = true
 
-	while true do
-		local data = getServers()
+	notify("🔄 Procurando servidor...", Color3.fromRGB(120,180,255))
 
-		if not data or not data.data then
-			task.wait(2)
-			continue
-		end
+	task.spawn(function()
+		while true do
+			local data = getServers()
 
-		for _, server in ipairs(data.data) do
-			if server.id ~= CURRENT_JOB
-				and server.playing < server.maxPlayers
-				and not visited[server.id] then
+			if data and data.data then
+				for _, server in ipairs(data.data) do
+					if server.id ~= CURRENT_JOB
+						and server.playing < server.maxPlayers
+						and not visited[server.id] then
 
-				visited[server.id] = true
-				print("Teleportando para:", server.id)
+						visited[server.id] = true
 
-				pcall(function()
-					TeleportService:TeleportToPlaceInstance(
-						PLACE_ID,
-						server.id,
-						player
-					)
-				end)
+						notify("🚀 Trocando de servidor...", Color3.fromRGB(120,255,120))
 
-				task.wait(5)
+						pcall(function()
+							TeleportService:TeleportToPlaceInstance(
+								PLACE_ID,
+								server.id,
+								player
+							)
+						end)
+
+						return
+					end
+				end
 			end
-		end
 
-		task.wait(2)
-	end
+			task.wait(2)
+		end
+	end)
 end
+
 
 -- =============================================
 -- Auto Collect (G)
