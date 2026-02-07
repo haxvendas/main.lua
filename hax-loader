@@ -84,7 +84,7 @@ end
 
 -- =============================================
 -- Espera personagem
--- =============================================
+-- ============================================= 
 local function waitForCharacter(timeout)
     timeout = timeout or 8
     local start = tick()
