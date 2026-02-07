@@ -797,9 +797,14 @@ local function applyESP()
 
                 if target.IsBrainrot then
                     label = target.Type:upper() .. " – " .. getBrainrotName(obj)
-                else
-                    label = target.Label or (target.Type:upper() .. " EVENT")
-                end
+             else
+    if string.find(obj.Name, "LuckyBlock") then
+        label = target.Type:upper() .. " LUCKY BOX"
+    else
+        label = target.Label or (target.Type:upper() .. " EVENT")
+    end
+end
+
 
                 createHighlight(realObj, cfg.Color)
                 createBillboard(realObj, label, cfg.Emoji, cfg.Color)
