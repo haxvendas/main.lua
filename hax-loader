@@ -23,6 +23,7 @@ local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
 local smoothFastTP
 local smoothFastTP2
 
+local TeleportService = game:GetService("TeleportService")
 
 local notifyBusy = false
 local scriptFullyLoaded = false
