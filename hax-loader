@@ -23,7 +23,6 @@ local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
 local smoothFastTP
 local smoothFastTP2
 
-getgenv().AUTO_REJOIN_ENABLED = false
 
 local notifyBusy = false
 local scriptFullyLoaded = false
@@ -206,33 +205,41 @@ function applyGodMode()
     end))
 end
 
--- ================================
--- SISTEMA AUTO REJOIN
--- ================================
+-- =============================================
+-- Server Hop básico
+-- =============================================
 
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
+local visited = visited or {}
 
-local Players = game:GetService("Players")
-local TP      = game:GetService("TeleportService")
+local function serverHop()
+    notify("TROCANDO DE SERVIDOR...", Color3.fromRGB(170, 170, 255))
 
-local player = Players.LocalPlayer
-local rejoining = false
+    local ok, res = pcall(function()
+        return Http:JSONDecode(
+            game:HttpGetAsync(
+                "https://games.roblox.com/v1/games/"
+                .. game.PlaceId
+                .. "/servers/Public?sortOrder=Asc&limit=100"
+            )
+        )
+    end)
 
-local function rejoin()
-    if rejoining then return end
-    rejoining = true
-
-    task.wait(2)
-    TP:Teleport(game.PlaceId, player)
-end
-
-game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
-    if getgenv().AUTO_REJOIN_ENABLED and child.Name == "ErrorPrompt" then
-        rejoin()
+    if ok and res and res.data then
+        for _, s in ipairs(res.data) do
+            if s.id ~= game.JobId
+            and not visited[s.id]
+            and s.playing < s.maxPlayers then
+                visited[s.id] = true
+                Teleport:TeleportToPlaceInstance(game.PlaceId, s.id, plr)
+                return
+            end
+        end
     end
-end)
+
+    -- fallback
+    Teleport:Teleport(game.PlaceId, plr)
+end
+
 
 
 
@@ -922,8 +929,7 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     elseif k == Enum.KeyCode.H then
         toggleHitboxExpander()
 
- elseif k == Enum.KeyCode.T then
-        getgenv().AUTO_REJOIN_ENABLED = not getgenv().AUTO_REJOIN_ENABLED
+elseif k == Enum.KeyCode.T then serverHop()
 
     elseif k == Enum.KeyCode.G then
         autoCollect = not autoCollect
