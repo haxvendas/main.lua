@@ -207,19 +207,76 @@ end
 -- =============================================
 -- Server Hop (T)
 -- =============================================
-local function hopServer()
-    notify("Procurando servidor...", Color3.fromRGB(100, 200, 255))
-    local servers = Http:JSONDecode(Http:GetAsync(
-        "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-    ))
-    
-    for _, v in servers.data do
-        if v.playing < v.maxPlayers and v.id ~= game.JobId then
-            Teleport:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
-            return
+-- =============================================
+-- SERVER HOP (JamJam adaptado p/ SEU HUB)
+-- =============================================
+
+local Http = game:GetService("HttpService")
+local Teleport = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+
+local visitedServers = visitedServers or {}
+local hopping = false
+local cursor = nil
+
+function hopServer()
+    if hopping then return end
+    hopping = true
+
+    local placeId = game.PlaceId
+    local currentJob = game.JobId
+    visitedServers[currentJob] = true
+
+    notify("🔄 Procurando servidor...", Color3.fromRGB(120,180,255))
+
+    task.spawn(function()
+        while hopping do
+            local url =
+                "https://games.roblox.com/v1/games/" ..
+                placeId ..
+                "/servers/Public?sortOrder=Asc&limit=100" ..
+                (cursor and "&cursor=" .. cursor or "")
+
+            local ok, data = pcall(function()
+                return Http:JSONDecode(Http:GetAsync(url))
+            end)
+
+            if ok and data and data.data then
+                for _, server in ipairs(data.data) do
+                    if server.id ~= currentJob
+                    and not visitedServers[server.id]
+                    and server.playing < server.maxPlayers then
+
+                        visitedServers[server.id] = true
+
+                        notify(
+                            "🚀 Trocando (" ..
+                            server.playing .. "/" .. server.maxPlayers .. ")",
+                            Color3.fromRGB(100,255,150)
+                        )
+
+                        Teleport:TeleportToPlaceInstance(
+                            placeId,
+                            server.id,
+                            Players.LocalPlayer
+                        )
+                        return
+                    end
+                end
+
+                cursor = data.nextPageCursor
+            else
+                notify("⚠️ Falha ao buscar servidores", Color3.fromRGB(255,100,100))
+            end
+
+            -- se acabou a página, reinicia
+            if not cursor then
+                notify("🔁 Nenhum servidor válido, tentando novamente...", Color3.fromRGB(255,200,120))
+            end
+
+            task.wait(2)
         end
-    end
-    notify("Nenhum servidor encontrado", Color3.fromRGB(255, 90, 90))
+    end)
 end
 
 -- =============================================
