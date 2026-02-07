@@ -222,6 +222,7 @@ function hopServer()
     local currentJob = game.JobId
 
     visitedServers[currentJob] = true
+local hopping = false
 
     notify("🔄 Procurando servidor...", Color3.fromRGB(120, 180, 255))
 
@@ -260,8 +261,13 @@ function hopServer()
         end
     end
 
-    warn("[ServerHop] Nenhum servidor válido encontrado")
-end
+notify("🔁 Nenhum servidor válido, tentando novamente...", Color3.fromRGB(255, 200, 120))
+
+task.delay(2, function()
+    hopping = false
+    hopServer()
+end)
+
 
 -- =============================================
 -- Auto Collect (G)
