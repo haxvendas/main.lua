@@ -93,7 +93,7 @@ end
 -- Espera personagem
 -- ============================================= 
 local function waitForCharacter(timeout)
-    timeout = timeout or 8
+    timeout = timeout or 10
     local start = tick()
     while not plr.Character and tick() - start < timeout do
         task.wait()
@@ -105,7 +105,7 @@ end
 -- Inicialização
 -- =============================================
 task.spawn(function()
-    task.wait(2.5)  -- reduzido
+    task.wait(8)  -- reduzido
     scriptFullyLoaded = true
     enableInfiniteZoom()
     applyGodMode()
