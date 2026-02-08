@@ -780,7 +780,15 @@ local function applyESP()
         if not base then continue end
 
         for _, obj in base:GetChildren() do
-            local realObj = getRealObject(obj)
+            local realObj
+if target.Label == "TICKET BOMB" then
+    -- cada ticket é único
+    realObj = obj
+else
+    -- outros ESP continuam no Model
+    realObj = getRealObject(obj)
+end
+
             if detected[realObj] then continue end
 
             local matched = false
