@@ -666,7 +666,7 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ESP Celestial / Divine / Brainrots / Arcade Ticket (AUTO EVENT)
+-- ESP Celestial / Divine / Brainrots / Arcade Ticket / Ticket Bomb
 -- =============================================
 
 local CONFIG = {
@@ -676,7 +676,7 @@ local CONFIG = {
 }
 
 local TARGETS = {
-    -- Lucky Blocks (qualquer evento)
+    -- Lucky Blocks
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Celestial"}, Type = "Celestial"},
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Divine"},    Type = "Divine"},
 
@@ -686,6 +686,9 @@ local TARGETS = {
 
     -- Arcade Tickets
     {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
+
+    -- 🎟️ Ticket Bomb (NOVO)
+    {Path = {"TicketBombTickets", "Ticket"}, Match = "Ticket", Type = "Arcade", Label = "TICKET BOMB"},
 }
 
 local detected = {}
@@ -718,7 +721,6 @@ local function getBrainrotName(rendered)
 end
 
 local function getRealObject(obj)
-    -- garante que o ESP fique no MODEL e não na Part
     if obj:IsA("BasePart") and obj.Parent then
         return obj.Parent
     end
@@ -791,20 +793,18 @@ local function applyESP()
 
             if matched then
                 detected[realObj] = true
-
                 local cfg = CONFIG[target.Type]
                 local label
 
                 if target.IsBrainrot then
-                    label = target.Type:upper() .. " – " .. getBrainrotName(obj)
-             else
-    if string.find(obj.Name, "LuckyBlock") then
-        label = target.Type:upper() .. " LUCKY BOX"
-    else
-        label = target.Label or (target.Type:upper() .. " EVENT")
-    end
-end
-
+                    label = target.Type:upper().." – "..getBrainrotName(obj)
+                else
+                    if string.find(obj.Name, "LuckyBlock") then
+                        label = target.Type:upper().." LUCKY BOX"
+                    else
+                        label = target.Label or (target.Type:upper().." EVENT")
+                    end
+                end
 
                 createHighlight(realObj, cfg.Color)
                 createBillboard(realObj, label, cfg.Emoji, cfg.Color)
@@ -821,6 +821,57 @@ task.spawn(function()
         task.wait(0.2)
         applyESP()
     end)
+end)
+
+-- =================================
+-- MAGNET COLLECT MULTI OBJECT
+-- =================================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local plr = Players.LocalPlayer
+
+local MAGNET_DISTANCE = 300      -- alcance do ímã
+local MAGNET_SPEED = 0.2       -- suavidade
+
+local function getHRP()
+    local char = plr.Character
+    if char then
+        return char:FindFirstChild("HumanoidRootPart")
+    end
+end
+
+-- Lista de caminhos que devem ser coletados
+local magnetTargets = {
+    { folder = "ArcadeEventTickets", part = "Ticket" },
+    { folder = "TicketBombTickets", part = "Ticket" },
+    { folder = "ArcadeEventConsoles", part = "Game Console" },
+}
+
+RunService.Heartbeat:Connect(function()
+    local hrp = getHRP()
+    if not hrp then return end
+
+    for _, info in ipairs(magnetTargets) do
+        local folder = workspace:FindFirstChild(info.folder)
+        if folder then
+            for _, model in ipairs(folder:GetChildren()) do
+                local obj = model:FindFirstChild(info.part)
+                if obj and obj:IsA("BasePart") then
+                    local dist = (obj.Position - hrp.Position).Magnitude
+
+                    if dist <= MAGNET_DISTANCE then
+                        obj.CanCollide = false
+                        obj.CFrame = obj.CFrame:Lerp(
+                            hrp.CFrame * CFrame.new(0, 0, -2),
+                            MAGNET_SPEED
+                        )
+                    end
+                end
+            end
+        end
+    end
 end)
 
 
