@@ -837,7 +837,7 @@ task.spawn(function()
 end)
 
 -- =================================
--- MAGNET COLLECT MULTI OBJECT
+-- MAGNET COLLECT ROBUST
 -- =================================
 
 local Players = game:GetService("Players")
@@ -845,38 +845,44 @@ local RunService = game:GetService("RunService")
 
 local plr = Players.LocalPlayer
 
-local MAGNET_DISTANCE = 300      -- alcance do ímã
-local MAGNET_SPEED = 0,1      -- suavidade
+local MAGNET_DISTANCE = 80
+local MAGNET_SPEED = 0.12
 
 local function getHRP()
     local char = plr.Character
-    if char then
-        return char:FindFirstChild("HumanoidRootPart")
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+-- tenta extrair uma BasePart válida
+local function getPart(obj)
+    if obj:IsA("BasePart") then
+        return obj
+    elseif obj:IsA("Model") then
+        return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
     end
 end
 
--- Lista de caminhos que devem ser coletados
-local magnetTargets = {
-    { folder = "ArcadeEventTickets", part = "Ticket" },
-    { folder = "TicketBombTickets", part = "Ticket" },
-    { folder = "ArcadeEventConsoles", part = "Game Console" },
+local targets = {
+    "ArcadeEventTickets",
+    "TicketBombTickets",
+    "ArcadeEventConsoles"
 }
 
 RunService.Heartbeat:Connect(function()
     local hrp = getHRP()
     if not hrp then return end
 
-    for _, info in ipairs(magnetTargets) do
-        local folder = workspace:FindFirstChild(info.folder)
+    for _, folderName in ipairs(targets) do
+        local folder = workspace:FindFirstChild(folderName)
         if folder then
-            for _, model in ipairs(folder:GetChildren()) do
-                local obj = model:FindFirstChild(info.part)
-                if obj and obj:IsA("BasePart") then
-                    local dist = (obj.Position - hrp.Position).Magnitude
-
+            for _, item in ipairs(folder:GetChildren()) do
+                local part = getPart(item)
+                if part then
+                    local dist = (part.Position - hrp.Position).Magnitude
                     if dist <= MAGNET_DISTANCE then
-                        obj.CanCollide = false
-                        obj.CFrame = obj.CFrame:Lerp(
+                        part.CanCollide = false
+                        part.AssemblyLinearVelocity = Vector3.zero
+                        part.CFrame = part.CFrame:Lerp(
                             hrp.CFrame * CFrame.new(0, 0, -2),
                             MAGNET_SPEED
                         )
