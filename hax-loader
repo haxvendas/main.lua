@@ -846,7 +846,7 @@ local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 
 local MAGNET_DISTANCE = 200
-local MAGNET_SPEED = 0.1
+local MAGNET_SPEED = 0
 
 local function getHRP()
     local char = plr.Character
