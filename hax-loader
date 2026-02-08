@@ -833,7 +833,7 @@ local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 
 local MAGNET_DISTANCE = 300      -- alcance do ímã
-local MAGNET_SPEED = 0       -- suavidade
+local MAGNET_SPEED = 0,1      -- suavidade
 
 local function getHRP()
     local char = plr.Character
