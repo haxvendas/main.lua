@@ -644,7 +644,7 @@ end)
 -- =============================================
 
 local vflyEnabled = false
-local vflySpeed = 70
+local vflySpeed = 150
 
 local vflyGyro, vflyVel, vflyConn
 
