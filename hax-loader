@@ -638,6 +638,79 @@ task.spawn(function()
         if hum then hum.Died:Connect(onDiedSec) end
     end)
 end)
+
+-- =============================================
+-- VFLY (BODYGYRO / BODYVELOCITY) - TECLA V
+-- =============================================
+
+local vflyEnabled = false
+local vflySpeed = 70
+
+local vflyGyro, vflyVel, vflyConn
+
+local function startVFly()
+    if vflyEnabled then return end
+    vflyEnabled = true
+
+    local char = waitForCharacter()
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+
+    hum.PlatformStand = true
+
+    vflyGyro = Instance.new("BodyGyro")
+    vflyGyro.P = 9e4
+    vflyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    vflyGyro.CFrame = cam.CFrame
+    vflyGyro.Parent = hrp
+
+    vflyVel = Instance.new("BodyVelocity")
+    vflyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    vflyVel.Velocity = Vector3.zero
+    vflyVel.Parent = hrp
+
+    vflyConn = RunService.RenderStepped:Connect(function()
+        local move = Vector3.new(
+            controls.D - controls.A,
+            controls.Space - controls.Ctrl,
+            controls.W - controls.S
+        )
+
+        if move.Magnitude > 0 then
+            move = move.Unit
+        end
+
+        local camCF = cam.CFrame
+        vflyGyro.CFrame = camCF
+
+        vflyVel.Velocity =
+            camCF.LookVector * move.Z * vflySpeed +
+            camCF.RightVector * move.X * vflySpeed +
+            Vector3.new(0, move.Y * vflySpeed, 0)
+    end)
+
+    notify("VFLY: ATIVADO", Color3.fromRGB(0, 200, 255))
+end
+
+local function stopVFly()
+    vflyEnabled = false
+
+    if vflyConn then vflyConn:Disconnect() vflyConn = nil end
+    if vflyGyro then vflyGyro:Destroy() vflyGyro = nil end
+    if vflyVel then vflyVel:Destroy() vflyVel = nil end
+
+    local char = plr.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.PlatformStand = false
+    end
+
+    notify("VFLY: DESATIVADO", Color3.fromRGB(255, 80, 80))
+end
+
 -- =============================================
 -- Character Added / Respawn
 -- =============================================
@@ -1006,39 +1079,48 @@ local function toggleHitboxExpander()
     end
 end
 
--- Aplicar novamente quando tool é adicionada/equipada (opcional, mas melhora)
-plr.CharacterAdded:Connect(function(char)
-    task.wait(0.8)
-    if hitboxExpanded then
-        expandHitboxes()  -- reaplica se já estava ligado
-    end
-end)
-
-backpack.ChildAdded:Connect(function(child)
-
-
-    if hitboxExpanded and child:IsA("Tool") then
-        task.wait(0.3)
-        expandHitboxes()
-    end
-end)
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or not scriptFullyLoaded then return end
-    
+
     local k = input.KeyCode
 
-    if k == Enum.KeyCode.F then
+    -- =====================
+    -- VFLY (V)
+    -- =====================
+    if k == Enum.KeyCode.V then
+        if vflyEnabled then
+            stopVFly()
+        else
+            startVFly()
+        end
+
+    -- =====================
+    -- FLY NORMAL (F)
+    -- =====================
+    elseif k == Enum.KeyCode.F then
         toggleFly()
 
+    -- =====================
+    -- HITBOX (H)
+    -- =====================
     elseif k == Enum.KeyCode.H then
         toggleHitboxExpander()
 
-elseif input.KeyCode == Enum.KeyCode.T then
+    -- =====================
+    -- SERVER HOP (T)
+    -- =====================
+    elseif k == Enum.KeyCode.T then
         hopServer()
 
+    -- =====================
+    -- AUTO COLLECT (G)
+    -- =====================
     elseif k == Enum.KeyCode.G then
         autoCollect = not autoCollect
 
+    -- =====================
+    -- TELEPORTS
+    -- =====================
     elseif k == Enum.KeyCode.Q then
         smoothFastTP(curIndex + 1)
 
@@ -1057,6 +1139,9 @@ elseif input.KeyCode == Enum.KeyCode.T then
     elseif k == Enum.KeyCode.RightControl then
         smoothFastTP2(1)
 
+    -- =====================
+    -- CONTROLS (FLY / VFLY)
+    -- =====================
     elseif k == Enum.KeyCode.W then controls.W = 1
     elseif k == Enum.KeyCode.S then controls.S = 1
     elseif k == Enum.KeyCode.A then controls.A = 1
@@ -1064,7 +1149,8 @@ elseif input.KeyCode == Enum.KeyCode.T then
     elseif k == Enum.KeyCode.Space then controls.Space = 1
     elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 1
     end
-end)  -- ⬅️ ESSE end estava faltando
+end)
+
 UIS.InputEnded:Connect(function(input)
     local k = input.KeyCode
 
