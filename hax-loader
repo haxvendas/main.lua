@@ -752,9 +752,6 @@ local TARGETS = {
 
     -- Arcade Tickets
     {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
-
-    -- 🎟️ Ticket Bomb
-    {Path = {"TicketBombTickets", "Ticket"}, Match = "Ticket", Type = "Arcade", Label = "TICKET BOMB"},
 }
 
 
