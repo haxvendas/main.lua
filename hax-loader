@@ -1,6 +1,14 @@
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
+local sg = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+local tl = Instance.new("TextLabel", sg)
+tl.Size = UDim2.new(0,200,0,50)
+tl.Position = UDim2.new(0.5, -100, 0.1, 0)
+tl.BackgroundTransparency = 0.5
+tl.Text = "SCRIPT INJETADO COM SUCESSO!"
+tl.TextScaled = true
+tl.TextColor3 = Color3.new(1,0,0)
 
 local Players     = game:GetService("Players") 
 local RunService  = game:GetService("RunService")
@@ -27,6 +35,7 @@ local TeleportService = game:GetService("TeleportService")
 
 local notifyBusy = false
 local scriptFullyLoaded = false
+
 
 -- =============================================
 -- Notify Function
@@ -366,7 +375,6 @@ task.spawn(function()
     end)
 end)
  
-mudou agr nn é mais celestial
 -- =============================================
 -- TP VIP COM TWEEN RÁPIDO E SUAVE (LINEAR: não volta no final/início)
 -- =============================================
