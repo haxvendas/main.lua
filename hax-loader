@@ -297,7 +297,7 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -- =============================================
--- GUI Timers (Eventos / Money) - Posição MAIS ALTA
+-- GUI Timers (Celestial / Money)
 -- =============================================
 task.spawn(function()
     task.wait(3)
@@ -311,7 +311,7 @@ task.spawn(function()
     gui.Parent = plr:WaitForChild("PlayerGui")
     local frame = Instance.new("Frame", gui)
     frame.Size = UDim2.new(0, 280, 0, 90)
-    frame.Position = UDim2.new(1, -300, 1, -160)  -- 👆 MAIS PRA CIMA (era -110, agora -160)
+    frame.Position = UDim2.new(1, -300, 1, -160)
     frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
     frame.BackgroundTransparency = 0.25
     frame.BorderSizePixel = 0
@@ -331,39 +331,29 @@ task.spawn(function()
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         return lbl
     end
-    local specialTime = createLabel("SpecialEvent", Color3.fromRGB(255, 150, 50), 10)
-    local moneyTime = createLabel("MoneyEvent", Color3.fromRGB(255, 220, 80), 45)
-    local specialLabel, moneyLabel = nil, nil
+    local celTime = createLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
+    local moneyTime = createLabel("Money", Color3.fromRGB(255, 220, 80), 45)
+    local celestialLabel, moneyLabel = nil, nil
     task.spawn(function()
         while true do
-            specialLabel, moneyLabel = nil, nil
-            local eventTimers = workspace:FindFirstChild("EventTimers")
-            if eventTimers then
-                local part = eventTimers:FindFirstChild("Part")
-                if part then
-                    for _, obj in ipairs(part:GetDescendants()) do
-                        if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
-                            local t = obj.Text:lower():gsub("<[^>]+>", ""):gsub("%s+", " ")
-                            if t:find("money") or t:find("cash") or t:find("dinheiro") or t:find("gold") then
-                                moneyLabel = obj
-                            else
-                                specialLabel = obj
-                            end
-                        end
-                    end
+            celestialLabel, moneyLabel = nil, nil
+            for _, obj in workspace:GetDescendants() do
+                if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
+                    local t = obj.Text:lower()
+                    if t:find("frenzy") or t:find("appears") then celestialLabel = obj end
+                    if t:find("money") or t:find("event") or t:find("ufo") then moneyLabel = obj end
                 end
             end
-            task.wait(2)
+            task.wait(3.5)
         end
     end)
-    local RunService = game:GetService("RunService")
     RunService.RenderStepped:Connect(function()
-        if specialLabel and specialLabel.Parent then
-            local txt = specialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-            specialTime.Text = "✨ " .. txt
-            specialTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,150,50)) or Color3.fromRGB(255,150,50)
+        if celestialLabel and celestialLabel.Parent then
+            local txt = celestialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
+            celTime.Text = "✨ " .. txt
+            celTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,150,50)) or Color3.fromRGB(255,150,50)
         else
-            specialTime.Text = "✨ Procurando Evento..."
+            celTime.Text = "✨ Procurando "
         end
        
         if moneyLabel and moneyLabel.Parent then
@@ -371,10 +361,12 @@ task.spawn(function()
             moneyTime.Text = "💰 " .. txt
             moneyTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,220,80)) or Color3.fromRGB(255,220,80)
         else
-            moneyTime.Text = "💰 Procurando Money..."
+            moneyTime.Text = "💰 Procurando Evento..."
         end
     end)
 end)
+ 
+mudou agr nn é mais celestial
 -- =============================================
 -- TP VIP COM TWEEN RÁPIDO E SUAVE (LINEAR: não volta no final/início)
 -- =============================================
