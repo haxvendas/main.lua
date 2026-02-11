@@ -722,7 +722,8 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ESP Celestial / Divine / Brainrots / Arcade Ticket / Ticket Bomb
+-- ESP Celestial / Divine / Infinity / Arcade Ticket
+-- COM AUTO CLEAN
 -- =============================================
 
 local CONFIG = {
@@ -730,7 +731,6 @@ local CONFIG = {
     Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" },
     Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" }
 }
-
 
 local TARGETS = {
     -- Lucky Blocks
@@ -746,8 +746,11 @@ local TARGETS = {
     {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
 }
 
-
 local detected = {}
+
+-- ==============================
+-- UTILIDADES
+-- ==============================
 
 local function getBaseFolder(path)
     local current = workspace
@@ -777,14 +780,22 @@ local function getBrainrotName(rendered)
 end
 
 local function getRealObject(obj)
-    if obj:IsA("BasePart") and obj.Parent then
+    if obj:IsA("Model") then
+        return obj
+    end
+    if obj.Parent and obj.Parent:IsA("Model") then
         return obj.Parent
     end
     return obj
 end
 
+-- ==============================
+-- CRIAR ESP
+-- ==============================
+
 local function createHighlight(obj, color)
     if obj:FindFirstChild("UniversalHighlight") then return end
+
     local h = Instance.new("Highlight")
     h.Name = "UniversalHighlight"
     h.Adornee = obj
@@ -813,7 +824,7 @@ local function createBillboard(obj, label, emoji, color)
     txt.Font = Enum.Font.GothamBold
 
     task.spawn(function()
-        while obj.Parent do
+        while obj and obj.Parent do
             local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 local d = (hrp.Position - obj:GetPivot().Position).Magnitude
@@ -824,9 +835,46 @@ local function createBillboard(obj, label, emoji, color)
     end)
 end
 
+-- ==============================
+-- LIMPEZA AUTOMÁTICA
+-- ==============================
+
+local function cleanESP(obj)
+    if obj then
+        local h = obj:FindFirstChild("UniversalHighlight")
+        if h then h:Destroy() end
+
+        local bb = obj:FindFirstChild("UniversalBillboard")
+        if bb then bb:Destroy() end
+    end
+    detected[obj] = nil
+end
+
+local function monitorRemoval(obj)
+    obj.AncestryChanged:Connect(function(_, parent)
+        if not parent then
+            cleanESP(obj)
+        end
+    end)
+end
+
+workspace.DescendantRemoving:Connect(function(obj)
+    if detected[obj] then
+        cleanESP(obj)
+    end
+end)
+
+-- ==============================
+-- NOTIFICAÇÃO
+-- ==============================
+
 local function notifyEvent(text)
     notify("👁️ "..text, Color3.fromRGB(255, 60, 60))
 end
+
+-- ==============================
+-- APLICAR ESP
+-- ==============================
 
 local function applyESP()
     if not scriptFullyLoaded then return end
@@ -835,27 +883,20 @@ local function applyESP()
         local base = getBaseFolder(target.Path)
         if not base then continue end
 
-        for _, obj in base:GetChildren() do
-            local realObj
-if target.Label == "TICKET BOMB" then
-    -- cada ticket é único
-    realObj = obj
-else
-    -- outros ESP continuam no Model
-    realObj = getRealObject(obj)
-end
-
-            if detected[realObj] then continue end
+        for _, obj in base:GetDescendants() do
 
             local matched = false
 
-            if target.Match and obj.Name == target.Match then
+            if target.Match and string.find(obj.Name, target.Match) then
                 matched = true
             elseif target.Contains and nameMatches(obj.Name, target.Contains) then
                 matched = true
             end
 
             if matched then
+                local realObj = getRealObject(obj)
+                if detected[realObj] then continue end
+
                 detected[realObj] = true
                 local cfg = CONFIG[target.Type]
                 local label
@@ -872,20 +913,28 @@ end
 
                 createHighlight(realObj, cfg.Color)
                 createBillboard(realObj, label, cfg.Emoji, cfg.Color)
+                monitorRemoval(realObj)
+
                 notifyEvent(cfg.Emoji.." "..label.." DETECTADO!")
             end
         end
     end
 end
 
+-- ==============================
+-- INICIALIZAÇÃO
+-- ==============================
+
 task.spawn(function()
     task.wait(4)
     applyESP()
+
     workspace.DescendantAdded:Connect(function()
         task.wait(0.2)
         applyESP()
     end)
 end)
+
 
 -- =================================
 -- MAGNET COLLECT ROBUST
