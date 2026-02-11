@@ -93,7 +93,7 @@ end
 -- Espera personagem
 -- ============================================= 
 local function waitForCharacter(timeout)
-    timeout = timeout or 5
+    timeout = timeout or 4
     local start = tick()
     while not plr.Character and tick() - start < timeout do
         task.wait()
@@ -297,33 +297,28 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -- =============================================
--- GUI Timers (Celestial / Money)
+-- GUI Timers (Eventos / Money) - Posição MAIS ALTA
 -- =============================================
 task.spawn(function()
     task.wait(3)
     if plr.PlayerGui:FindFirstChild("EventPanelClean") then
         plr.PlayerGui.EventPanelClean:Destroy()
     end
-
     local gui = Instance.new("ScreenGui")
     gui.Name = "EventPanelClean"
     gui.IgnoreGuiInset = true
     gui.ResetOnSpawn = false
     gui.Parent = plr:WaitForChild("PlayerGui")
-
     local frame = Instance.new("Frame", gui)
     frame.Size = UDim2.new(0, 280, 0, 90)
-    frame.Position = UDim2.new(1, -300, 1, -110)
+    frame.Position = UDim2.new(1, -300, 1, -160)  -- 👆 MAIS PRA CIMA (era -110, agora -160)
     frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
     frame.BackgroundTransparency = 0.25
     frame.BorderSizePixel = 0
-
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
-
     local stroke = Instance.new("UIStroke", frame)
     stroke.Color = Color3.fromRGB(0, 200, 255)
     stroke.Thickness = 2.2
-
     local function createLabel(name, color, y)
         local lbl = Instance.new("TextLabel", frame)
         lbl.Name = name
@@ -336,41 +331,47 @@ task.spawn(function()
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         return lbl
     end
-
-    local celTime = createLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
-    local moneyTime = createLabel("Money", Color3.fromRGB(255, 220, 80), 45)
-
-    local celestialLabel, moneyLabel = nil, nil
-
+    local specialTime = createLabel("SpecialEvent", Color3.fromRGB(255, 150, 50), 10)
+    local moneyTime = createLabel("MoneyEvent", Color3.fromRGB(255, 220, 80), 45)
+    local specialLabel, moneyLabel = nil, nil
     task.spawn(function()
         while true do
-            celestialLabel, moneyLabel = nil, nil
-            for _, obj in workspace:GetDescendants() do
-                if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
-                    local t = obj.Text:lower()
-                    if t:find("celestial") or t:find("appears") then celestialLabel = obj end
-                    if t:find("money") or t:find("event") or t:find("ufo") then moneyLabel = obj end
+            specialLabel, moneyLabel = nil, nil
+            local eventTimers = workspace:FindFirstChild("EventTimers")
+            if eventTimers then
+                local part = eventTimers:FindFirstChild("Part")
+                if part then
+                    for _, obj in ipairs(part:GetDescendants()) do
+                        if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
+                            local t = obj.Text:lower():gsub("<[^>]+>", ""):gsub("%s+", " ")
+                            if t:find("money") or t:find("cash") or t:find("dinheiro") or t:find("gold") then
+                                moneyLabel = obj
+                            else
+                                specialLabel = obj
+                            end
+                        end
+                    end
                 end
             end
-            task.wait(3.5)
+            task.wait(2)
         end
     end)
-
+    local RunService = game:GetService("RunService")
     RunService.RenderStepped:Connect(function()
-        if celestialLabel and celestialLabel.Parent then
-            local txt = celestialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-            celTime.Text = "✨ " .. txt
-            celTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,150,50)) or Color3.fromRGB(255,150,50)
+        if specialLabel and specialLabel.Parent then
+            local txt = specialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
+            specialTime.Text = "✨ " .. txt
+            specialTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,150,50)) or Color3.fromRGB(255,150,50)
         else
-            celTime.Text = "✨ Procurando Celestial..."
+            specialTime.Text = "✨ Procurando Evento..."
         end
-        
+       
         if moneyLabel and moneyLabel.Parent then
             local txt = moneyLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
             moneyTime.Text = "💰 " .. txt
             moneyTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,220,80)) or Color3.fromRGB(255,220,80)
         else
-            moneyTime.Text = "💰 Procurando Evento..."
+            moneyTime.Text = "💰 Procurando Money..."
         end
     end)
 end)
@@ -511,41 +512,36 @@ task.spawn(function()
 end)
 
 -- =============================================
--- TP SECUNDÁRIO COM TWEEN RÁPIDO (R = Próxima, C = Anterior) - CICLO INFINITO
+-- TP SECUNDÁRIO COM TWEEN RÁPIDO (SÓ R = Próxima) - CICLO INFINITO
 -- =============================================
 local vipPos2 = {
     Vector3.new(428.90, -1.25, -336.84),
     Vector3.new(2566.71, -3.15, -337.74)
     -- Adicione mais posições aqui se quiser expandir (ex: , Vector3.new(x,y,z))
 }
-
 local vipNames2 = {
     "SEC 1", "SEC FINAL"
     -- Edite se quiser nomes melhores
 }
-
 local curIndex2 = 0
 local isTweening2 = false
 local lastInputTime2 = 0
 local DEBOUNCE2 = 0.12
-
 task.spawn(function()
-    task.wait(2.0)  -- delay pra não conflitar com a GUI VIP
-    
+    task.wait(2.0) -- delay pra não conflitar com a GUI VIP
+   
     local tpGui2 = Instance.new("ScreenGui")
     tpGui2.Name = "SecTPGui"
     tpGui2.ResetOnSpawn = false
     tpGui2.Parent = plr:WaitForChild("PlayerGui")
-
     local frame2 = Instance.new("Frame", tpGui2)
     frame2.Size = UDim2.new(0, 220, 0, 70)
-    frame2.Position = UDim2.new(0, 15, 0, 100)  -- abaixo da GUI principal
+    frame2.Position = UDim2.new(0, 15, 0, 100) -- abaixo da GUI principal
     frame2.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
     frame2.BorderSizePixel = 0
     frame2.Active = true
     frame2.Draggable = true
     Instance.new("UICorner", frame2).CornerRadius = UDim.new(0, 8)
-
     local title2 = Instance.new("TextLabel", frame2)
     title2.Size = UDim2.new(1, 0, 0, 25)
     title2.BackgroundColor3 = Color3.fromRGB(140, 80, 180)
@@ -553,7 +549,6 @@ task.spawn(function()
     title2.TextColor3 = Color3.new(1,1,1)
     title2.Font = Enum.Font.GothamBold
     title2.TextScaled = true
-
     local statusLabel2 = Instance.new("TextLabel", frame2)
     statusLabel2.Size = UDim2.new(1, -10, 1, -30)
     statusLabel2.Position = UDim2.new(0, 5, 0, 25)
@@ -563,62 +558,59 @@ task.spawn(function()
     statusLabel2.Font = Enum.Font.Gotham
     statusLabel2.TextXAlignment = Enum.TextXAlignment.Left
     statusLabel2.RichText = true
-
     local function updateStatus2()
         if curIndex2 == 0 then
-            statusLabel2.Text = "R → Próxima   C → Anterior"
+            statusLabel2.Text = "R → Próxima"
         else
-            statusLabel2.Text = "R → Próxima   C → Anterior\n" ..
-                                "<font color='rgb(220,200,255)'>Zona " .. curIndex2 .. "/" .. #vipPos2 .. 
+            statusLabel2.Text = "R → Próxima\n" ..
+                                "<font color='rgb(220,200,255)'>Zona " .. curIndex2 .. "/" .. #vipPos2 ..
                                 " - " .. (vipNames2[curIndex2] or "?") .. "</font>" ..
                                 (isTweening2 and "\n<font color='rgb(255,180,100)'>Movendo...</font>" or "")
         end
     end
     updateStatus2()
-
     function smoothFastTP2(targetIndex)
-
         if isTweening2 or tick() - lastInputTime2 < DEBOUNCE2 then return end
-        
+       
         -- Ciclo infinito: wrap around
         if targetIndex > #vipPos2 then targetIndex = 1 end
         if targetIndex < 1 then targetIndex = #vipPos2 end
-
         local char = plr.Character
         if not char then return end
-        
+       
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-
         isTweening2 = true
         lastInputTime2 = tick()
         updateStatus2()
-
         local targetPos = vipPos2[targetIndex] + Vector3.new(0, 4, 0)
         local distance = (hrp.Position - targetPos).Magnitude
         local tweenTime = math.clamp(distance / 700, 0.6, 0.6)
-
         notify("→ SEC " .. targetIndex, Color3.fromRGB(200, 150, 255))
-
         local tweenInfo = TweenInfo.new(
             tweenTime,
             Enum.EasingStyle.Quad,
             Enum.EasingDirection.Out
         )
-
         local tween = TS:Create(hrp, tweenInfo, {
             CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
         })
-
         tween:Play()
-
         tween.Completed:Connect(function()
             isTweening2 = false
             curIndex2 = targetIndex
             updateStatus2()
         end)
     end
-
+    -- 👇 INPUT SÓ R (Próxima) - Adicionado aqui
+    local UIS = game:GetService("UserInputService")
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == Enum.KeyCode.R then
+            local nextIndex = (curIndex2 % #vipPos2) + 1
+            smoothFastTP2(nextIndex)
+        end
+    end)
   local function onDiedSec()
         curIndex2 = 0
         isTweening2 = false
@@ -626,12 +618,11 @@ task.spawn(function()
         updateStatus2()
         notify("Morreu → TP SEC resetado", Color3.fromRGB(255, 120, 120))
     end
-
     if plr.Character then
         local hum = plr.Character:FindFirstChild("Humanoid")
         if hum then hum.Died:Connect(onDiedSec) end
     end
-    
+   
     plr.CharacterAdded:Connect(function(char)
         task.wait(0.3)
         local hum = char:WaitForChild("Humanoid", 3)
@@ -743,7 +734,6 @@ end)
 -- =============================================
 
 local CONFIG = {
-    Celestial = { Color = Color3.fromRGB(255, 200, 50),  Emoji = "🌟" },
     Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" },
     Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" },
     Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" }
@@ -752,7 +742,6 @@ local CONFIG = {
 
 local TARGETS = {
     -- Lucky Blocks
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Celestial"}, Type = "Celestial"},
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Divine"},    Type = "Divine"},
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"},  Type = "Infinity"},
 
@@ -1132,9 +1121,6 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
 
     elseif k == Enum.KeyCode.R then
         smoothFastTP2(curIndex2 + 1)
-
-    elseif k == Enum.KeyCode.C then
-        smoothFastTP2(curIndex2 - 1)
 
     elseif k == Enum.KeyCode.RightControl then
         smoothFastTP2(1)
