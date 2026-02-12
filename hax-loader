@@ -762,7 +762,16 @@ local function nameMatches(objName, words)
     return true
 end
 
-local function getBrainrotName(rendered) for _, v in rendered:GetChildren() do if v.Name ~= "Root" and v.Name ~= "UniversalHighlight" and v.Name ~= "UniversalBillboard" then return v.Name end end return "UNKNOWN" end
+local function getBrainrotName(rendered)
+    for _, v in ipairs(rendered:GetChildren()) do
+        if v.Name ~= "Root"
+        and v.Name ~= "UniversalHighlight"
+        and v.Name ~= "UniversalBillboard" then
+            return v.Name
+        end
+    end
+    return "UNKNOWN"
+end
 
 
 local function getRealObject(obj)
@@ -846,19 +855,25 @@ local function checkObject(obj)
             local cfg = CONFIG[target.Type]
             local label
 
-            if target.IsBrainrot then
-    local rendered = obj
-    
-    -- garante que estamos no RenderedBrainrot
-    if rendered.Name ~= "RenderedBrainrot" then
-        rendered = obj:FindFirstAncestor("RenderedBrainrot")
+           if target.IsBrainrot then
+    -- sobe até o RenderedBrainrot real
+    local rendered = obj:FindFirstAncestor("RenderedBrainrot")
+
+    if not rendered then
+        if obj.Name == "RenderedBrainrot" then
+            rendered = obj
+        else
+            return
+        end
     end
 
-    if not rendered then return end
+    -- agora o objeto REAL para ESP é o RenderedBrainrot
+    realObj = rendered
+
+    if detected[realObj] then return end
 
     label = target.Type:upper().." – "..getBrainrotName(rendered)
 end
-
 
             createESP(realObj, label, cfg)
             return
