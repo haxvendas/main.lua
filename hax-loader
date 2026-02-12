@@ -725,17 +725,25 @@ local CONFIG = {
 
 local TARGETS = {
     -- Lucky Blocks
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Divine"},    Type = "Divine"},
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"},  Type = "Infinity"},
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Divine"},   Type = "Divine"},
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"}, Type = "Infinity"},
+
     -- Brainrots
     {Path = {"ActiveBrainrots", "Celestial"}, Match = "RenderedBrainrot", Type = "Celestial", IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
-    {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot",  Type = "Infinity", IsBrainrot = true},
+    {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
+
     -- Arcade Tickets
-    {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
+    {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET", PerInstance = true},
 }
 
-local detected = {}
+-- ---------------------------------------------------------------------------
+
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
+
+local detected = {}           -- [realObj] = true
+local connections = {}        -- para limpar se necessário no futuro
 
 local function getBaseFolder(path)
     local current = workspace
@@ -746,135 +754,152 @@ local function getBaseFolder(path)
     return current
 end
 
-local function nameMatches(objName, words)
-    for _, w in words do
-        if not string.find(objName, w) then
+local function nameContainsAll(haystack, words)
+    for _, word in words do
+        if not string.find(haystack, word, 1, true) then
             return false
         end
     end
     return true
 end
 
-local function getBrainrotName(rendered)
+local function getBrainrotDisplayName(rendered)
     for _, v in rendered:GetChildren() do
-        if v.Name ~= "Root" and v.Name ~= "UniversalHighlight" and v.Name ~= "UniversalBillboard" then
-            return v.Name
+        local n = v.Name
+        if n ~= "Root" and n ~= "UniversalHighlight" and n ~= "UniversalBillboard" then
+            return n
         end
     end
-    return "UNKNOWN"
+    return "?"
 end
 
-local function getRealObject(obj)
+local function getTargetObject(obj, isPerInstance)
+    if isPerInstance then
+        return obj
+    end
     if obj:IsA("BasePart") and obj.Parent then
         return obj.Parent
     end
     return obj
 end
 
-local function createHighlight(obj, color)
-    if obj:FindFirstChild("UniversalHighlight") then return end
+local function createHighlight(adornee, color)
+    if adornee:FindFirstChild("UniversalHighlight") then return end
     local h = Instance.new("Highlight")
     h.Name = "UniversalHighlight"
-    h.Adornee = obj
+    h.Adornee = adornee
     h.FillColor = color
-    h.OutlineColor = Color3.fromRGB(255,255,255)
+    h.OutlineColor = Color3.new(1,1,1)
     h.FillTransparency = 0.45
-    h.Parent = obj
+    h.OutlineTransparency = 0.1
+    h.Parent = adornee
 end
 
-local function createBillboard(obj, label, emoji, color)
-    if obj:FindFirstChild("UniversalBillboard") then return end
+local function createDistanceBillboard(adornee, labelText, emoji, color)
+    if adornee:FindFirstChild("UniversalBillboard") then return end
 
     local bb = Instance.new("BillboardGui")
     bb.Name = "UniversalBillboard"
     bb.Size = UDim2.new(0, 260, 0, 70)
     bb.StudsOffset = Vector3.new(0, 4, 0)
     bb.AlwaysOnTop = true
-    bb.Parent = obj
+    bb.Parent = adornee
 
-    local txt = Instance.new("TextLabel", bb)
+    local txt = Instance.new("TextLabel")
     txt.Size = UDim2.new(1,0,1,0)
     txt.BackgroundTransparency = 1
     txt.TextColor3 = color
     txt.TextStrokeTransparency = 0
+    txt.TextStrokeColor3 = Color3.new(0,0,0)
     txt.TextScaled = true
     txt.Font = Enum.Font.GothamBold
+    txt.Parent = bb
 
-    task.spawn(function()
-        while obj.Parent do
-            local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local d = (hrp.Position - obj:GetPivot().Position).Magnitude
-                txt.Text = emoji.." "..label.."\n📏 "..math.floor(d).." studs"
-            end
-            task.wait(0.4)
+    -- Heartbeat é bem mais eficiente que loop com task.wait(0.4)
+    local conn
+    conn = game:GetService("RunService").Heartbeat:Connect(function()
+        if not adornee.Parent then
+            conn:Disconnect()
+            return
         end
+        local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        local dist = (hrp.Position - adornee:GetPivot().Position).Magnitude
+        txt.Text = string.format("%s %s\n📏 %d studs", emoji, labelText, math.floor(dist))
     end)
+
+    table.insert(connections, conn)
 end
 
 local function notifyEvent(text)
-    notify("👁️ "..text, Color3.fromRGB(255, 60, 60))
+    notify("👁️ " .. text, Color3.fromRGB(255, 60, 60))
 end
 
-local function applyESP()
-    if not scriptFullyLoaded then return end
+local function processFolder(folder, target)
+    if not folder then return end
 
-    for _, target in TARGETS do
-        local base = getBaseFolder(target.Path)
-        if not base then continue end
+    local isPerInstance = target.PerInstance == true
 
-        for _, obj in base:GetChildren() do
-            local realObj
-if target.Label == "TICKET BOMB" then
-    -- cada ticket é único
-    realObj = obj
-else
-    -- outros ESP continuam no Model
-    realObj = getRealObject(obj)
-end
+    for _, child in folder:GetChildren() do
+        local objName = child.Name
+        local matched = false
 
-            if detected[realObj] then continue end
-
-            local matched = false
-
-            if target.Match and obj.Name == target.Match then
-                matched = true
-            elseif target.Contains and nameMatches(obj.Name, target.Contains) then
-                matched = true
-            end
-
-            if matched then
-                detected[realObj] = true
-                local cfg = CONFIG[target.Type]
-                local label
-
-                if target.IsBrainrot then
-                    label = target.Type:upper().." – "..getBrainrotName(obj)
-                else
-                    if string.find(obj.Name, "LuckyBlock") then
-                        label = target.Type:upper().." LUCKY BOX"
-                    else
-                        label = target.Label or (target.Type:upper().." EVENT")
-                    end
-                end
-
-                createHighlight(realObj, cfg.Color)
-                createBillboard(realObj, label, cfg.Emoji, cfg.Color)
-                notifyEvent(cfg.Emoji.." "..label.." DETECTADO!")
-            end
+        if target.Match then
+            matched = (objName == target.Match)
+        elseif target.Contains then
+            matched = nameContainsAll(objName, target.Contains)
         end
+
+        if not matched then continue end
+
+        local realObj = getTargetObject(child, isPerInstance)
+        if detected[realObj] then continue end
+        detected[realObj] = true
+
+        local cfg = CONFIG[target.Type]
+
+        -- Label logic
+        local label
+        if target.IsBrainrot then
+            label = target.Type:upper() .. " – " .. getBrainrotDisplayName(child)
+        elseif string.find(objName, "LuckyBlock", 1, true) then
+            label = target.Type:upper() .. " LUCKY BOX"
+        else
+            label = target.Label or (target.Type:upper() .. " EVENT")
+        end
+
+        createHighlight(realObj, cfg.Color)
+        createDistanceBillboard(realObj, label, cfg.Emoji, cfg.Color)
+
+        notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
     end
 end
 
-task.spawn(function()
-    task.wait(4)
-    applyESP()
-    workspace.DescendantAdded:Connect(function()
-        task.wait(0.2)
-        applyESP()
-    end)
-end)
+local function scanAllTargets()
+    if not scriptFullyLoaded then return end
 
+    for _, target in TARGETS do
+        local folder = getBaseFolder(target.Path)
+        processFolder(folder, target)
+    end
+end
+
+-- Inicial + monitoramento
+task.delay(4, function()
+    scanAllTargets()
+
+    -- Mais eficiente que DescendantAdded global (menos spam)
+    for _, target in TARGETS do
+        local folder = getBaseFolder(target.Path)
+        if folder then
+            local conn = folder.DescendantAdded:Connect(function()
+                task.delay(0.25, scanAllTargets)   -- debounce leve
+            end)
+            table.insert(connections, conn)
+        end
+    end
+end)
 -- =================================
 -- MAGNET COLLECT ROBUST
 -- =================================
