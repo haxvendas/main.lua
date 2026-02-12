@@ -730,7 +730,7 @@ local TARGETS = {
     -- Brainrots
     {Path = {"ActiveBrainrots", "Celestial"}, Match = "RenderedBrainrot", Type = "Celestial", IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"},  Type = "Infinity"},
+    {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot",  Type = "Infinity", IsBrainrot = true},
     -- Arcade Tickets
     {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
 }
@@ -874,8 +874,6 @@ task.spawn(function()
         applyESP()
     end)
 end)
-
-add nova raridade tanta pra luck blox quando pra brainrot que é a Infinity
 
 -- =================================
 -- MAGNET COLLECT ROBUST
