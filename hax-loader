@@ -717,10 +717,8 @@ end)
 -- =============================================
 
 local CONFIG = {
-    Celestial = { Color = Color3.fromRGB(255, 200, 50),  Emoji = "🌟" },
     Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" },
-    Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" },
-    Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" }
+    Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" }
 }
 
 local TARGETS = {
@@ -729,12 +727,8 @@ local TARGETS = {
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"}, Type = "Infinity"},
 
     -- Brainrots
-    {Path = {"ActiveBrainrots", "Celestial"}, Match = "RenderedBrainrot", Type = "Celestial", IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
-
-    -- Arcade Tickets
-    {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET", PerInstance = true},
 }
 
 -- ---------------------------------------------------------------------------
