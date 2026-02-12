@@ -713,11 +713,8 @@ task.spawn(function()
     workspace.DescendantAdded:Connect(tryRemove)
 end)
 -- =============================================
--- ESP PROFISSIONAL OTIMIZADO
--- Celestial / Divine / Infinity / Arcade
+-- ESP Celestial / Divine / Brainrots / Arcade Ticket / Ticket Bomb
 -- =============================================
-
-local plr = game.Players.LocalPlayer
 
 local CONFIG = {
     Celestial = { Color = Color3.fromRGB(255, 200, 50),  Emoji = "🌟" },
@@ -727,22 +724,18 @@ local CONFIG = {
 }
 
 local TARGETS = {
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock","Divine"},   Type = "Divine"},
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock","Infinity"}, Type = "Infinity"},
-
-    {Path = {"ActiveBrainrots","Celestial"}, Match = "RenderedBrainrot", Type = "Celestial", IsBrainrot = true},
-    {Path = {"ActiveBrainrots","Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
-    {Path = {"ActiveBrainrots","Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
-
+    -- Lucky Blocks
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Divine"},    Type = "Divine"},
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"},  Type = "Infinity"},
+    -- Brainrots
+    {Path = {"ActiveBrainrots", "Celestial"}, Match = "RenderedBrainrot", Type = "Celestial", IsBrainrot = true},
+    {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"},  Type = "Infinity"},
+    -- Arcade Tickets
     {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
 }
 
 local detected = {}
-local activeBillboards = {}
-
--- =============================================
--- UTILIDADES
--- =============================================
 
 local function getBaseFolder(path)
     local current = workspace
@@ -763,46 +756,35 @@ local function nameMatches(objName, words)
 end
 
 local function getBrainrotName(rendered)
-    for _, v in ipairs(rendered:GetChildren()) do
-        if v.Name ~= "Root"
-        and v.Name ~= "UniversalHighlight"
-        and v.Name ~= "UniversalBillboard" then
+    for _, v in rendered:GetChildren() do
+        if v.Name ~= "Root" and v.Name ~= "UniversalHighlight" and v.Name ~= "UniversalBillboard" then
             return v.Name
         end
     end
     return "UNKNOWN"
 end
 
-
 local function getRealObject(obj)
-    if obj:IsA("Model") then
-        return obj
-    end
-    if obj.Parent and obj.Parent:IsA("Model") then
+    if obj:IsA("BasePart") and obj.Parent then
         return obj.Parent
     end
     return obj
 end
 
-
--- =============================================
--- CRIAÇÃO ESP
--- =============================================
-
-local function createESP(obj, label, cfg)
-    if detected[obj] then return end
-    detected[obj] = true
-
-    -- Highlight
+local function createHighlight(obj, color)
+    if obj:FindFirstChild("UniversalHighlight") then return end
     local h = Instance.new("Highlight")
     h.Name = "UniversalHighlight"
     h.Adornee = obj
-    h.FillColor = cfg.Color
+    h.FillColor = color
     h.OutlineColor = Color3.fromRGB(255,255,255)
     h.FillTransparency = 0.45
     h.Parent = obj
+end
 
-    -- Billboard
+local function createBillboard(obj, label, emoji, color)
+    if obj:FindFirstChild("UniversalBillboard") then return end
+
     local bb = Instance.new("BillboardGui")
     bb.Name = "UniversalBillboard"
     bb.Size = UDim2.new(0, 260, 0, 70)
@@ -813,124 +795,87 @@ local function createESP(obj, label, cfg)
     local txt = Instance.new("TextLabel", bb)
     txt.Size = UDim2.new(1,0,1,0)
     txt.BackgroundTransparency = 1
-    txt.TextColor3 = cfg.Color
+    txt.TextColor3 = color
     txt.TextStrokeTransparency = 0
     txt.TextScaled = true
     txt.Font = Enum.Font.GothamBold
-    txt:SetAttribute("BaseLabel", cfg.Emoji.." "..label)
 
-    activeBillboards[obj] = txt
-
-    -- Auto clean
-    obj.AncestryChanged:Connect(function(_, parent)
-        if not parent then
-            detected[obj] = nil
-            activeBillboards[obj] = nil
+    task.spawn(function()
+        while obj.Parent do
+            local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local d = (hrp.Position - obj:GetPivot().Position).Magnitude
+                txt.Text = emoji.." "..label.."\n📏 "..math.floor(d).." studs"
+            end
+            task.wait(0.4)
         end
     end)
 end
 
--- =============================================
--- CHECK INDIVIDUAL (LEVE)
--- =============================================
+local function notifyEvent(text)
+    notify("👁️ "..text, Color3.fromRGB(255, 60, 60))
+end
 
-local function checkObject(obj)
+local function applyESP()
+    if not scriptFullyLoaded then return end
+
     for _, target in TARGETS do
         local base = getBaseFolder(target.Path)
         if not base then continue end
-        if not obj:IsDescendantOf(base) then continue end
 
-        local matched = false
-
-        if target.Match and string.find(obj.Name, target.Match) then
-            matched = true
-        elseif target.Contains and nameMatches(obj.Name, target.Contains) then
-            matched = true
-        end
-
-        if matched then
-            local realObj = getRealObject(obj)
-            if detected[realObj] then return end
-
-            local cfg = CONFIG[target.Type]
-            local label
-
-           if target.IsBrainrot then
-    -- sobe até o RenderedBrainrot real
-    local rendered = obj:FindFirstAncestor("RenderedBrainrot")
-
-    if not rendered then
-        if obj.Name == "RenderedBrainrot" then
-            rendered = obj
-        else
-            return
-        end
-    end
-
-    -- agora o objeto REAL para ESP é o RenderedBrainrot
-    realObj = rendered
-
-    if detected[realObj] then return end
-
-    label = target.Type:upper().." – "..getBrainrotName(rendered)
+        for _, obj in base:GetChildren() do
+            local realObj
+if target.Label == "TICKET BOMB" then
+    -- cada ticket é único
+    realObj = obj
+else
+    -- outros ESP continuam no Model
+    realObj = getRealObject(obj)
 end
 
-            createESP(realObj, label, cfg)
-            return
-        end
-    end
-end
+            if detected[realObj] then continue end
 
--- =============================================
--- CONECTAR PASTAS (SEM SCAN GLOBAL)
--- =============================================
+            local matched = false
 
-local function connectTargets()
-    for _, target in TARGETS do
-        local folder = getBaseFolder(target.Path)
-        if folder then
-            -- checa existentes uma vez
-            for _, obj in folder:GetDescendants() do
-                checkObject(obj)
+            if target.Match and obj.Name == target.Match then
+                matched = true
+            elseif target.Contains and nameMatches(obj.Name, target.Contains) then
+                matched = true
             end
 
-            -- monitora novos
-            folder.DescendantAdded:Connect(function(obj)
-                checkObject(obj)
-            end)
-        end
-    end
-end
+            if matched then
+                detected[realObj] = true
+                local cfg = CONFIG[target.Type]
+                local label
 
--- =============================================
--- LOOP GLOBAL ÚNICO (DISTÂNCIA)
--- =============================================
-
-task.spawn(function()
-    while true do
-        local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-
-        if hrp then
-            for obj, txt in pairs(activeBillboards) do
-                if obj and obj.Parent then
-                    local d = (hrp.Position - obj:GetPivot().Position).Magnitude
-                    txt.Text = txt:GetAttribute("BaseLabel").."\n📏 "..math.floor(d).." studs"
+                if target.IsBrainrot then
+                    label = target.Type:upper().." – "..getBrainrotName(obj)
+                else
+                    if string.find(obj.Name, "LuckyBlock") then
+                        label = target.Type:upper().." LUCKY BOX"
+                    else
+                        label = target.Label or (target.Type:upper().." EVENT")
+                    end
                 end
+
+                createHighlight(realObj, cfg.Color)
+                createBillboard(realObj, label, cfg.Emoji, cfg.Color)
+                notifyEvent(cfg.Emoji.." "..label.." DETECTADO!")
             end
         end
-
-        task.wait(0.35)
     end
-end)
-
--- =============================================
--- START
--- =============================================
+end
 
 task.spawn(function()
-    task.wait(3)
-    connectTargets()
+    task.wait(4)
+    applyESP()
+    workspace.DescendantAdded:Connect(function()
+        task.wait(0.2)
+        applyESP()
+    end)
 end)
+
+add nova raridade tanta pra luck blox quando pra brainrot que é a Infinity
 
 -- =================================
 -- MAGNET COLLECT ROBUST
