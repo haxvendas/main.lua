@@ -365,7 +365,6 @@ task.spawn(function()
         end
     end)
 end)
- 
 -- =============================================
 -- TP VIP COM TWEEN RÁPIDO E SUAVE (LINEAR: não volta no final/início)
 -- =============================================
@@ -374,26 +373,29 @@ local vipPos = {
     Vector3.new(242.45, 6.90, -139.51),
     Vector3.new(339.32, 6.90, -139.52),
     Vector3.new(473.20, 3.40, -139.49),
-    Vector3.new(643.38, 3.40, -139.51),
-    Vector3.new(912.72, 5.97, -138.71),
-    Vector3.new(1310.13, 4.99, -139.85),
-    Vector3.new(1845.17, 6.94, -139.64),
-    Vector3.new(2404.92, 7.66, -139.26),
-    Vector3.new(2607.67, 1.12, -133.88)
+    Vector3.new(677.99, 3.40, -139.51),
+    Vector3.new(951.09, 3.40, -139.50),
+    Vector3.new(1364.01, 3.40, -139.50),
+    Vector3.new(1989.00, 3.40, -139.50),
+    Vector3.new(2603.06, 6.81, -139.96),
+    Vector3.new(3127.63, 4.75, -140.75),
+    Vector3.new(3490.35, 8.38, -140.13),
+    Vector3.new(3856.29, 6.29, -140.10),
+    Vector3.new(4028.87, 3.69, -129.82)
 }
 
 local vipNames = {
     "VIP", "VIP 1", "VIP 2", "VIP 3", "VIP 4",
-    "VIP 5", "VIP 6", "VIP 7", "VIP 8", "VIP FINAL"
+    "VIP 5", "VIP 6", "VIP 7", "VIP 8", "VIP 9", "VIP 10", "VIP 11", "VIP 12", "VIP FINAL"
 }
 
 local curIndex = 0
 local isTweening = false
 local lastInputTime = 0
-local DEBOUNCE = 0.12  -- permite spam rápido
+local DEBOUNCE = 0.5  -- permite spam rápido
 
 task.spawn(function()
-    task.wait(1.8)
+    task.wait(0.5)
     
     local tpGui = Instance.new("ScreenGui")
     tpGui.Name = "VIPTPGui"
@@ -459,7 +461,7 @@ task.spawn(function()
 
         local targetPos = vipPos[targetIndex] + Vector3.new(0, 4, 0)
         local distance = (hrp.Position - targetPos).Magnitude
-        local tweenTime = math.clamp(distance / 700, 0.6, 0.6)
+        local tweenTime = math.clamp(distance / 600, 0.4, 0.4)
 
         notify("→ Zona " .. targetIndex, Color3.fromRGB(150, 255, 150))
 
@@ -593,15 +595,6 @@ task.spawn(function()
             updateStatus2()
         end)
     end
-    -- 👇 INPUT SÓ R (Próxima) - Adicionado aqui
-    local UIS = game:GetService("UserInputService")
-    UIS.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if input.KeyCode == Enum.KeyCode.R then
-            local nextIndex = (curIndex2 % #vipPos2) + 1
-            smoothFastTP2(nextIndex)
-        end
-    end)
   local function onDiedSec()
         curIndex2 = 0
         isTweening2 = false
@@ -719,37 +712,37 @@ task.spawn(function()
     for _, obj in workspace:GetDescendants() do tryRemove(obj) end
     workspace.DescendantAdded:Connect(tryRemove)
 end)
+-- =============================================
+-- ESP PROFISSIONAL OTIMIZADO
+-- Celestial / Divine / Infinity / Arcade
+-- =============================================
 
--- =============================================
--- ESP Celestial / Divine / Infinity / Arcade Ticket
--- COM AUTO CLEAN
--- =============================================
+local plr = game.Players.LocalPlayer
 
 local CONFIG = {
+    Celestial = { Color = Color3.fromRGB(255, 200, 50),  Emoji = "🌟" },
     Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" },
     Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" },
     Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" }
 }
 
 local TARGETS = {
-    -- Lucky Blocks
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Divine"},    Type = "Divine"},
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"},  Type = "Infinity"},
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock","Divine"},   Type = "Divine"},
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock","Infinity"}, Type = "Infinity"},
 
-    -- Brainrots
-    {Path = {"ActiveBrainrots", "Celestial"}, Match = "RenderedBrainrot", Type = "Celestial", IsBrainrot = true},
-    {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
-    {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
+    {Path = {"ActiveBrainrots","Celestial"}, Match = "RenderedBrainrot", Type = "Celestial", IsBrainrot = true},
+    {Path = {"ActiveBrainrots","Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
+    {Path = {"ActiveBrainrots","Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
 
-    -- Arcade Tickets
     {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
 }
 
 local detected = {}
+local activeBillboards = {}
 
--- ==============================
+-- =============================================
 -- UTILIDADES
--- ==============================
+-- =============================================
 
 local function getBaseFolder(path)
     local current = workspace
@@ -770,11 +763,17 @@ local function nameMatches(objName, words)
 end
 
 local function getBrainrotName(rendered)
-    for _, v in rendered:GetChildren() do
-        if v.Name ~= "Root" and v.Name ~= "UniversalHighlight" and v.Name ~= "UniversalBillboard" then
-            return v.Name
+    -- procura filho que NÃO seja Root nem ESP
+    for _, child in ipairs(rendered:GetChildren()) do
+        if child:IsA("Model")
+        and child.Name ~= "Root"
+        and child.Name ~= "UniversalHighlight"
+        and child.Name ~= "UniversalBillboard" then
+            
+            return child.Name
         end
     end
+
     return "UNKNOWN"
 end
 
@@ -788,25 +787,25 @@ local function getRealObject(obj)
     return obj
 end
 
--- ==============================
--- CRIAR ESP
--- ==============================
 
-local function createHighlight(obj, color)
-    if obj:FindFirstChild("UniversalHighlight") then return end
+-- =============================================
+-- CRIAÇÃO ESP
+-- =============================================
 
+local function createESP(obj, label, cfg)
+    if detected[obj] then return end
+    detected[obj] = true
+
+    -- Highlight
     local h = Instance.new("Highlight")
     h.Name = "UniversalHighlight"
     h.Adornee = obj
-    h.FillColor = color
+    h.FillColor = cfg.Color
     h.OutlineColor = Color3.fromRGB(255,255,255)
     h.FillTransparency = 0.45
     h.Parent = obj
-end
 
-local function createBillboard(obj, label, emoji, color)
-    if obj:FindFirstChild("UniversalBillboard") then return end
-
+    -- Billboard
     local bb = Instance.new("BillboardGui")
     bb.Name = "UniversalBillboard"
     bb.Size = UDim2.new(0, 260, 0, 70)
@@ -817,132 +816,122 @@ local function createBillboard(obj, label, emoji, color)
     local txt = Instance.new("TextLabel", bb)
     txt.Size = UDim2.new(1,0,1,0)
     txt.BackgroundTransparency = 1
-    txt.TextColor3 = color
+    txt.TextColor3 = cfg.Color
     txt.TextStrokeTransparency = 0
     txt.TextScaled = true
     txt.Font = Enum.Font.GothamBold
+    txt:SetAttribute("BaseLabel", cfg.Emoji.." "..label)
 
-    task.spawn(function()
-        while obj and obj.Parent do
-            local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local d = (hrp.Position - obj:GetPivot().Position).Magnitude
-                txt.Text = emoji.." "..label.."\n📏 "..math.floor(d).." studs"
-            end
-            task.wait(0.4)
-        end
-    end)
-end
+    activeBillboards[obj] = txt
 
--- ==============================
--- LIMPEZA AUTOMÁTICA
--- ==============================
-
-local function cleanESP(obj)
-    if obj then
-        local h = obj:FindFirstChild("UniversalHighlight")
-        if h then h:Destroy() end
-
-        local bb = obj:FindFirstChild("UniversalBillboard")
-        if bb then bb:Destroy() end
-    end
-    detected[obj] = nil
-end
-
-local function monitorRemoval(obj)
+    -- Auto clean
     obj.AncestryChanged:Connect(function(_, parent)
         if not parent then
-            cleanESP(obj)
+            detected[obj] = nil
+            activeBillboards[obj] = nil
         end
     end)
 end
 
-workspace.DescendantRemoving:Connect(function(obj)
-    if detected[obj] then
-        cleanESP(obj)
-    end
-end)
+-- =============================================
+-- CHECK INDIVIDUAL (LEVE)
+-- =============================================
 
--- ==============================
--- NOTIFICAÇÃO
--- ==============================
-
-local function notifyEvent(text)
-    notify("👁️ "..text, Color3.fromRGB(255, 60, 60))
-end
-
--- ==============================
--- APLICAR ESP
--- ==============================
-
-local function applyESP()
-    if not scriptFullyLoaded then return end
-
+local function checkObject(obj)
     for _, target in TARGETS do
         local base = getBaseFolder(target.Path)
         if not base then continue end
+        if not obj:IsDescendantOf(base) then continue end
 
-        for _, obj in base:GetDescendants() do
+        local matched = false
 
-            local matched = false
+        if target.Match and string.find(obj.Name, target.Match) then
+            matched = true
+        elseif target.Contains and nameMatches(obj.Name, target.Contains) then
+            matched = true
+        end
 
-            if target.Match and string.find(obj.Name, target.Match) then
-                matched = true
-            elseif target.Contains and nameMatches(obj.Name, target.Contains) then
-                matched = true
-            end
+        if matched then
+            local realObj = getRealObject(obj)
+            if detected[realObj] then return end
 
-            if matched then
-                local realObj = getRealObject(obj)
-                if detected[realObj] then continue end
+            local cfg = CONFIG[target.Type]
+            local label
 
-                detected[realObj] = true
-                local cfg = CONFIG[target.Type]
-                local label
+            if target.IsBrainrot then
+    local rendered = obj
+    
+    -- garante que estamos no RenderedBrainrot
+    if rendered.Name ~= "RenderedBrainrot" then
+        rendered = obj:FindFirstAncestor("RenderedBrainrot")
+    end
 
-                if target.IsBrainrot then
-                    label = target.Type:upper().." – "..getBrainrotName(obj)
-                else
-                    if string.find(obj.Name, "LuckyBlock") then
-                        label = target.Type:upper().." LUCKY BOX"
-                    else
-                        label = target.Label or (target.Type:upper().." EVENT")
-                    end
-                end
+    if not rendered then return end
 
-                createHighlight(realObj, cfg.Color)
-                createBillboard(realObj, label, cfg.Emoji, cfg.Color)
-                monitorRemoval(realObj)
+    label = target.Type:upper().." – "..getBrainrotName(rendered)
+end
 
-                notifyEvent(cfg.Emoji.." "..label.." DETECTADO!")
-            end
+
+            createESP(realObj, label, cfg)
+            return
         end
     end
 end
 
--- ==============================
--- INICIALIZAÇÃO
--- ==============================
+-- =============================================
+-- CONECTAR PASTAS (SEM SCAN GLOBAL)
+-- =============================================
+
+local function connectTargets()
+    for _, target in TARGETS do
+        local folder = getBaseFolder(target.Path)
+        if folder then
+            -- checa existentes uma vez
+            for _, obj in folder:GetDescendants() do
+                checkObject(obj)
+            end
+
+            -- monitora novos
+            folder.DescendantAdded:Connect(function(obj)
+                checkObject(obj)
+            end)
+        end
+    end
+end
+
+-- =============================================
+-- LOOP GLOBAL ÚNICO (DISTÂNCIA)
+-- =============================================
 
 task.spawn(function()
-    task.wait(4)
-    applyESP()
+    while true do
+        local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 
-    workspace.DescendantAdded:Connect(function()
-        task.wait(0.2)
-        applyESP()
-    end)
+        if hrp then
+            for obj, txt in pairs(activeBillboards) do
+                if obj and obj.Parent then
+                    local d = (hrp.Position - obj:GetPivot().Position).Magnitude
+                    txt.Text = txt:GetAttribute("BaseLabel").."\n📏 "..math.floor(d).." studs"
+                end
+            end
+        end
+
+        task.wait(0.35)
+    end
 end)
 
+-- =============================================
+-- START
+-- =============================================
+
+task.spawn(function()
+    task.wait(3)
+    connectTargets()
+end)
 
 -- =================================
 -- MAGNET COLLECT ROBUST
 -- =================================
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local plr = Players.LocalPlayer
 
 local MAGNET_DISTANCE = 220
 local MAGNET_SPEED = 1
@@ -1191,4 +1180,3 @@ end)
 -- Final
 -- =============================================
 notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0))
-
