@@ -763,19 +763,24 @@ local function nameMatches(objName, words)
 end
 
 local function getBrainrotName(rendered)
-    -- procura filho que NÃO seja Root nem ESP
+
     for _, child in ipairs(rendered:GetChildren()) do
-        if child:IsA("Model")
-        and child.Name ~= "Root"
+        if child.Name ~= "Root"
         and child.Name ~= "UniversalHighlight"
         and child.Name ~= "UniversalBillboard" then
             
-            return child.Name
+            -- ignora objetos técnicos invisíveis
+            if not child:IsA("Highlight")
+            and not child:IsA("BillboardGui") then
+                
+                return child.Name
+            end
         end
     end
 
-    return "UNKNOWN"
+    return rendered.Name
 end
+
 
 local function getRealObject(obj)
     if obj:IsA("Model") then
