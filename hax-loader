@@ -720,7 +720,8 @@ end)
 
 local CONFIG = {
     Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" },
-    Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" }
+    Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" },
+    Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" }
 }
 
 local TARGETS = {
@@ -731,6 +732,10 @@ local TARGETS = {
     -- Brainrots
     {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
+
+ -- Arcade Tickets
+    {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
+
 }
 
 -- ---------------------------------------------------------------------------
