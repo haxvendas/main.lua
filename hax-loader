@@ -736,6 +736,9 @@ local TARGETS = {
  -- Arcade Tickets
     {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
 
+-- Valentines Coins
+{Path = {"ValentinesCoinParts"}, Match = "ValentinesCoin", Type = "Arcade", Label = "VALENTINE COIN"},
+
 }
 
 -- ---------------------------------------------------------------------------
@@ -925,7 +928,8 @@ end
 local targets = {
     "ArcadeEventTickets",
     "TicketBombTickets",
-    "ArcadeEventConsoles"
+    "ArcadeEventConsoles",
+    "ValentinesCoinParts"
 }
 
 RunService.Heartbeat:Connect(function()
