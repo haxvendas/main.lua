@@ -1111,95 +1111,101 @@ local function toggleHitboxExpander()
     end
 end
 
-UIS.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed or not scriptFullyLoaded then return end
-if not vflyEnabled then return end
-    if input.UserInputType ~= Enum.UserInputType.MouseWheel then return end
-    
-    local delta = input.Position.Z   -- positivo = scroll pra cima, negativo = scroll pra baixo
-    
-    if delta > 0 then
-        vflySpeed = vflySpeed + 80
-        notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(120, 255, 120))
-    elseif delta < 0 then
-        vflySpeed = math.max(80, vflySpeed - 80)
-        notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(255, 180, 100))
+local UserInputService = game:GetService("UserInputService")
 
-    local k = input.KeyCode
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end               -- ignora se o jogo já usou a tecla (chat, etc)
+    if not scriptFullyLoaded then return end       -- sua proteção (se existir)
 
-    -- =====================
-    -- VFLY (V)
-    -- =====================
-    if k == Enum.KeyCode.V then
-        if vflyEnabled then
-            stopVFly()
-        else
-            startVFly()
+    local inputType = input.UserInputType
+    local keyCode   = input.KeyCode
+
+    -- =============================================
+    -- SCROLL DO MOUSE → muda velocidade do VFly
+    -- =============================================
+    if inputType == Enum.UserInputType.MouseWheel and vflyEnabled then
+        local delta = input.Position.Z   -- >0 = scroll up, <0 = scroll down
+        
+        local step = 80
+        
+        if delta > 0 then
+            vflySpeed = vflySpeed + step
+            notify("VFly Speed: " .. math.floor(vflySpeed), Color3.fromRGB(120, 255, 120))
+        elseif delta < 0 then
+            vflySpeed = math.max(80, vflySpeed - step)
+            notify("VFly Speed: " .. math.floor(vflySpeed), Color3.fromRGB(255, 180, 100))
         end
+        
+        return   -- sai cedo, não precisa checar teclas
+    end
 
-    -- =====================
-    -- FLY NORMAL (F)
-    -- =====================
-    elseif k == Enum.KeyCode.F then
-        toggleFly()
-
-    -- =====================
-    -- HITBOX (H)
-    -- =====================
-    elseif k == Enum.KeyCode.H then
-        toggleHitboxExpander()
-
-    -- =====================
-    -- SERVER HOP (T)
-    -- =====================
-    elseif k == Enum.KeyCode.T then
-        hopServer()
-
-    -- =====================
-    -- AUTO COLLECT (G)
-    -- =====================
-    elseif k == Enum.KeyCode.G then
-        autoCollect = not autoCollect
-
-    -- =====================
-    -- TELEPORTS
-    -- =====================
-    elseif k == Enum.KeyCode.Q then
-        smoothFastTP(curIndex + 1)
-
-    elseif k == Enum.KeyCode.Z then
-        smoothFastTP(curIndex - 1)
-
-    elseif k == Enum.KeyCode.RightShift then
-        smoothFastTP(1)
-
-    elseif k == Enum.KeyCode.R then
-        smoothFastTP2(curIndex2 + 1)
-
-    elseif k == Enum.KeyCode.RightControl then
-        smoothFastTP2(1)
-
-    -- =====================
-    -- CONTROLS (FLY / VFLY)
-    -- =====================
-    elseif k == Enum.KeyCode.W then controls.W = 1
-    elseif k == Enum.KeyCode.S then controls.S = 1
-    elseif k == Enum.KeyCode.A then controls.A = 1
-    elseif k == Enum.KeyCode.D then controls.D = 1
-    elseif k == Enum.KeyCode.Space then controls.Space = 1
-    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 1
+    -- =============================================
+    -- TECLAS (só processa se NÃO for scroll)
+    -- =============================================
+    if inputType == Enum.UserInputType.Keyboard then
+        
+        -- Toggle VFly (V)
+        if keyCode == Enum.KeyCode.V then
+            if vflyEnabled then
+                stopVFly()
+            else
+                startVFly()
+            end
+        
+        -- Toggle Fly normal (F)
+        elseif keyCode == Enum.KeyCode.F then
+            toggleFly()
+        
+        -- Hitbox Expander (H)
+        elseif keyCode == Enum.KeyCode.H then
+            toggleHitboxExpander()
+        
+        -- Server Hop (T)
+        elseif keyCode == Enum.KeyCode.T then
+            hopServer()
+        
+        -- Auto Collect (G)
+        elseif keyCode == Enum.KeyCode.G then
+            autoCollect = not autoCollect
+            notify("Auto Collect: " .. (autoCollect and "ON" or "OFF"), 
+                   autoCollect and Color3.fromRGB(0,255,100) or Color3.fromRGB(255,100,100))
+        
+        -- Teleports
+        elseif keyCode == Enum.KeyCode.Q then
+            smoothFastTP(curIndex + 1)
+        elseif keyCode == Enum.KeyCode.Z then
+            smoothFastTP(curIndex - 1)
+        elseif keyCode == Enum.KeyCode.RightShift then
+            smoothFastTP(1)
+        elseif keyCode == Enum.KeyCode.R then
+            smoothFastTP2(curIndex2 + 1)
+        elseif keyCode == Enum.KeyCode.RightControl then
+            smoothFastTP2(1)
+        
+        -- Controles de movimento (WASD + Space + Ctrl) → só setam flags
+        elseif keyCode == Enum.KeyCode.W     then controls.W     = 1
+        elseif keyCode == Enum.KeyCode.S     then controls.S     = 1
+        elseif keyCode == Enum.KeyCode.A     then controls.A     = 1
+        elseif keyCode == Enum.KeyCode.D     then controls.D     = 1
+        elseif keyCode == Enum.KeyCode.Space then controls.Space = 1
+        elseif keyCode == Enum.KeyCode.LeftControl then controls.Ctrl = 1
+        end
     end
 end)
 
-UIS.InputEnded:Connect(function(input)
-    local k = input.KeyCode
 
-    if k == Enum.KeyCode.W then controls.W = 0
-    elseif k == Enum.KeyCode.S then controls.S = 0
-    elseif k == Enum.KeyCode.A then controls.A = 0
-    elseif k == Enum.KeyCode.D then controls.D = 0
-    elseif k == Enum.KeyCode.Space then controls.Space = 0
-    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 0
+-- NÃO ESQUEÇA: você provavelmente precisa do InputEnded também para zerar as flags
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+    
+    local key = input.KeyCode
+    
+    if     key == Enum.KeyCode.W     then controls.W     = 0
+    elseif key == Enum.KeyCode.S     then controls.S     = 0
+    elseif key == Enum.KeyCode.A     then controls.A     = 0
+    elseif key == Enum.KeyCode.D     then controls.D     = 0
+    elseif key == Enum.KeyCode.Space then controls.Space = 0
+    elseif key == Enum.KeyCode.LeftControl then controls.Ctrl = 0
     end
 end)
 
