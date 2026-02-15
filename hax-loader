@@ -905,10 +905,62 @@ task.delay(4, function()
     end
 end)
 -- =================================
--- MAGNET POR TOQUE - CANDY
+-- MAGNET COLLECT ROBUST
 -- =================================
 
 local MAGNET_DISTANCE = 220
+local MAGNET_SPEED = 1
+
+local function getHRP()
+    local char = plr.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+-- tenta extrair uma BasePart válida
+local function getPart(obj)
+    if obj:IsA("BasePart") then
+        return obj
+    elseif obj:IsA("Model") then
+        return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
+    end
+end
+
+local targets = {
+    "ArcadeEventTickets",
+    "TicketBombTickets",
+    "ArcadeEventConsoles",
+    "ValentinesCoinParts"
+}
+
+RunService.Heartbeat:Connect(function()
+    local hrp = getHRP()
+    if not hrp then return end
+
+    for _, folderName in ipairs(targets) do
+        local folder = workspace:FindFirstChild(folderName)
+        if folder then
+            for _, item in ipairs(folder:GetChildren()) do
+                local part = getPart(item)
+                if part then
+                    local dist = (part.Position - hrp.Position).Magnitude
+                    if dist <= MAGNET_DISTANCE then
+                        part.CanCollide = false
+                        part.AssemblyLinearVelocity = Vector3.zero
+                        part.CFrame = part.CFrame:Lerp(
+                            hrp.CFrame * CFrame.new(0, 0, -2),
+                            MAGNET_SPEED
+                        )
+                    end
+                end
+            end
+        end
+    end
+end)
+-- =================================
+-- MAGNET POR TOQUE - CANDY
+-- =================================
+
+local MAGNET_DISTANCE = 300
 local COOLDOWN = 0.15
 
 local lastTouch = {}
