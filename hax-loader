@@ -905,7 +905,7 @@ task.delay(4, function()
     end
 end)
 -- =================================
--- MAGNET COLLECT ROBUST
+-- MAGNET COLLECT ROBUST (EXPANDIDO)
 -- =================================
 
 local MAGNET_DISTANCE = 220
@@ -916,7 +916,6 @@ local function getHRP()
     return char and char:FindFirstChild("HumanoidRootPart")
 end
 
--- tenta extrair uma BasePart válida
 local function getPart(obj)
     if obj:IsA("BasePart") then
         return obj
@@ -925,12 +924,13 @@ local function getPart(obj)
     end
 end
 
+-- Folders principais
 local targets = {
     "ArcadeEventTickets",
     "TicketBombTickets",
     "ArcadeEventConsoles",
-    "ValentinesCoinParts",
-    "CandyEventParts"
+    "CandyEventParts",
+    "ValentinesCoinParts"
 }
 
 RunService.Heartbeat:Connect(function()
@@ -941,16 +941,25 @@ RunService.Heartbeat:Connect(function()
         local folder = workspace:FindFirstChild(folderName)
         if folder then
             for _, item in ipairs(folder:GetDescendants()) do
-                if item.Name == "lovetoken" or item:IsA("BasePart") then
+                -- FILTRO específico pros novos itens
+                if item.Name == "HeartCandy1"
+                or item.Name == "HeartCandy2"
+                or item.Name == "HeartCandy3"
+                or item.Name == "lovetoken"
+                or folderName == "ArcadeEventTickets"
+                or folderName == "TicketBombTickets"
+                or folderName == "ArcadeEventConsoles"
+                then
                     local part = getPart(item)
                     if part then
                         local dist = (part.Position - hrp.Position).Magnitude
                         if dist <= MAGNET_DISTANCE then
-                            part.Anchored = false
                             part.CanCollide = false
                             part.AssemblyLinearVelocity = Vector3.zero
-                            
-                            part.CFrame = hrp.CFrame * CFrame.new(0, 0, -2)
+                            part.CFrame = part.CFrame:Lerp(
+                                hrp.CFrame * CFrame.new(0, 0, -2),
+                                MAGNET_SPEED
+                            )
                         end
                     end
                 end
@@ -958,7 +967,6 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
-
 
 -- =============================================
 -- Hitbox Expander com Toggle (H)
