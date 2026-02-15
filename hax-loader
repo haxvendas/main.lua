@@ -1111,90 +1111,101 @@ local function toggleHitboxExpander()
     end
 end
 
-local UserInputService = game:GetService("UserInputService")
+llocal UserInputService = game:GetService("UserInputService")
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end               -- ignora se o jogo já usou a tecla (chat, etc)
-    if not scriptFullyLoaded then return end       -- sua proteção (se existir)
+    if gameProcessed then return end
+    -- if not scriptFullyLoaded then return end  -- descomente se usar
 
     local inputType = input.UserInputType
-    local keyCode   = input.KeyCode
+    local keyCode   = input.KeyCode   -- usamos só essa variável
 
     -- =============================================
-    -- SCROLL DO MOUSE → muda velocidade do VFly
-    -- =============================================
-    if inputType == Enum.UserInputType.MouseWheel and vflyEnabled then
-        local delta = input.Position.Z   -- >0 = scroll up, <0 = scroll down
-        
-        local step = 80
-        
-        if delta > 0 then
-            vflySpeed = vflySpeed + step
-            notify("VFly Speed: " .. math.floor(vflySpeed), Color3.fromRGB(120, 255, 120))
-        elseif delta < 0 then
-            vflySpeed = math.max(80, vflySpeed - step)
-            notify("VFly Speed: " .. math.floor(vflySpeed), Color3.fromRGB(255, 180, 100))
-        end
-        
-        return   -- sai cedo, não precisa checar teclas
-    end
-
-    -- =============================================
-    -- TECLAS (só processa se NÃO for scroll)
+    -- PRIMEIRO: permitir toggle do VFly mesmo se desativado
     -- =============================================
     if inputType == Enum.UserInputType.Keyboard then
-        
-        -- Toggle VFly (V)
         if keyCode == Enum.KeyCode.V then
             if vflyEnabled then
                 stopVFly()
             else
                 startVFly()
             end
+            return  -- sai cedo após toggle
+        end
+    end
+
+    -- =============================================
+    -- Só continua se VFly ativo (para movimento e velocidade)
+    -- =============================================
+    if not vflyEnabled then return end
+
+    -- =============================================
+    -- Teclas de movimento + outras funções + velocidade
+    -- =============================================
+    if inputType == Enum.UserInputType.Keyboard then
         
-        -- Toggle Fly normal (F)
-        elseif keyCode == Enum.KeyCode.F then
-            toggleFly()
+        local changed = false
         
-        -- Hitbox Expander (H)
-        elseif keyCode == Enum.KeyCode.H then
-            toggleHitboxExpander()
-        
-        -- Server Hop (T)
-        elseif keyCode == Enum.KeyCode.T then
-            hopServer()
-        
-        -- Auto Collect (G)
-        elseif keyCode == Enum.KeyCode.G then
-            autoCollect = not autoCollect
-            notify("Auto Collect: " .. (autoCollect and "ON" or "OFF"), 
-                   autoCollect and Color3.fromRGB(0,255,100) or Color3.fromRGB(255,100,100))
-        
-        -- Teleports
-        elseif keyCode == Enum.KeyCode.Q then
-            smoothFastTP(curIndex + 1)
-        elseif keyCode == Enum.KeyCode.Z then
-            smoothFastTP(curIndex - 1)
-        elseif keyCode == Enum.KeyCode.RightShift then
-            smoothFastTP(1)
+        -- Controles de velocidade (+ - R)
+        if keyCode == Enum.KeyCode.Equals or keyCode == Enum.KeyCode.Plus then
+            vflySpeed = vflySpeed + 100
+            changed = true
+            
+        elseif keyCode == Enum.KeyCode.Minus then
+            vflySpeed = math.max(100, vflySpeed - 100)
+            changed = true
+            
+        -- Reset velocidade (opcional, mas útil)
         elseif keyCode == Enum.KeyCode.R then
-            smoothFastTP2(curIndex2 + 1)
-        elseif keyCode == Enum.KeyCode.RightControl then
-            smoothFastTP2(1)
+            vflySpeed = 500
+            notify("VFly Speed resetado para 500", Color3.fromRGB(200, 200, 255))
+            changed = true  -- vai notificar abaixo
         
-        -- Controles de movimento (WASD + Space + Ctrl) → só setam flags
+        -- Movimento (flags)
         elseif keyCode == Enum.KeyCode.W     then controls.W     = 1
         elseif keyCode == Enum.KeyCode.S     then controls.S     = 1
         elseif keyCode == Enum.KeyCode.A     then controls.A     = 1
         elseif keyCode == Enum.KeyCode.D     then controls.D     = 1
         elseif keyCode == Enum.KeyCode.Space then controls.Space = 1
         elseif keyCode == Enum.KeyCode.LeftControl then controls.Ctrl = 1
+        
+        -- Suas outras funções
+        elseif keyCode == Enum.KeyCode.F then
+            toggleFly()
+        elseif keyCode == Enum.KeyCode.H then
+            toggleHitboxExpander()
+        elseif keyCode == Enum.KeyCode.T then
+            hopServer()
+        elseif keyCode == Enum.KeyCode.G then
+            autoCollect = not autoCollect
+            notify("Auto Collect: " .. (autoCollect and "ON" or "OFF"),
+                   autoCollect and Color3.fromRGB(0,255,100) or Color3.fromRGB(255,100,100))
+        elseif keyCode == Enum.KeyCode.Q then
+            smoothFastTP(curIndex + 1)
+        elseif keyCode == Enum.KeyCode.Z then
+            smoothFastTP(curIndex - 1)
+        elseif keyCode == Enum.KeyCode.RightShift then
+            smoothFastTP(1)
+        elseif keyCode == Enum.KeyCode.RightControl then
+            smoothFastTP2(1)
+        end
+        
+        -- Notificação de velocidade (só se mudou)
+        if changed then
+            local color
+            if vflySpeed >= 1500 then
+                color = Color3.fromRGB(255, 80, 80)     -- vermelho
+            elseif vflySpeed >= 800 then
+                color = Color3.fromRGB(255, 180, 60)    -- laranja
+            else
+                color = Color3.fromRGB(100, 255, 100)   -- verde
+            end
+            notify("VFly Speed: " .. math.floor(vflySpeed), color)
         end
     end
 end)
 
-
--- NÃO ESQUEÇA: você provavelmente precisa do InputEnded também para zerar as flags
+-- InputEnded continua igual (zera flags de movimento)
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
     
@@ -1208,7 +1219,6 @@ UserInputService.InputEnded:Connect(function(input)
     elseif key == Enum.KeyCode.LeftControl then controls.Ctrl = 0
     end
 end)
-
 
 -- =============================================
 -- Final
