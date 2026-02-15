@@ -1171,21 +1171,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     elseif keyCode == Enum.KeyCode.RightControl then
        smoothFastTP2(1)
         return
-        -- MOVIMENTO
-        elseif keyCode == Enum.KeyCode.W then controls.W = 1
-        elseif keyCode == Enum.KeyCode.S then controls.S = 1
-        elseif keyCode == Enum.KeyCode.A then controls.A = 1
-        elseif keyCode == Enum.KeyCode.D then controls.D = 1
-        elseif keyCode == Enum.KeyCode.Space then controls.Space = 1
-        elseif keyCode == Enum.KeyCode.LeftControl then controls.Ctrl = 1
-        end
-end
+       end 
+     end
 
     -- =============================================
     -- DAQUI PRA BAIXO SÓ SE VFLY ESTIVER ATIVO
     -- =============================================
-    if not vflyEnabled then return end
-
     if inputType == Enum.UserInputType.Keyboard then
         
         local changed = false
@@ -1203,6 +1194,14 @@ end
             vflySpeed = 500
             notify("VFly Speed resetado para 500", Color3.fromRGB(200,200,255))
             changed = true
+   -- MOVIMENTO
+        elseif keyCode == Enum.KeyCode.W then controls.W = 1
+        elseif keyCode == Enum.KeyCode.S then controls.S = 1
+        elseif keyCode == Enum.KeyCode.A then controls.A = 1
+        elseif keyCode == Enum.KeyCode.D then controls.D = 1
+        elseif keyCode == Enum.KeyCode.Space then controls.Space = 1
+        elseif keyCode == Enum.KeyCode.LeftControl then controls.Ctrl = 1
+        end
 
         if changed then
             notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(100,255,100))
