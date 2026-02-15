@@ -929,7 +929,8 @@ local targets = {
     "ArcadeEventTickets",
     "TicketBombTickets",
     "ArcadeEventConsoles",
-    "ValentinesCoinParts"
+    "ValentinesCoinParts",
+    "CandyEventParts"
 }
 
 RunService.Heartbeat:Connect(function()
@@ -939,7 +940,7 @@ RunService.Heartbeat:Connect(function()
     for _, folderName in ipairs(targets) do
         local folder = workspace:FindFirstChild(folderName)
         if folder then
-            for _, item in ipairs(folder:GetChildren()) do
+            for _, item in ipairs(folder:GetDescendants()) do -- ALTERADO AQUI
                 local part = getPart(item)
                 if part then
                     local dist = (part.Position - hrp.Position).Magnitude
@@ -956,7 +957,6 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
-
 
 -- =============================================
 -- Hitbox Expander com Toggle (H)
