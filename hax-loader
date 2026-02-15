@@ -687,20 +687,6 @@ local function stopVFly()
 
     notify("VFLY: DESATIVADO", Color3.fromRGB(255, 80, 80))
 end
-UserInputService.InputChanged:Connect(function(input, gameProcessed)
-    if not vflyEnabled then return end
-    if input.UserInputType ~= Enum.UserInputType.MouseWheel then return end
-    
-    local delta = input.Position.Z   -- positivo = scroll pra cima, negativo = scroll pra baixo
-    
-    if delta > 0 then
-        vflySpeed = vflySpeed + 80
-        notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(120, 255, 120))
-    elseif delta < 0 then
-        vflySpeed = math.max(80, vflySpeed - 80)
-        notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(255, 180, 100))
-    end
-end)
 -- =============================================
 -- Character Added / Respawn
 -- =============================================
@@ -1127,6 +1113,17 @@ end
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or not scriptFullyLoaded then return end
+if not vflyEnabled then return end
+    if input.UserInputType ~= Enum.UserInputType.MouseWheel then return end
+    
+    local delta = input.Position.Z   -- positivo = scroll pra cima, negativo = scroll pra baixo
+    
+    if delta > 0 then
+        vflySpeed = vflySpeed + 80
+        notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(120, 255, 120))
+    elseif delta < 0 then
+        vflySpeed = math.max(80, vflySpeed - 80)
+        notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(255, 180, 100))
 
     local k = input.KeyCode
 
