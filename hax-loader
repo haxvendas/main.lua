@@ -959,7 +959,7 @@ end)
 -- MAGNET POR TOQUE - CANDY
 -- =================================
 
-local MAGNET_DISTANCE = 600
+local MAGNET_DISTANCE = 1500
 local COOLDOWN = 0.15
 
 local lastTouch = {}
