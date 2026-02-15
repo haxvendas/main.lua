@@ -1164,13 +1164,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             smoothFastTP(curIndex - 1)
             return
             
-        elseif keyCode == Enum.KeyCode.RightShift then
-            smoothFastTP(1)
-            return
-            
-        elseif keyCode == Enum.KeyCode.RightControl then
-            smoothFastTP2(1)
-            return
+        elseif k == Enum.KeyCode.R then
+        smoothFastTP2(curIndex2 + 1)
+    elseif k == Enum.KeyCode.RightControl then
+        smoothFastTP2(1)
         end
     end
 
@@ -1192,7 +1189,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             vflySpeed = math.max(100, vflySpeed - 100)
             changed = true
             
-        elseif keyCode == Enum.KeyCode.R then
+        elseif keyCode == Enum.KeyCode.I then
             vflySpeed = 500
             notify("VFly Speed resetado para 500", Color3.fromRGB(200,200,255))
             changed = true
