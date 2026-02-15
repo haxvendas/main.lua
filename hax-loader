@@ -302,30 +302,34 @@ end)
 -- =============================================
 
 task.spawn(function()
+
     local station = workspace:WaitForChild("ValentinesMap"):WaitForChild("CandyGramStation")
 
-    while true do
-        task.wait(0.3)
+    local function activatePrompt(prompt)
+        if prompt:IsA("ProximityPrompt") then
+            prompt.HoldDuration = 0
+            prompt.RequiresLineOfSight = false
 
-        local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp then continue end
-
-        for _, v in pairs(station:GetDescendants()) do
-            if v:IsA("ProximityPrompt") then
-                local promptPart = v.Parent
-                if promptPart and promptPart:IsA("BasePart") then
-                    local dist = (promptPart.Position - hrp.Position).Magnitude
-
-                    -- Só ativa se estiver perto (evita spam desnecessário)
-                    if dist <= v.MaxActivationDistance + 3 then
-                        fireproximityprompt(v)
-                    end
+            task.spawn(function() -- evita travar o script principal
+                while prompt and prompt.Parent do
+                    fireproximityprompt(prompt)
+                    task.wait(0.2)
                 end
-            end
+            end)
         end
     end
-end)
 
+    -- Prompts que já existem
+    for _, v in pairs(station:GetDescendants()) do
+        activatePrompt(v)
+    end
+
+    -- Novos prompts que aparecerem
+    station.DescendantAdded:Connect(function(obj)
+        activatePrompt(obj)
+    end)
+
+end)
 
 -- =============================================
 -- GUI Timers (Celestial / Money)
