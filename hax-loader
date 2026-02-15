@@ -940,23 +940,25 @@ RunService.Heartbeat:Connect(function()
     for _, folderName in ipairs(targets) do
         local folder = workspace:FindFirstChild(folderName)
         if folder then
-            for _, item in ipairs(folder:GetDescendants()) do -- ALTERADO AQUI
-                local part = getPart(item)
-                if part then
-                    local dist = (part.Position - hrp.Position).Magnitude
-                    if dist <= MAGNET_DISTANCE then
-                        part.CanCollide = false
-                        part.AssemblyLinearVelocity = Vector3.zero
-                        part.CFrame = part.CFrame:Lerp(
-                            hrp.CFrame * CFrame.new(0, 0, -2),
-                            MAGNET_SPEED
-                        )
+            for _, item in ipairs(folder:GetDescendants()) do
+                if item.Name == "lovetoken" or item:IsA("BasePart") then
+                    local part = getPart(item)
+                    if part then
+                        local dist = (part.Position - hrp.Position).Magnitude
+                        if dist <= MAGNET_DISTANCE then
+                            part.Anchored = false
+                            part.CanCollide = false
+                            part.AssemblyLinearVelocity = Vector3.zero
+                            
+                            part.CFrame = hrp.CFrame * CFrame.new(0, 0, -2)
+                        end
                     end
                 end
             end
         end
     end
 end)
+
 
 -- =============================================
 -- Hitbox Expander com Toggle (H)
