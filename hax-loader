@@ -720,14 +720,16 @@ end)
 local CONFIG = {
     Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" },
     Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" },
-    Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" }
+    Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" }.
+    Candy     = { Color = Color3.fromRGB(255, 120, 120), Emoji = "🍬" }
+
 }
 
 local TARGETS = {
     -- Lucky Blocks
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Divine"},   Type = "Divine"},
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"}, Type = "Infinity"},
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Candy"}, Type = "Infinity", Label = "CANDY BLOX"},
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Candy"},    Type = "Candy"},
     -- Brainrots
     {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
