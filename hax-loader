@@ -689,6 +689,77 @@ local function stopVFly()
 end
 
 -- =============================================
+-- UI VELOCIDADE VFLY
+-- =============================================
+
+local player = game.Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "VFlySpeedUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 120)
+frame.Position = UDim2.new(0.02, 0, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.BorderSizePixel = 0
+frame.Parent = gui
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0,12)
+
+-- Texto velocidade
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1,0,0,40)
+speedLabel.Position = UDim2.new(0,0,0,5)
+speedLabel.BackgroundTransparency = 1
+speedLabel.TextColor3 = Color3.fromRGB(0,255,255)
+speedLabel.TextScaled = true
+speedLabel.Font = Enum.Font.GothamBold
+speedLabel.Text = "Velocidade: "..vflySpeed
+speedLabel.Parent = frame
+
+-- BOTÃO +
+local plus = Instance.new("TextButton")
+plus.Size = UDim2.new(0.45,0,0,40)
+plus.Position = UDim2.new(0.05,0,0.55,0)
+plus.Text = "+"
+plus.TextScaled = true
+plus.Font = Enum.Font.GothamBold
+plus.BackgroundColor3 = Color3.fromRGB(0,200,255)
+plus.TextColor3 = Color3.white
+plus.Parent = frame
+
+Instance.new("UICorner", plus).CornerRadius = UDim.new(0,10)
+
+-- BOTÃO -
+local minus = Instance.new("TextButton")
+minus.Size = UDim2.new(0.45,0,0,40)
+minus.Position = UDim2.new(0.5,0,0.55,0)
+minus.Text = "-"
+minus.TextScaled = true
+minus.Font = Enum.Font.GothamBold
+minus.BackgroundColor3 = Color3.fromRGB(255,80,80)
+minus.TextColor3 = Color3.white
+minus.Parent = frame
+
+Instance.new("UICorner", minus).CornerRadius = UDim.new(0,10)
+
+-- Funções
+
+plus.MouseButton1Click:Connect(function()
+    vflySpeed = vflySpeed + 50
+    speedLabel.Text = "Velocidade: "..vflySpeed
+end)
+
+minus.MouseButton1Click:Connect(function()
+    vflySpeed = math.max(50, vflySpeed - 50)
+    speedLabel.Text = "Velocidade: "..vflySpeed
+end)
+
+
+-- =============================================
 -- Character Added / Respawn
 -- =============================================
 local function onCharacterAdded(char)
