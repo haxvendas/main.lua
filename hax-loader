@@ -1115,13 +1115,12 @@ local UserInputService = game:GetService("UserInputService")
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    -- if not scriptFullyLoaded then return end  -- descomente se usar
-
+    
     local inputType = input.UserInputType
-    local keyCode   = input.KeyCode   -- usamos só essa variável
+    local keyCode   = input.KeyCode
 
     -- =============================================
-    -- PRIMEIRO: permitir toggle do VFly mesmo se desativado
+    -- TOGGLE VFLY (SEMPRE FUNCIONA)
     -- =============================================
     if inputType == Enum.UserInputType.Keyboard then
         if keyCode == Enum.KeyCode.V then
@@ -1130,91 +1129,101 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             else
                 startVFly()
             end
-            return  -- sai cedo após toggle
+            return
         end
     end
 
     -- =============================================
-    -- Só continua se VFly ativo (para movimento e velocidade)
+    -- TECLAS GLOBAIS (FUNCIONAM SEM VFLY)
+    -- =============================================
+    if inputType == Enum.UserInputType.Keyboard then
+        
+        if keyCode == Enum.KeyCode.F then
+            toggleFly()
+            return
+            
+        elseif keyCode == Enum.KeyCode.H then
+            toggleHitboxExpander()
+            return
+            
+        elseif keyCode == Enum.KeyCode.T then
+            hopServer()
+            return
+            
+        elseif keyCode == Enum.KeyCode.G then
+            autoCollect = not autoCollect
+            notify("Auto Collect: " .. (autoCollect and "ON" or "OFF"),
+                autoCollect and Color3.fromRGB(0,255,100) or Color3.fromRGB(255,100,100))
+            return
+            
+        elseif keyCode == Enum.KeyCode.Q then
+            smoothFastTP(curIndex + 1)
+            return
+            
+        elseif keyCode == Enum.KeyCode.Z then
+            smoothFastTP(curIndex - 1)
+            return
+            
+        elseif keyCode == Enum.KeyCode.RightShift then
+            smoothFastTP(1)
+            return
+            
+        elseif keyCode == Enum.KeyCode.RightControl then
+            smoothFastTP2(1)
+            return
+        end
+    end
+
+    -- =============================================
+    -- DAQUI PRA BAIXO SÓ SE VFLY ESTIVER ATIVO
     -- =============================================
     if not vflyEnabled then return end
 
-    -- =============================================
-    -- Teclas de movimento + outras funções + velocidade
-    -- =============================================
     if inputType == Enum.UserInputType.Keyboard then
         
         local changed = false
         
-        -- Controles de velocidade (+ - R)
+        -- VELOCIDADE
         if keyCode == Enum.KeyCode.Equals or keyCode == Enum.KeyCode.Plus then
-            vflySpeed = vflySpeed + 100
+            vflySpeed += 100
             changed = true
             
         elseif keyCode == Enum.KeyCode.Minus then
             vflySpeed = math.max(100, vflySpeed - 100)
             changed = true
             
-        -- Reset velocidade (opcional, mas útil)
         elseif keyCode == Enum.KeyCode.R then
             vflySpeed = 500
-            notify("VFly Speed resetado para 500", Color3.fromRGB(200, 200, 255))
-            changed = true  -- vai notificar abaixo
+            notify("VFly Speed resetado para 500", Color3.fromRGB(200,200,255))
+            changed = true
         
-        -- Movimento (flags)
-        elseif keyCode == Enum.KeyCode.W     then controls.W     = 1
-        elseif keyCode == Enum.KeyCode.S     then controls.S     = 1
-        elseif keyCode == Enum.KeyCode.A     then controls.A     = 1
-        elseif keyCode == Enum.KeyCode.D     then controls.D     = 1
+        -- MOVIMENTO
+        elseif keyCode == Enum.KeyCode.W then controls.W = 1
+        elseif keyCode == Enum.KeyCode.S then controls.S = 1
+        elseif keyCode == Enum.KeyCode.A then controls.A = 1
+        elseif keyCode == Enum.KeyCode.D then controls.D = 1
         elseif keyCode == Enum.KeyCode.Space then controls.Space = 1
         elseif keyCode == Enum.KeyCode.LeftControl then controls.Ctrl = 1
-        
-        -- Suas outras funções
-        elseif keyCode == Enum.KeyCode.F then
-            toggleFly()
-        elseif keyCode == Enum.KeyCode.H then
-            toggleHitboxExpander()
-        elseif keyCode == Enum.KeyCode.T then
-            hopServer()
-        elseif keyCode == Enum.KeyCode.G then
-            autoCollect = not autoCollect
-            notify("Auto Collect: " .. (autoCollect and "ON" or "OFF"),
-                   autoCollect and Color3.fromRGB(0,255,100) or Color3.fromRGB(255,100,100))
-        elseif keyCode == Enum.KeyCode.Q then
-            smoothFastTP(curIndex + 1)
-        elseif keyCode == Enum.KeyCode.Z then
-            smoothFastTP(curIndex - 1)
-        elseif keyCode == Enum.KeyCode.RightShift then
-            smoothFastTP(1)
-        elseif keyCode == Enum.KeyCode.RightControl then
-            smoothFastTP2(1)
         end
-        
-        -- Notificação de velocidade (só se mudou)
+
         if changed then
-            local color
-            if vflySpeed >= 1500 then
-                color = Color3.fromRGB(255, 80, 80)     -- vermelho
-            elseif vflySpeed >= 800 then
-                color = Color3.fromRGB(255, 180, 60)    -- laranja
-            else
-                color = Color3.fromRGB(100, 255, 100)   -- verde
-            end
-            notify("VFly Speed: " .. math.floor(vflySpeed), color)
+            notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(100,255,100))
         end
     end
 end)
 
--- InputEnded continua igual (zera flags de movimento)
+-- =============================================
+-- INPUT ENDED (MOVIMENTO)
+-- =============================================
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
     
     local key = input.KeyCode
     
-    if     key == Enum.KeyCode.W     then controls.W     = 0
-    elseif key == Enum.KeyCode.S     then controls.S     = 0
-    elseif key == Enum.KeyCode.A     then controls.A     = 0
-    elseif key == Enum.KeyCode.D     then controls.D     = 0
+    if     key == Enum.KeyCode.W then controls.W = 0
+    elseif key == Enum.KeyCode.S then controls.S = 0
+    elseif key == Enum.KeyCode.A then controls.A = 0
+    elseif key == Enum.KeyCode.D then controls.D = 0
     elseif key == Enum.KeyCode.Space then controls.Space = 0
     elseif key == Enum.KeyCode.LeftControl then controls.Ctrl = 0
     end
