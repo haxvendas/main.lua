@@ -297,6 +297,39 @@ UIS.JumpRequest:Connect(function()
     local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
     if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
+-- =============================================
+-- AUTO DEPOSIT - CandyGramStation
+-- =============================================
+
+task.spawn(function()
+
+    local station = workspace:WaitForChild("ValentinesMap"):WaitForChild("CandyGramStation")
+
+    local function activatePrompt(prompt)
+        if prompt:IsA("ProximityPrompt") then
+            prompt.HoldDuration = 0
+            prompt.RequiresLineOfSight = false
+
+            task.spawn(function() -- evita travar o script principal
+                while prompt and prompt.Parent do
+                    fireproximityprompt(prompt)
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end
+
+    -- Prompts que já existem
+    for _, v in pairs(station:GetDescendants()) do
+        activatePrompt(v)
+    end
+
+    -- Novos prompts que aparecerem
+    station.DescendantAdded:Connect(function(obj)
+        activatePrompt(obj)
+    end)
+
+end)
 
 -- =============================================
 -- GUI Timers (Celestial / Money)
@@ -621,7 +654,7 @@ end)
 -- =============================================
 
 local vflyEnabled = false
-local vflySpeed = 250
+local vflySpeed = 500
 
 local vflyGyro, vflyVel, vflyConn
 
@@ -687,7 +720,6 @@ local function stopVFly()
 
     notify("VFLY: DESATIVADO", Color3.fromRGB(255, 80, 80))
 end
-
 -- =============================================
 -- Character Added / Respawn
 -- =============================================
@@ -721,14 +753,16 @@ end)
 local CONFIG = {
     Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" },
     Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" },
-    Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" }
+    Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" },
+    Candy     = { Color = Color3.fromRGB(255, 120, 120), Emoji = "🍬" }
+
 }
 
 local TARGETS = {
     -- Lucky Blocks
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Divine"},   Type = "Divine"},
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"}, Type = "Infinity"},
-
+    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Candy"},    Type = "Candy"},
     -- Brainrots
     {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
@@ -905,7 +939,7 @@ task.delay(4, function()
     end
 end)
 -- =================================
--- MAGNET COLLECT ROBUST (EXPANDIDO)
+-- MAGNET COLLECT ROBUST
 -- =================================
 
 local MAGNET_DISTANCE = 220
@@ -916,6 +950,7 @@ local function getHRP()
     return char and char:FindFirstChild("HumanoidRootPart")
 end
 
+-- tenta extrair uma BasePart válida
 local function getPart(obj)
     if obj:IsA("BasePart") then
         return obj
@@ -924,12 +959,10 @@ local function getPart(obj)
     end
 end
 
--- Folders principais
 local targets = {
     "ArcadeEventTickets",
     "TicketBombTickets",
     "ArcadeEventConsoles",
-    "CandyEventParts",
     "ValentinesCoinParts"
 }
 
@@ -940,28 +973,61 @@ RunService.Heartbeat:Connect(function()
     for _, folderName in ipairs(targets) do
         local folder = workspace:FindFirstChild(folderName)
         if folder then
-            for _, item in ipairs(folder:GetDescendants()) do
-                -- FILTRO específico pros novos itens
-                if item.Name == "HeartCandy1"
-                or item.Name == "HeartCandy2"
-                or item.Name == "HeartCandy3"
-                or item.Name == "lovetoken"
-                or folderName == "ArcadeEventTickets"
-                or folderName == "TicketBombTickets"
-                or folderName == "ArcadeEventConsoles"
-                then
-                    local part = getPart(item)
-                    if part then
-                        local dist = (part.Position - hrp.Position).Magnitude
-                        if dist <= MAGNET_DISTANCE then
-                            part.CanCollide = false
-                            part.AssemblyLinearVelocity = Vector3.zero
-                            part.CFrame = part.CFrame:Lerp(
-                                hrp.CFrame * CFrame.new(0, 0, -2),
-                                MAGNET_SPEED
-                            )
-                        end
+            for _, item in ipairs(folder:GetChildren()) do
+                local part = getPart(item)
+                if part then
+                    local dist = (part.Position - hrp.Position).Magnitude
+                    if dist <= MAGNET_DISTANCE then
+                        part.CanCollide = false
+                        part.AssemblyLinearVelocity = Vector3.zero
+                        part.CFrame = part.CFrame:Lerp(
+                            hrp.CFrame * CFrame.new(0, 0, -2),
+                            MAGNET_SPEED
+                        )
                     end
+                end
+            end
+        end
+    end
+end)
+-- =================================
+-- MAGNET POR TOQUE - CANDY
+-- =================================
+
+local MAGNET_DISTANCE = 1500
+local COOLDOWN = 0.15
+
+local lastTouch = {}
+
+local function getHRP()
+    local char = plr.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+RunService.Heartbeat:Connect(function()
+    local hrp = getHRP()
+    if not hrp then return end
+
+    local candyFolder = workspace:FindFirstChild("CandyEventParts")
+    if not candyFolder then return end
+
+    for _, model in ipairs(candyFolder:GetChildren()) do
+        
+        local candyPart = model:FindFirstChildWhichIsA("BasePart")
+        
+        if candyPart and candyPart:FindFirstChild("TouchInterest") then
+            
+            local dist = (candyPart.Position - hrp.Position).Magnitude
+            
+            if dist <= MAGNET_DISTANCE then
+                
+                if not lastTouch[candyPart] 
+                or tick() - lastTouch[candyPart] > COOLDOWN then
+                    
+                    firetouchinterest(hrp, candyPart, 0)
+                    firetouchinterest(hrp, candyPart, 1)
+                    
+                    lastTouch[candyPart] = tick()
                 end
             end
         end
@@ -1080,87 +1146,120 @@ local function toggleHitboxExpander()
     end
 end
 
-UIS.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed or not scriptFullyLoaded then return end
+local UserInputService = game:GetService("UserInputService")
 
-    local k = input.KeyCode
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    local inputType = input.UserInputType
+    local keyCode   = input.KeyCode
 
-    -- =====================
-    -- VFLY (V)
-    -- =====================
-    if k == Enum.KeyCode.V then
-        if vflyEnabled then
-            stopVFly()
-        else
-            startVFly()
+    -- =============================================
+    -- TOGGLE VFLY (SEMPRE FUNCIONA)
+    -- =============================================
+    if inputType == Enum.UserInputType.Keyboard then
+        if keyCode == Enum.KeyCode.V then
+            if vflyEnabled then
+                stopVFly()
+            else
+                startVFly()
+            end
+            return
+        end
+    end
+
+    -- =============================================
+    -- TECLAS GLOBAIS (FUNCIONAM SEM VFLY)
+    -- =============================================
+    if inputType == Enum.UserInputType.Keyboard then
+        
+        if keyCode == Enum.KeyCode.F then
+            toggleFly()
+            return
+            
+        elseif keyCode == Enum.KeyCode.H then
+            toggleHitboxExpander()
+            return
+            
+        elseif keyCode == Enum.KeyCode.T then
+            hopServer()
+            return
+            
+        elseif keyCode == Enum.KeyCode.G then
+            autoCollect = not autoCollect
+            notify("Auto Collect: " .. (autoCollect and "ON" or "OFF"),
+                autoCollect and Color3.fromRGB(0,255,100) or Color3.fromRGB(255,100,100))
+            return
+            
+       elseif keyCode == Enum.KeyCode.Q then
+          smoothFastTP(curIndex + 1)
+           return
+ 
+      elseif keyCode == Enum.KeyCode.Z then
+         smoothFastTP(curIndex - 1)
+          return
+
+     elseif keyCode == Enum.KeyCode.R then
+        smoothFastTP2(curIndex2 + 1)
+         return
+  
+    elseif keyCode == Enum.KeyCode.RightControl then
+       smoothFastTP2(1)
+        return
+       end 
+     end
+
+    -- =============================================
+    -- DAQUI PRA BAIXO SÓ SE VFLY ESTIVER ATIVO
+    -- =============================================
+    if inputType == Enum.UserInputType.Keyboard then
+        
+        local changed = false
+        
+        -- VELOCIDADE
+        if keyCode == Enum.KeyCode.Equals or keyCode == Enum.KeyCode.Plus then
+            vflySpeed += 100
+            changed = true
+            
+        elseif keyCode == Enum.KeyCode.Minus then
+            vflySpeed = math.max(100, vflySpeed - 100)
+            changed = true
+            
+        elseif keyCode == Enum.KeyCode.I then
+            vflySpeed = 500
+            notify("VFly Speed resetado para 500", Color3.fromRGB(200,200,255))
+            changed = true
+   -- MOVIMENTO
+        elseif keyCode == Enum.KeyCode.W then controls.W = 1
+        elseif keyCode == Enum.KeyCode.S then controls.S = 1
+        elseif keyCode == Enum.KeyCode.A then controls.A = 1
+        elseif keyCode == Enum.KeyCode.D then controls.D = 1
+        elseif keyCode == Enum.KeyCode.Space then controls.Space = 1
+        elseif keyCode == Enum.KeyCode.LeftControl then controls.Ctrl = 1
         end
 
-    -- =====================
-    -- FLY NORMAL (F)
-    -- =====================
-    elseif k == Enum.KeyCode.F then
-        toggleFly()
-
-    -- =====================
-    -- HITBOX (H)
-    -- =====================
-    elseif k == Enum.KeyCode.H then
-        toggleHitboxExpander()
-
-    -- =====================
-    -- SERVER HOP (T)
-    -- =====================
-    elseif k == Enum.KeyCode.T then
-        hopServer()
-
-    -- =====================
-    -- AUTO COLLECT (G)
-    -- =====================
-    elseif k == Enum.KeyCode.G then
-        autoCollect = not autoCollect
-
-    -- =====================
-    -- TELEPORTS
-    -- =====================
-    elseif k == Enum.KeyCode.Q then
-        smoothFastTP(curIndex + 1)
-
-    elseif k == Enum.KeyCode.Z then
-        smoothFastTP(curIndex - 1)
-
-    elseif k == Enum.KeyCode.RightShift then
-        smoothFastTP(1)
-
-    elseif k == Enum.KeyCode.R then
-        smoothFastTP2(curIndex2 + 1)
-
-    elseif k == Enum.KeyCode.RightControl then
-        smoothFastTP2(1)
-
-    -- =====================
-    -- CONTROLS (FLY / VFLY)
-    -- =====================
-    elseif k == Enum.KeyCode.W then controls.W = 1
-    elseif k == Enum.KeyCode.S then controls.S = 1
-    elseif k == Enum.KeyCode.A then controls.A = 1
-    elseif k == Enum.KeyCode.D then controls.D = 1
-    elseif k == Enum.KeyCode.Space then controls.Space = 1
-    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 1
+        if changed then
+            notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(100,255,100))
+        end
     end
 end)
 
-UIS.InputEnded:Connect(function(input)
-    local k = input.KeyCode
-
-    if k == Enum.KeyCode.W then controls.W = 0
-    elseif k == Enum.KeyCode.S then controls.S = 0
-    elseif k == Enum.KeyCode.A then controls.A = 0
-    elseif k == Enum.KeyCode.D then controls.D = 0
-    elseif k == Enum.KeyCode.Space then controls.Space = 0
-    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 0
+-- =============================================
+-- INPUT ENDED (MOVIMENTO)
+-- =============================================
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+    
+    local key = input.KeyCode
+    
+    if     key == Enum.KeyCode.W then controls.W = 0
+    elseif key == Enum.KeyCode.S then controls.S = 0
+    elseif key == Enum.KeyCode.A then controls.A = 0
+    elseif key == Enum.KeyCode.D then controls.D = 0
+    elseif key == Enum.KeyCode.Space then controls.Space = 0
+    elseif key == Enum.KeyCode.LeftControl then controls.Ctrl = 0
     end
 end)
-
 
 -- =============================================
 -- Final
