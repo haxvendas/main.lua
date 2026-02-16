@@ -404,7 +404,7 @@ end)
 -- TP VIP COM TWEEN RÁPIDO E SUAVE (LINEAR: não volta no final/início)
 -- =============================================
 local vipPos = {
-    Vector3.new(330.685669, 73.185318, -54.974907),
+    Vector3.new(349.593475, 72.064514, -38.455074),
     Vector3.new(2020.359497, 89.737366, -39.519939)
 }
 
