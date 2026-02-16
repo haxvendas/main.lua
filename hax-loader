@@ -401,8 +401,16 @@ task.spawn(function()
     end)
 end)
 -- =============================================
--- TP VIP COM TWEEN RÁPIDO E SUAVE (LINEAR: não volta no final/início)
 -- =============================================
+-- TP VIP LOOP + SPAM REAL
+-- =============================================
+
+local Players = game:GetService("Players")
+local TS = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+
+local plr = Players.LocalPlayer
+
 local vipPos = {
     Vector3.new(349.593475, 72.064514, -38.455074),
     Vector3.new(1134.088379, 84.362793, -38.954781)
@@ -413,7 +421,6 @@ local vipNames = {
 }
 
 local curIndex = 0
-local lastInputTime = 0
 local currentTween = nil
 
 task.spawn(function()
@@ -466,9 +473,9 @@ task.spawn(function()
     end
     updateStatus()
 
-    function smoothFastTP(targetIndex)
+    local function smoothFastTP(targetIndex)
 
-        -- LOOP INFINITO
+        -- LOOP
         if targetIndex > #vipPos then
             targetIndex = 1
         elseif targetIndex < 1 then
@@ -481,9 +488,7 @@ task.spawn(function()
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        lastInputTime = tick()
-
-        -- Cancela tween antigo (permite spam)
+        -- Cancela tween anterior
         if currentTween then
             currentTween:Cancel()
         end
@@ -494,7 +499,6 @@ task.spawn(function()
         local targetPos = vipPos[targetIndex] + Vector3.new(0, 4, 0)
         local distance = (hrp.Position - targetPos).Magnitude
         
-        -- Tempo adaptativo rápido
         local tweenTime = distance / 600
 
         local tweenInfo = TweenInfo.new(
@@ -504,43 +508,22 @@ task.spawn(function()
         )
 
         currentTween = TS:Create(hrp, tweenInfo, {
-            CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
+            CFrame = CFrame.new(targetPos)
         })
 
         currentTween:Play()
     end
 
-    -- Teclas
-    UIS.InputBegan:Connect(function(input, gp)
-        if gp then return end
-
-        if input.KeyCode == Enum.KeyCode.Q then
-            smoothFastTP(curIndex + 1)
-        elseif input.KeyCode == Enum.KeyCode.Z then
-            smoothFastTP(curIndex - 1)
-        end
-    end)
-
     -- Reset ao morrer
-    local function onDied()
+    plr.CharacterAdded:Connect(function()
         curIndex = 0
         if currentTween then
             currentTween:Cancel()
         end
         updateStatus()
-    end
-
-    if plr.Character then
-        local hum = plr.Character:FindFirstChild("Humanoid")
-        if hum then hum.Died:Connect(onDied) end
-    end
-    
-    plr.CharacterAdded:Connect(function(char)
-        task.wait(0.3)
-        local hum = char:WaitForChild("Humanoid", 3)
-        if hum then hum.Died:Connect(onDied) end
     end)
 end)
+
 
 -- =============================================
 -- TP SECUNDÁRIO COM TWEEN RÁPIDO (SÓ R = Próxima) - CICLO INFINITO
