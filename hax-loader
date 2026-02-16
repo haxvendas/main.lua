@@ -410,6 +410,7 @@ local vipPos = {
 local vipNames = {"DEPOSITAR", "COLETAR"}
 local curIndex = 1
 local isTweening = false
+local currentTween = nil
 
 local tpGui = Instance.new("ScreenGui", plr.PlayerGui)
 tpGui.Name = "VIPTPGui"
@@ -442,19 +443,38 @@ local function updateStatus()
     status.Text = string.format("Q → Avança   Z ← Volta\nZona: %d/%d - %s\n%s", curIndex, #vipPos, vipNames[curIndex], isTweening and "MOVENDO..." or "PRONTO")
 end
 
-local function smoothTP(index)
-    index = math.clamp(index, 1, #vipPos)
+local function smoothTP(targetIndex)
+    targetIndex = math.clamp(targetIndex, 1, #vipPos)
+
     local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp or isTweening then return end
-    isTweening = true
+    if not hrp then return end
+
+    -- Cancela tween anterior
+    if currentTween then
+        currentTween:Cancel()
+    end
+
+    curIndex = targetIndex
     updateStatus()
-    local target = vipPos[index] + Vector3.new(0, 4, 0)
-    local duration = math.max((target - hrp.Position).Magnitude / 600, 0.15)
-    notify("ZONA: " .. vipNames[index], Color3.fromRGB(255, 160, 0))
-    local tween = TS:Create(hrp, TweenInfo.new(duration, Enum.EasingStyle.Linear), {CFrame = CFrame.lookAt(target, target + Vector3.new(0,0,-10))})
-    tween:Play()
-    tween.Completed:Connect(function() isTweening = false; curIndex = index; updateStatus() end)
+
+    local targetPos = vipPos[targetIndex] + Vector3.new(0, 4, 0)
+    local distance = (hrp.Position - targetPos).Magnitude
+        
+    local tweenTime = distance / 650
+
+    local tweenInfo = TweenInfo.new(
+        tweenTime,
+        Enum.EasingStyle.Quad,
+        Enum.EasingDirection.Out
+    )
+
+    currentTween = TS:Create(hrp, tweenInfo, {
+        CFrame = CFrame.new(targetPos)
+    })
+
+    currentTween:Play()
 end
+
 
 
 -- =============================================
