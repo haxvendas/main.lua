@@ -405,7 +405,7 @@ end)
 -- =============================================
 local vipPos = {
     Vector3.new(349.593475, 72.064514, -38.455074),
-    Vector3.new(3590.945801, 86.804588, -25.278122)
+    Vector3.new(1134.088379, 84.362793, -38.954781)
 }
 
 local vipNames = {
@@ -413,9 +413,8 @@ local vipNames = {
 }
 
 local curIndex = 0
-local isTweening = false
 local lastInputTime = 0
-local DEBOUNCE = 0.1  -- permite spam rápido
+local currentTween = nil
 
 task.spawn(function()
     task.wait(0.5)
@@ -437,7 +436,7 @@ task.spawn(function()
     local title = Instance.new("TextLabel", frame)
     title.Size = UDim2.new(1, 0, 0, 25)
     title.BackgroundColor3 = Color3.fromRGB(180, 100, 30)
-    title.Text = " TP VIP LINEAR "
+    title.Text = " TP VIP LOOP "
     title.TextColor3 = Color3.new(1,1,1)
     title.Font = Enum.Font.GothamBold
     title.TextScaled = true
@@ -457,41 +456,46 @@ task.spawn(function()
         if curIndex == 0 then
             statusLabel.Text = "Q → Próxima   Z → Anterior"
         else
-            local nextTxt = (curIndex < #vipPos) and "Q → Próxima" or "<font color='rgb(200,200,200)'>Q: Fim</font>"
-            local prevTxt = (curIndex > 1) and "Z → Anterior" or "<font color='rgb(200,200,200)'>Z: Início</font>"
-            statusLabel.Text = nextTxt .. "   " .. prevTxt .. "\n" ..
-                               "<font color='rgb(255,220,100)'>Zona " .. curIndex .. "/" .. #vipPos .. 
-                               " - " .. (vipNames[curIndex] or "?") .. "</font>" ..
-                               (isTweening and "\n<font color='rgb(255,180,100)'>Movendo...</font>" or "")
+            statusLabel.Text =
+                "Q → Próxima   Z → Anterior\n" ..
+                "<font color='rgb(255,220,100)'>Zona "
+                .. curIndex .. "/" .. #vipPos ..
+                " - " .. (vipNames[curIndex] or "?") ..
+                "</font>"
         end
     end
     updateStatus()
 
     function smoothFastTP(targetIndex)
 
-        if isTweening or tick() - lastInputTime < DEBOUNCE then return end
-        -- LOOP AUTOMÁTICO
-if targetIndex > #vipPos then
-    targetIndex = 1
-elseif targetIndex < 1 then
-    targetIndex = #vipPos
-end
+        -- LOOP INFINITO
+        if targetIndex > #vipPos then
+            targetIndex = 1
+        elseif targetIndex < 1 then
+            targetIndex = #vipPos
+        end
+
         local char = plr.Character
         if not char then return end
         
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        isTweening = true
         lastInputTime = tick()
+
+        -- Cancela tween antigo (permite spam)
+        if currentTween then
+            currentTween:Cancel()
+        end
+
+        curIndex = targetIndex
         updateStatus()
 
         local targetPos = vipPos[targetIndex] + Vector3.new(0, 4, 0)
         local distance = (hrp.Position - targetPos).Magnitude
-        local tweenTime = distance / 500
-
-
-        notify("→ Zona " .. targetIndex, Color3.fromRGB(150, 255, 150))
+        
+        -- Tempo adaptativo rápido
+        local tweenTime = distance / 600
 
         local tweenInfo = TweenInfo.new(
             tweenTime,
@@ -499,25 +503,31 @@ end
             Enum.EasingDirection.Out
         )
 
-        local tween = TS:Create(hrp, tweenInfo, {
+        currentTween = TS:Create(hrp, tweenInfo, {
             CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
         })
 
-        tween:Play()
-
-        tween.Completed:Connect(function()
-            isTweening = false
-            curIndex = targetIndex
-            updateStatus()
-        end)
+        currentTween:Play()
     end
 
-   local function onDied()
+    -- Teclas
+    UIS.InputBegan:Connect(function(input, gp)
+        if gp then return end
+
+        if input.KeyCode == Enum.KeyCode.Q then
+            smoothFastTP(curIndex + 1)
+        elseif input.KeyCode == Enum.KeyCode.Z then
+            smoothFastTP(curIndex - 1)
+        end
+    end)
+
+    -- Reset ao morrer
+    local function onDied()
         curIndex = 0
-        isTweening = false
-        lastInputTime = 0
+        if currentTween then
+            currentTween:Cancel()
+        end
         updateStatus()
-        notify("Morreu → TP resetado", Color3.fromRGB(255, 100, 100))
     end
 
     if plr.Character then
