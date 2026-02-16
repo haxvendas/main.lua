@@ -415,7 +415,7 @@ local vipNames = {
 local curIndex = 0
 local isTweening = false
 local lastInputTime = 0
-local DEBOUNCE = 0.5  -- permite spam rápido
+local DEBOUNCE = 0.1  -- permite spam rápido
 
 task.spawn(function()
     task.wait(0.5)
