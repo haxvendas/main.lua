@@ -405,12 +405,6 @@ end)
 -- TP VIP LOOP + SPAM REAL
 -- =============================================
 
-local Players = game:GetService("Players")
-local TS = game:GetService("TweenService")
-local UIS = game:GetService("UserInputService")
-
-local plr = Players.LocalPlayer
-
 local vipPos = {
     Vector3.new(349.593475, 72.064514, -38.455074),
     Vector3.new(1134.088379, 84.362793, -38.954781)
