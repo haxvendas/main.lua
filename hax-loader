@@ -1111,6 +1111,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             
      elseif keyCode == Enum.KeyCode.Q then
       smoothTP(curIndex % #vipPos + 1)
+       return
 
   elseif keyCode == Enum.KeyCode.Z then
     smoothTP((curIndex - 2) % #vipPos + 1)
