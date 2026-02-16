@@ -1109,14 +1109,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 autoCollect and Color3.fromRGB(0,255,100) or Color3.fromRGB(255,100,100))
             return
             
-       elseif keyCode == Enum.KeyCode.Q then
-         smoothTP(curIndex + 1)
-           return
- 
-      elseif keyCode == Enum.KeyCode.Z then
-         smoothTP(curIndex - 1)
-          return
+     if keyCode == Enum.KeyCode.Q then
+    smoothTP(curIndex % #vipPos + 1)
 
+elseif keyCode == Enum.KeyCode.Z then
+    smoothTP((curIndex - 2) % #vipPos + 1)
+end
      elseif keyCode == Enum.KeyCode.R then
         smoothFastTP2(curIndex2 + 1)
          return
