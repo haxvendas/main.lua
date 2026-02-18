@@ -671,19 +671,34 @@ if plr.Character then onCharacterAdded(plr.Character) end
 plr.CharacterAdded:Connect(onCharacterAdded)
 
 -- =============================================
--- Remove VIPWalls
+-- Remove VIPWalls + Barrier
 -- =============================================
 task.spawn(function()
     task.wait(3)
+
     local function tryRemove(obj)
+        -- Remove VIPWalls
         if obj.Name == "VIPWalls" and obj:IsA("Model") then
+            obj:Destroy()
+        end
+
+        -- Remove Workspace.Barriers.Barrier
+        if obj.Name == "Barrier" and obj.Parent 
+            and obj.Parent.Name == "Barriers"
+            and obj.Parent.Parent == workspace then
             obj:Destroy()
         end
     end
     
-    for _, obj in workspace:GetDescendants() do tryRemove(obj) end
+    -- Remove os que já existem
+    for _, obj in workspace:GetDescendants() do
+        tryRemove(obj)
+    end
+
+    -- Remove os que spawnarem depois
     workspace.DescendantAdded:Connect(tryRemove)
 end)
+
 -- =============================================
 -- ESP Celestial / Divine / Brainrots / Arcade Ticket / Ticket Bomb
 -- =============================================
