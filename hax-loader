@@ -707,8 +707,9 @@ local CONFIG = {
     Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" },
     Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" },
     Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" },
-    Candy     = { Color = Color3.fromRGB(255, 120, 120), Emoji = "🍬" }
-
+    Candy     = { Color = Color3.fromRGB(255, 120, 120), Emoji = "🍬" },
+    Doom = { Color = Color3.fromRGB(255, 60, 60), Emoji = "💀" }
+ 
 }
 
 local TARGETS = {
@@ -726,6 +727,8 @@ local TARGETS = {
 -- Valentines Coins
 {Path = {"ValentinesCoinParts"}, Match = "ValentinesCoin", Type = "Arcade", Label = "VALENTINE COIN"},
 
+-- 💀 Doom Event Buttons (todos Plane.006)
+{Path = {"DoomEventButtons", "Button"}, Match = "Plane.006", Type = "Doom", Label = "DOOM BUTTON"},
 }
 
 -- ---------------------------------------------------------------------------
