@@ -1057,6 +1057,39 @@ RunService.Heartbeat:Connect(function()
     tryTouch(doomPart, hrp)
 end)
 
+-- =================================
+-- AUTO PROXIMITY - DOOM EVENT
+-- =================================
+
+local COOLDOWN = 0.2
+
+local lastFire = {}
+
+RunService.Heartbeat:Connect(function()
+    
+    local doomFolder = workspace:FindFirstChild("DoomEventButtons")
+    if not doomFolder then return end
+
+    -- Procura TODOS os ProximityPrompt dentro da pasta
+    for _, obj in ipairs(doomFolder:GetDescendants()) do
+        
+        if obj:IsA("ProximityPrompt") then
+            
+            if not lastFire[obj] 
+            or tick() - lastFire[obj] > COOLDOWN then
+                
+                -- Remove limitações
+                obj.HoldDuration = 0
+                obj.RequiresLineOfSight = false
+                
+                fireproximityprompt(obj)
+                
+                lastFire[obj] = tick()
+            end
+        end
+    end
+end)
+
 -- =============================================
 -- Hitbox Expander com Toggle (H)
 -- =============================================
