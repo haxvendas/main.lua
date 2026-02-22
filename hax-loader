@@ -875,7 +875,7 @@ local function processFolder(folder, target)
 
     local isPerInstance = target.PerInstance == true
 
-    for _, child in folder:GetChildren() do
+    for _, child in folder:GetDescendants() do -- 🔥 agora pega tudo
         local objName = child.Name
         local matched = false
 
@@ -886,14 +886,15 @@ local function processFolder(folder, target)
         end
 
         if not matched then continue end
+        if not child:IsA("BasePart") and not child:IsA("Model") then continue end
 
-        local realObj = getTargetObject(child, isPerInstance)
+        local realObj = isPerInstance and child or getTargetObject(child, false)
+
         if detected[realObj] then continue end
         detected[realObj] = true
 
         local cfg = CONFIG[target.Type]
 
-        -- Label logic
         local label
         if target.IsBrainrot then
             label = target.Type:upper() .. " – " .. getBrainrotDisplayName(child)
@@ -903,17 +904,16 @@ local function processFolder(folder, target)
             label = target.Label or (target.Type:upper() .. " EVENT")
         end
 
-       createHighlight(realObj, cfg.Color)
-createDistanceBillboard(realObj, label, cfg.Emoji, cfg.Color)
+        createHighlight(realObj, cfg.Color)
+        createDistanceBillboard(realObj, label, cfg.Emoji, cfg.Color)
 
--- libera da tabela quando for destruído
-realObj.AncestryChanged:Connect(function(_, parent)
-    if not parent then
-        detected[realObj] = nil
-    end
-end)
+        realObj.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                detected[realObj] = nil
+            end
+        end)
 
-notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
+        notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
     end
 end
 
