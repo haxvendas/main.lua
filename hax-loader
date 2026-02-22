@@ -728,7 +728,7 @@ local TARGETS = {
 {Path = {"ValentinesCoinParts"}, Match = "ValentinesCoin", Type = "Arcade", Label = "VALENTINE COIN"},
 
 -- 💀 Doom Event Buttons (todos Plane.006)
-{Path = {"DoomEventButtons", "Button"}, Match = "Plane.006", Type = "Doom", Label = "DOOM BUTTON"},
+{Path = {"DoomEventButtons", "Button"}, Match = "Plane.006", Type = "Doom", Label = "DOOM BUTTON", PerInstance = true},
 }
 
 -- ---------------------------------------------------------------------------
@@ -863,10 +863,17 @@ local function processFolder(folder, target)
             label = target.Label or (target.Type:upper() .. " EVENT")
         end
 
-        createHighlight(realObj, cfg.Color)
-        createDistanceBillboard(realObj, label, cfg.Emoji, cfg.Color)
+       createHighlight(realObj, cfg.Color)
+createDistanceBillboard(realObj, label, cfg.Emoji, cfg.Color)
 
-        notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
+-- libera da tabela quando for destruído
+realObj.AncestryChanged:Connect(function(_, parent)
+    if not parent then
+        detected[realObj] = nil
+    end
+end)
+
+notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
     end
 end
 
@@ -948,8 +955,13 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 -- =================================
--- MAGNET POR TOQUE - CANDY
+-- MAGNET POR TOQUE - CANDY + DOOM BUTTON
 -- =================================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local plr = Players.LocalPlayer
 
 local MAGNET_DISTANCE = 10000
 local COOLDOWN = 0.15
@@ -961,34 +973,48 @@ local function getHRP()
     return char and char:FindFirstChild("HumanoidRootPart")
 end
 
+local function tryTouch(part, hrp)
+    if not part or not hrp then return end
+    if not part:IsA("BasePart") then return end
+    if not part:FindFirstChild("TouchInterest") then return end
+
+    local dist = (part.Position - hrp.Position).Magnitude
+
+    if dist <= MAGNET_DISTANCE then
+        if not lastTouch[part] 
+        or tick() - lastTouch[part] > COOLDOWN then
+            
+            firetouchinterest(hrp, part, 0)
+            firetouchinterest(hrp, part, 1)
+
+            lastTouch[part] = tick()
+        end
+    end
+end
+
 RunService.Heartbeat:Connect(function()
     local hrp = getHRP()
     if not hrp then return end
 
+    -- ===============================
+    -- CANDY EVENT
+    -- ===============================
     local candyFolder = workspace:FindFirstChild("CandyEventParts")
-    if not candyFolder then return end
-
-    for _, model in ipairs(candyFolder:GetChildren()) do
-        
-        local candyPart = model:FindFirstChildWhichIsA("BasePart")
-        
-        if candyPart and candyPart:FindFirstChild("TouchInterest") then
-            
-            local dist = (candyPart.Position - hrp.Position).Magnitude
-            
-            if dist <= MAGNET_DISTANCE then
-                
-                if not lastTouch[candyPart] 
-                or tick() - lastTouch[candyPart] > COOLDOWN then
-                    
-                    firetouchinterest(hrp, candyPart, 0)
-                    firetouchinterest(hrp, candyPart, 1)
-                    
-                    lastTouch[candyPart] = tick()
-                end
-            end
+    if candyFolder then
+        for _, model in ipairs(candyFolder:GetChildren()) do
+            local candyPart = model:FindFirstChildWhichIsA("BasePart")
+            tryTouch(candyPart, hrp)
         end
     end
+
+    -- ===============================
+    -- DOOM EVENT BUTTON
+    -- ===============================
+    local doomPart = workspace:FindFirstChild("DoomEventButtons")
+        and workspace.DoomEventButtons:FindFirstChild("Button")
+        and workspace.DoomEventButtons.Button:FindFirstChild("Plane.006")
+
+    tryTouch(doomPart, hrp)
 end)
 
 -- =============================================
