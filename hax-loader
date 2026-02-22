@@ -92,6 +92,42 @@ local function notify(msg, color)
 end
 
 -- =============================================
+-- SISTEMA RE-EXECUTÁVEL
+-- =============================================
+
+-- Se já existir algo rodando, destrói primeiro
+if getgenv().MyScript then
+    if getgenv().MyScript.Connection then
+        getgenv().MyScript.Connection:Disconnect()
+    end
+    
+    if getgenv().MyScript.Gui then
+        getgenv().MyScript.Gui:Destroy()
+    end
+end
+
+-- Cria nova tabela do script
+getgenv().MyScript = {}
+
+-- =============================================
+-- EXEMPLO: CRIANDO GUI
+-- =============================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MeuGui"
+ScreenGui.Parent = game.CoreGui
+
+getgenv().MyScript.Gui = ScreenGui
+
+-- =============================================
+-- EXEMPLO: CONEXÃO
+-- =============================================
+
+getgenv().MyScript.Connection = game:GetService("RunService").RenderStepped:Connect(function()
+    print("Rodando...")
+end)
+
+-- =============================================
 -- Espera personagem
 -- ============================================= 
 local function waitForCharacter(timeout)
