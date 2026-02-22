@@ -445,7 +445,7 @@ end)
 -- =============================================
 local vipPos = {
     Vector3.new(349.593475, 72.064514, -38.455074),
-    Vector3.new(2403.379150, 77.300407, -53.420933)
+    Vector3.new(4154.907227, 127.113029, -0.675740)
 }
 local vipNames = {"DEPOSITAR", "COLETAR"}
 local curIndex = 1
