@@ -1,5 +1,44 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))(); 
 
+-- =============================================
+-- 🔥 RESET TOTAL DO SCRIPT (RE-EXECUTÁVEL)
+-- =============================================
+
+if getgenv().HAX_MAIN then
+    
+    -- Desconectar conexões salvas
+    if getgenv().HAX_MAIN.Connections then
+        for _, conn in pairs(getgenv().HAX_MAIN.Connections) do
+            pcall(function() conn:Disconnect() end)
+        end
+    end
+
+    -- Destruir GUIs
+    if getgenv().HAX_MAIN.Guis then
+        for _, gui in pairs(getgenv().HAX_MAIN.Guis) do
+            if gui and gui.Parent then
+                gui:Destroy()
+            end
+        end
+    end
+
+    -- Destruir objetos extras
+    if getgenv().HAX_MAIN.Objects then
+        for _, obj in pairs(getgenv().HAX_MAIN.Objects) do
+            if obj and obj.Parent then
+                obj:Destroy()
+            end
+        end
+    end
+
+end
+
+getgenv().HAX_MAIN = {
+    Connections = {},
+    Guis = {},
+    Objects = {}
+}
+
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
@@ -91,41 +130,6 @@ local function notify(msg, color)
     end)
 end
 
--- =============================================
--- SISTEMA RE-EXECUTÁVEL
--- =============================================
-
--- Se já existir algo rodando, destrói primeiro
-if getgenv().MyScript then
-    if getgenv().MyScript.Connection then
-        getgenv().MyScript.Connection:Disconnect()
-    end
-    
-    if getgenv().MyScript.Gui then
-        getgenv().MyScript.Gui:Destroy()
-    end
-end
-
--- Cria nova tabela do script
-getgenv().MyScript = {}
-
--- =============================================
--- EXEMPLO: CRIANDO GUI
--- =============================================
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MeuGui"
-ScreenGui.Parent = game.CoreGui
-
-getgenv().MyScript.Gui = ScreenGui
-
--- =============================================
--- EXEMPLO: CONEXÃO
--- =============================================
-
-getgenv().MyScript.Connection = game:GetService("RunService").RenderStepped:Connect(function()
-    print("Rodando...")
-end)
 
 -- =============================================
 -- Espera personagem
