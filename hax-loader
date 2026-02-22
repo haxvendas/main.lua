@@ -886,7 +886,7 @@ local function processFolder(folder, target)
         end
 
         if not matched then continue end
-        if not child:IsA("BasePart") and not child:IsA("Model") then continue end
+        if not child:IsA("BasePart") then continue end
 
         local realObj = isPerInstance and child or getTargetObject(child, false)
 
