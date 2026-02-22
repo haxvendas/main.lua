@@ -747,9 +747,8 @@ local CONFIG = {
     Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" },
     Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" },
     Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" },
-    Candy     = { Color = Color3.fromRGB(255, 120, 120), Emoji = "🍬" },
-    Doom      = { Color = Color3.fromRGB(255, 60, 60), Emoji = "💀" }
- 
+    Candy     = { Color = Color3.fromRGB(255, 120, 120), Emoji = "🍬" }
+
 }
 
 local TARGETS = {
@@ -767,8 +766,6 @@ local TARGETS = {
 -- Valentines Coins
 {Path = {"ValentinesCoinParts"}, Match = "ValentinesCoin", Type = "Arcade", Label = "VALENTINE COIN"},
 
--- 💀 Doom Event Buttons (todos Plane.006)
-{Path = {"DoomEventButtons", "Button"}, Match = "Plane.006", Type = "Doom", Label = "DOOM BUTTON", PerInstance = true},
 }
 
 -- ---------------------------------------------------------------------------
@@ -875,7 +872,7 @@ local function processFolder(folder, target)
 
     local isPerInstance = target.PerInstance == true
 
-    for _, child in folder:GetDescendants() do -- 🔥 agora pega tudo
+    for _, child in folder:GetChildren() do
         local objName = child.Name
         local matched = false
 
@@ -886,15 +883,14 @@ local function processFolder(folder, target)
         end
 
         if not matched then continue end
-        if not child:IsA("BasePart") then continue end
 
-        local realObj = isPerInstance and child or getTargetObject(child, false)
-
+        local realObj = getTargetObject(child, isPerInstance)
         if detected[realObj] then continue end
         detected[realObj] = true
 
         local cfg = CONFIG[target.Type]
 
+        -- Label logic
         local label
         if target.IsBrainrot then
             label = target.Type:upper() .. " – " .. getBrainrotDisplayName(child)
@@ -906,12 +902,6 @@ local function processFolder(folder, target)
 
         createHighlight(realObj, cfg.Color)
         createDistanceBillboard(realObj, label, cfg.Emoji, cfg.Color)
-
-        realObj.AncestryChanged:Connect(function(_, parent)
-            if not parent then
-                detected[realObj] = nil
-            end
-        end)
 
         notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
     end
