@@ -501,7 +501,7 @@ local function smoothTP(targetIndex)
     local targetPos = vipPos[targetIndex] + Vector3.new(0, 4, 0)
     local distance = (hrp.Position - targetPos).Magnitude
         
-    local tweenTime = distance / 800
+    local tweenTime = distance / 400
 
     local tweenInfo = TweenInfo.new(
         tweenTime,
@@ -592,7 +592,7 @@ task.spawn(function()
         updateStatus2()
         local targetPos = vipPos2[targetIndex] + Vector3.new(0, 4, 0)
         local distance = (hrp.Position - targetPos).Magnitude
-         local tweenTime = distance / 600
+         local tweenTime = distance / 400
         notify("→ SEC " .. targetIndex, Color3.fromRGB(200, 150, 255))
         local tweenInfo = TweenInfo.new(
             tweenTime,
