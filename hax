@@ -472,38 +472,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- =============================================
--- Hitbox Expander com Toggle (H)
--- =============================================
-_G.HeadSize = 25     -- diminui um pouco pra evitar detecção
-_G.Disabled = true
-
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local lp = Players.LocalPlayer
-
-RunService.RenderStepped:Connect(function()
-    if not _G.Disabled then return end
-    
-    for _, player in Players:GetPlayers() do
-        if player == lp then continue end
-        
-        pcall(function()
-            local char = player.Character
-            if not char then return end
-            
-            local head = char:FindFirstChild("Head")
-            if not head then return end
-            
-            head.Size = Vector3.new(_G.HeadSize, _G.HeadSize, _G.HeadSize)
-            head.Transparency = 0.97          -- quase invisível
-            head.BrickColor = BrickColor.new("Really blue")
-            head.Material = Enum.Material.Neon
-            head.CanCollide = false
-        end)
-    end
-end)
-
 local UserInputService = game:GetService("UserInputService")
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
