@@ -1,46 +1,37 @@
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
-local Players     = game:GetService("Players") 
-local RunService  = game:GetService("RunService")
-local UIS         = game:GetService("UserInputService")
-local Http        = game:GetService("HttpService")
-local TS          = game:GetService("TweenService")
-local Teleport    = game:GetService("TeleportService")
 
-local plr         = Players.LocalPlayer
-local cam         = workspace.CurrentCamera
+local Players      = game:GetService("Players") 
+local RunService   = game:GetService("RunService")
+local UIS          = game:GetService("UserInputService")
+local Http         = game:GetService("HttpService")
+local TS           = game:GetService("TweenService")
+local Teleport     = game:GetService("TeleportService")
 
-local backpack = plr:WaitForChild("Backpack")
+local plr          = Players.LocalPlayer
+local cam          = workspace.CurrentCamera
 
-local flying      = false
-local flySpeed    = 5
-local autoCollect = false
-local godConns    = {}
-local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
-
-local smoothFastTP
-local smoothFastTP2
-
-local TeleportService = game:GetService("TeleportService")
+local flying       = false
+local flySpeed     = 5
+local autoCollect  = false
+local godConns     = {}
+local controls     = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
 
 local notifyBusy = false
 local scriptFullyLoaded = false
 
+-- Variáveis para o Sistema Garama
 local TERMOS = {"garama", "madundung"}
-local INTERVALO = 1.2
-local DISTANCIA_MAX_FORCADA = 450   -- mude se quiser mais
-
+local DISTANCIA_MAX_FORCADA = 450
+local promptsModificados = {}
 local currentHighlight = nil
-local promptsModificados = {}     -- evita repetir no mesmo prompt
-local ultimoSlot = nil
 
 -- =============================================
 -- Notify Function
 -- =============================================
 local function notify(msg, color)
     color = color or Color3.fromRGB(0, 170, 255)
-    
     if notifyBusy then task.wait(0.4) end
     notifyBusy = true
     
@@ -58,13 +49,11 @@ local function notify(msg, color)
         main.BorderSizePixel = 0
         main.ClipsDescendants = true
         
-        local corner = Instance.new("UICorner", main)
-        corner.CornerRadius = UDim.new(0, 6)
+        Instance.new("UICorner", main).CornerRadius = UDim.new(0, 6)
         
         local accent = Instance.new("Frame", main)
         accent.Size = UDim2.new(0, 4, 1, 0)
         accent.BackgroundColor3 = color
-        accent.BorderSizePixel = 0
         
         local txt = Instance.new("TextLabel", main)
         txt.Size = UDim2.new(1, -30, 1, 0)
@@ -77,588 +66,235 @@ local function notify(msg, color)
         txt.TextXAlignment = Enum.TextXAlignment.Left
         txt.RichText = true
         
-        TS:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {
-            Size = UDim2.new(0, 280, 0, 40)
-        }):Play()
-        
+        TS:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = UDim2.new(0, 280, 0, 40)}):Play()
         task.wait(3.2)
-        
-        local tweenOut = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {
-            Size = UDim2.new(0, 0, 0, 40),
-            BackgroundTransparency = 1
-        })
-        tweenOut:Play()
-        
-        tweenOut.Completed:Connect(function()
-            gui:Destroy()
-            notifyBusy = false
-        end)
+        local tw = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {Size = UDim2.new(0, 0, 0, 40), BackgroundTransparency = 1})
+        tw:Play()
+        tw.Completed:Connect(function() gui:Destroy() notifyBusy = false end)
     end)
 end
 
-
 -- =============================================
--- Espera personagem
--- ============================================= 
+-- Funções de Utilidade
+-- =============================================
 local function waitForCharacter(timeout)
     timeout = timeout or 1
     local start = tick()
-    while not plr.Character and tick() - start < timeout do
-        task.wait()
-    end
+    while not plr.Character and tick() - start < timeout do task.wait() end
     return plr.Character
 end
 
 -- =============================================
--- Inicialização
+-- SISTEMA GARAMA (IMPLEMENTADO)
 -- =============================================
+local function acharGaramaInfo()
+    local client = workspace:FindFirstChild("Client")
+    local bases = client and client:FindFirstChild("Bases")
+    if not bases then return nil end
+
+    for _, base in ipairs(bases:GetChildren()) do
+        local slots = base:FindFirstChild("Slots")
+        if not slots then continue end
+
+        for _, slot in ipairs(slots:GetChildren()) do
+            local ui = slot:FindFirstChild("Brainrot_UI")
+            local title = ui and ui:FindFirstChild("Frame") and ui.Frame:FindFirstChild("Title")
+            
+            if title and title:IsA("TextLabel") then
+                local txt = title.Text:lower()
+                local achou = false
+                for _, termo in ipairs(TERMOS) do
+                    if txt:find(termo) then achou = true break end
+                end
+
+                if achou then
+                    local promptReal = nil
+                    for _, obj in ipairs(slot:GetDescendants()) do
+                        if obj:IsA("ProximityPrompt") then promptReal = obj break end
+                    end
+                    if not promptReal then
+                        for _, obj in ipairs(base:GetDescendants()) do
+                            if obj:IsA("ProximityPrompt") then promptReal = obj break end
+                        end
+                    end
+                    return {slot = slot, promptReal = promptReal, texto = title.Text}
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function forcarPromptDeLonge(prompt)
+    if not prompt or promptsModificados[prompt] then return prompt ~= nil end
+    prompt.MaxActivationDistance = DISTANCIA_MAX_FORCADA
+    prompt.RequiresLineOfSight = false
+    prompt.HoldDuration = 0
+    prompt.Enabled = true
+    promptsModificados[prompt] = true
+    
+    task.spawn(function()
+        local old = prompt.ActionText
+        prompt.ActionText = "🔥 GARAMA DETECTADO"
+        task.wait(4)
+        if prompt.Parent then prompt.ActionText = old end
+    end)
+    return true
+end
+
+-- Loop Scanner Garama
 task.spawn(function()
-    task.wait(1)  -- reduzido
-    scriptFullyLoaded = true
-    enableInfiniteZoom()
-    applyGodMode()
-    notify("HAX CARREGADO!", Color3.fromRGB(0, 255, 140))
+    while true do
+        task.wait(1.5)
+        if scriptFullyLoaded then
+            local info = acharGaramaInfo()
+            if info then
+                if currentHighlight then currentHighlight:Destroy() end
+                currentHighlight = Instance.new("Highlight")
+                currentHighlight.Adornee = info.slot
+                currentHighlight.FillColor = Color3.fromRGB(255, 40, 40)
+                currentHighlight.Parent = info.slot
+                
+                if forcarPromptDeLonge(info.promptReal) then
+                    -- Opcional: Notificar na tela quando achar o Garama
+                    -- notify("GARAMA ENCONTRADO!", Color3.fromRGB(255, 50, 50))
+                end
+            else
+                if currentHighlight then currentHighlight:Destroy() currentHighlight = nil end
+            end
+        end
+    end
 end)
 
 -- =============================================
--- Infinite Zoom
+-- Funções de Movimento e GodMode
 -- =============================================
 function enableInfiniteZoom()
-    if not scriptFullyLoaded then return end
     plr.CameraMaxZoomDistance = 40000
     plr.CameraMinZoomDistance = 0.5
 end
 
--- =============================================
--- Fly (F)
--- =============================================
-local function updateFly()
-    if not flying or not scriptFullyLoaded then return end
-    local move = Vector3.new(controls.D - controls.A, controls.Space - controls.Ctrl, controls.W - controls.S)
-    if move.Magnitude > 0 then move = move.Unit end
-    
-    local look = cam.CFrame.LookVector
-    local right = cam.CFrame.RightVector
-    local vel = look * move.Z + right * move.X + Vector3.new(0, move.Y, 0)
-    
-    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-    if hrp then 
-        hrp.CFrame = hrp.CFrame + vel * flySpeed 
-    end
-end
-
-local function toggleFly()
-    if not scriptFullyLoaded then return end
-    flying = not flying
-    local char = waitForCharacter()
-    if not char then return end
-    
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChild("Humanoid")
-    if not hrp or not hum then return end
-    
-    hrp.Anchored = flying
-    hum.PlatformStand = flying
-    
-    if flying then
-        RunService:BindToRenderStep("CFly", Enum.RenderPriority.Character.Value + 1, updateFly)
-        notify("FLY: ATIVADO", Color3.fromRGB(0, 255, 120))
-    else
-        RunService:UnbindFromRenderStep("CFly")
-        notify("FLY: DESATIVADO", Color3.fromRGB(255, 70, 70))
-    end
-end
-
--- =============================================
--- GodMode
--- =============================================
 function applyGodMode()
-    if not scriptFullyLoaded then return end
     local char = waitForCharacter()
-    if not char then return end
-    
-    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
     if not hum then return end
-    
-    -- Limpa conexões antigas
     for _, conn in godConns do pcall(conn.Disconnect, conn) end
     godConns = {}
-    
-    hum.MaxHealth = math.huge
-    hum.Health = math.huge
-    hum.JumpPower = 50
-    
-    table.insert(godConns, hum.HealthChanged:Connect(function(h)
-        if h < math.huge then
-            hum.Health = math.huge
-        end
-    end))
-    
-    table.insert(godConns, hum.Died:Connect(function()
-        task.wait(0.1)
-        hum.Health = math.huge
-        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-    end))
-    
+    hum.MaxHealth, hum.Health = math.huge, math.huge
+    table.insert(godConns, hum.HealthChanged:Connect(function() hum.Health = math.huge end))
     table.insert(godConns, RunService.Heartbeat:Connect(function()
-        local s = hum:GetState()
-        if s == Enum.HumanoidStateType.Ragdoll or s == Enum.HumanoidStateType.Physics or s == Enum.HumanoidStateType.FallingDown then
-            hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
-        end
-        
-        for _, v in hum:GetChildren() do
-            if (v:IsA("BoolValue") or v:IsA("NumberValue")) and v.Name:lower():find("stun|slow|poison|bleed|knock") then
-                v:Destroy()
-            end
-        end
+        if hum:GetState() == Enum.HumanoidStateType.Ragdoll then hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics) end
     end))
 end
 
 -- =============================================
---              S E R V E R   H O P   (T)
+-- Fly & VFly Logic
 -- =============================================
+local vflyEnabled, vflySpeed = false, 500
+local vflyGyro, vflyVel, vflyConn
 
+local function toggleFly()
+    flying = not flying
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if hrp and hum then
+        hrp.Anchored = flying
+        hum.PlatformStand = flying
+        if flying then
+            RunService:BindToRenderStep("CFly", 201, function()
+                local move = Vector3.new(controls.D - controls.A, controls.Space - controls.Ctrl, controls.W - controls.S)
+                if move.Magnitude > 0 then move = move.Unit end
+                hrp.CFrame = hrp.CFrame + (cam.CFrame:VectorToWorldSpace(move) * flySpeed)
+            end)
+            notify("FLY: ATIVADO", Color3.fromRGB(0, 255, 120))
+        else
+            RunService:UnbindFromRenderStep("CFly")
+            notify("FLY: DESATIVADO", Color3.fromRGB(255, 70, 70))
+        end
+    end
+end
+
+local function toggleVFly()
+    vflyEnabled = not vflyEnabled
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    
+    if vflyEnabled and hrp and hum then
+        hum.PlatformStand = true
+        vflyGyro = Instance.new("BodyGyro", hrp)
+        vflyGyro.P = 9e4
+        vflyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        vflyVel = Instance.new("BodyVelocity", hrp)
+        vflyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        
+        vflyConn = RunService.RenderStepped:Connect(function()
+            local move = Vector3.new(controls.D - controls.A, controls.Space - controls.Ctrl, controls.W - controls.S)
+            if move.Magnitude > 0 then move = move.Unit end
+            vflyGyro.CFrame = cam.CFrame
+            vflyVel.Velocity = (cam.CFrame.LookVector * move.Z * vflySpeed) + (cam.CFrame.RightVector * move.X * vflySpeed) + Vector3.new(0, move.Y * vflySpeed, 0)
+        end)
+        notify("VFLY: ATIVADO", Color3.fromRGB(0, 200, 255))
+    else
+        if vflyConn then vflyConn:Disconnect() end
+        if vflyGyro then vflyGyro:Destroy() end
+        if vflyVel then vflyVel:Destroy() end
+        if hum then hum.PlatformStand = false end
+        notify("VFLY: DESATIVADO", Color3.fromRGB(255, 80, 80))
+    end
+end
+
+-- =============================================
+-- Server Hop
+-- =============================================
 local function hopServer()
-    print("🔄 HOPPING SERVER... (procurando servidor com poucos players)")
-    
     local success, servers = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        return Http:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
     end)
-    
-    if success and servers and servers.data then
+    if success and servers.data then
         for _, v in pairs(servers.data) do
-            if type(v) == "table" and v.playing and v.maxPlayers and v.playing < v.maxPlayers and v.id and #v.id > 10 then
-                print("🚀 Teleportando para servidor com " .. v.playing .. "/" .. v.maxPlayers .. " players")
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
+            if v.playing < v.maxPlayers then
+                Teleport:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
                 return
             end
         end
     end
-    
-    -- Fallback: teleport aleatório se não achar
-    print("⚠️ Fallback: teleport aleatório")
-    TeleportService:Teleport(game.PlaceId, plr)
 end
 
 -- =============================================
--- Insta Prompt + Infinite Jump
+-- Inputs e Inicialização
 -- =============================================
-local function instaPrompt(p)
-    if p:IsA("ProximityPrompt") then 
-        p.HoldDuration = 0
-        p.RequiresLineOfSight = false
-        p.MaxActivationDistance = 15
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    local k = input.KeyCode
+    if k == Enum.KeyCode.V then toggleVFly()
+    elseif k == Enum.KeyCode.F then toggleFly()
+    elseif k == Enum.KeyCode.T then hopServer()
+    elseif k == Enum.KeyCode.W then controls.W = 1
+    elseif k == Enum.KeyCode.S then controls.S = 1
+    elseif k == Enum.KeyCode.A then controls.A = 1
+    elseif k == Enum.KeyCode.D then controls.D = 1
+    elseif k == Enum.KeyCode.Space then controls.Space = 1
+    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 1
     end
-end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    local k = input.KeyCode
+    if k == Enum.KeyCode.W then controls.W = 0
+    elseif k == Enum.KeyCode.S then controls.S = 0
+    elseif k == Enum.KeyCode.A then controls.A = 0
+    elseif k == Enum.KeyCode.D then controls.D = 0
+    elseif k == Enum.KeyCode.Space then controls.Space = 0
+    elseif k == Enum.KeyCode.LeftControl then controls.Ctrl = 0
+    end
+end)
 
 task.spawn(function()
-    task.wait(1.5)
-    workspace.DescendantAdded:Connect(instaPrompt)
-    for _, v in workspace:GetDescendants() do instaPrompt(v) end
-end)
-
-UIS.JumpRequest:Connect(function()
-    if not scriptFullyLoaded then return end
-    local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
-    if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-end)
-
--- =============================================
--- GUI Timers (Celestial / Money)
--- =============================================
-task.spawn(function()
-    task.wait(3)
-    if plr.PlayerGui:FindFirstChild("EventPanelClean") then
-        plr.PlayerGui.EventPanelClean:Destroy()
-    end
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "EventPanelClean"
-    gui.IgnoreGuiInset = true
-    gui.ResetOnSpawn = false
-    gui.Parent = plr:WaitForChild("PlayerGui")
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 280, 0, 90)
-    frame.Position = UDim2.new(1, -300, 1, -160)
-    frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
-    frame.BackgroundTransparency = 0.25
-    frame.BorderSizePixel = 0
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
-    local stroke = Instance.new("UIStroke", frame)
-    stroke.Color = Color3.fromRGB(0, 200, 255)
-    stroke.Thickness = 2.2
-    local function createLabel(name, color, y)
-        local lbl = Instance.new("TextLabel", frame)
-        lbl.Name = name
-        lbl.Size = UDim2.new(1, -20, 0, 35)
-        lbl.Position = UDim2.new(0, 10, 0, y)
-        lbl.BackgroundTransparency = 1
-        lbl.TextColor3 = color
-        lbl.TextScaled = true
-        lbl.Font = Enum.Font.GothamBold
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        return lbl
-    end
-    local celTime = createLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
-    local moneyTime = createLabel("Money", Color3.fromRGB(255, 220, 80), 45)
-    local celestialLabel, moneyLabel = nil, nil
-    task.spawn(function()
-        while true do
-            celestialLabel, moneyLabel = nil, nil
-            for _, obj in workspace:GetDescendants() do
-                if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
-                    local t = obj.Text:lower()
-                    if t:find("frenzy") or t:find("appears") then celestialLabel = obj end
-                    if t:find("money") or t:find("event") or t:find("ufo") then moneyLabel = obj end
-                end
-            end
-            task.wait(3.5)
-        end
-    end)
-    RunService.RenderStepped:Connect(function()
-        if celestialLabel and celestialLabel.Parent then
-            local txt = celestialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-            celTime.Text = "✨ " .. txt
-            celTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,150,50)) or Color3.fromRGB(255,150,50)
-        else
-            celTime.Text = "✨ Procurando "
-        end
-       
-        if moneyLabel and moneyLabel.Parent then
-            local txt = moneyLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-            moneyTime.Text = "💰 " .. txt
-            moneyTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,220,80)) or Color3.fromRGB(255,220,80)
-        else
-            moneyTime.Text = "💰 Procurando Evento..."
-        end
-    end)
-end)
-
--- =============================================
--- VFLY (BODYGYRO / BODYVELOCITY) - TECLA V
--- =============================================
-
-local vflyEnabled = false
-local vflySpeed = 500
-
-local vflyGyro, vflyVel, vflyConn
-
-local function startVFly()
-    if vflyEnabled then return end
-    vflyEnabled = true
-
-    local char = waitForCharacter()
-    if not char then return end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
-
-    hum.PlatformStand = true
-
-    vflyGyro = Instance.new("BodyGyro")
-    vflyGyro.P = 9e4
-    vflyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    vflyGyro.CFrame = cam.CFrame
-    vflyGyro.Parent = hrp
-
-    vflyVel = Instance.new("BodyVelocity")
-    vflyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    vflyVel.Velocity = Vector3.zero
-    vflyVel.Parent = hrp
-
-    vflyConn = RunService.RenderStepped:Connect(function()
-        local move = Vector3.new(
-            controls.D - controls.A,
-            controls.Space - controls.Ctrl,
-            controls.W - controls.S
-        )
-
-        if move.Magnitude > 0 then
-            move = move.Unit
-        end
-
-        local camCF = cam.CFrame
-        vflyGyro.CFrame = camCF
-
-        vflyVel.Velocity =
-            camCF.LookVector * move.Z * vflySpeed +
-            camCF.RightVector * move.X * vflySpeed +
-            Vector3.new(0, move.Y * vflySpeed, 0)
-    end)
-
-    notify("VFLY: ATIVADO", Color3.fromRGB(0, 200, 255))
-end
-
-local function stopVFly()
-    vflyEnabled = false
-
-    if vflyConn then vflyConn:Disconnect() vflyConn = nil end
-    if vflyGyro then vflyGyro:Destroy() vflyGyro = nil end
-    if vflyVel then vflyVel:Destroy() vflyVel = nil end
-
-    local char = plr.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        hum.PlatformStand = false
-    end
-
-    notify("VFLY: DESATIVADO", Color3.fromRGB(255, 80, 80))
-end
-
--- Coloque isso no final do seu script (depois da parte do auto garama)
-
--- =============================================
--- AUTO COLECIONAR GARAMA DE LONGE - VERSÃO AGRESSIVA
--- =============================================
-
-local COOLDOWN_GARAMA = 0.4   -- tempo entre tentativas de fire
-local lastAttempt = 0
-
--- Função para tentar coletar o Garama de qualquer distância
-local function tentarColetarGarama(info)
-    if not info or not info.promptReal then return end
-    
-    local agora = tick()
-    if agora - lastAttempt < COOLDOWN_GARAMA then return end
-    lastAttempt = agora
-    
-    local prompt = info.promptReal
-    
-    -- 1. Força propriedades novamente (por garantia)
-    prompt.MaxActivationDistance = 1000
-    prompt.RequiresLineOfSight = false
-    prompt.HoldDuration = 0
-    prompt.Enabled = true
-    
-    -- 2. Tenta disparar de várias formas
-    
-    -- Forma A: fireproximityprompt (mais comum em exploits)
-    pcall(function()
-        fireproximityprompt(prompt)
-        print("[Garama Auto] Tentou fireproximityprompt()")
-    end)
-    
-    -- Forma B: simula Triggered event (alguns jogos escutam isso)
-    pcall(function()
-        prompt.Triggered:Fire(LocalPlayer)
-        print("[Garama Auto] Tentou prompt.Triggered:Fire()")
-    end)
-    
-    -- Forma C: se tiver ClickDetector no mesmo objeto ou pai
-    local clickDet = prompt.Parent:FindFirstChildOfClass("ClickDetector") 
-                  or prompt.Parent.Parent:FindFirstChildOfClass("ClickDetector")
-    if clickDet then
-        pcall(function()
-            fireclickdetector(clickDet)
-            print("[Garama Auto] ClickDetector encontrado e disparado!")
-        end)
-    end
-    
-    -- Feedback visual extra
-    local oldText = prompt.ActionText
-    prompt.ActionText = "🟥 TENTANDO COLETAR..."
-    task.delay(1.5, function()
-        if prompt and prompt.Parent then prompt.ActionText = oldText end
-    end)
-end
-
--- Loop que tenta coletar automaticamente quando achar
-task.spawn(function()
-    while true do
-        task.wait(0.35)  -- tenta a cada ~0.35s quando detectado
-        
-        local info = acharGaramaInfo()
-        
-        if info and info.promptReal then
-            -- Mostra no console toda tentativa
-            print("[Garama Auto] Tentativa de coleta - Distância estimada: ~" .. math.floor((LocalPlayer.Character.HumanoidRootPart.Position - info.slot:GetPivot().Position).Magnitude) .. " studs")
-            
-            tentarColetarGarama(info)
-        end
-    end
-end)
-
--- Quando detectar, avisa que está tentando auto-coletar
-local oldPrint = print
-print = function(...)
-    if select(1, ...) == "Garama detectado" then
-        oldPrint("🔥 AUTO-COLETANDO GARAMA ATIVADO - tentando fire a cada 0.4s")
-    end
-    oldPrint(...)
-end
-
-notify("AUTO GARAMA AGRESSIVO ATIVADO", Color3.fromRGB(255, 80, 0))
-notify("Olhe F9 para ver tentativas de coleta", Color3.fromRGB(255, 200, 100))
--- =============================================
--- Character Added / Respawn
--- =============================================
-local function onCharacterAdded(char)
-    task.wait(0.6)
+    task.wait(1)
+    scriptFullyLoaded = true
     applyGodMode()
     enableInfiniteZoom()
-end
-
-if plr.Character then onCharacterAdded(plr.Character) end
-plr.CharacterAdded:Connect(onCharacterAdded)
-
--- =============================================
--- Remove VIPWalls + Barrier
--- =============================================
-task.spawn(function()
-    task.wait(3)
-
-    local function tryRemove(obj)
-        -- Remove VIPWalls
-        if obj.Name == "VIPWalls" and obj:IsA("Model") then
-            obj:Destroy()
-        end
-
-        -- Remove Workspace.Barriers.Barrier
-        if obj.Name == "Barrier" and obj.Parent 
-            and obj.Parent.Name == "Barriers"
-            and obj.Parent.Parent == workspace then
-            obj:Destroy()
-        end
-    end
-    
-    -- Remove os que já existem
-    for _, obj in workspace:GetDescendants() do
-        tryRemove(obj)
-    end
-
-    -- Remove os que spawnarem depois
-    workspace.DescendantAdded:Connect(tryRemove)
+    notify("HAX CARREGADO + SCANNER GARAMA", Color3.fromRGB(0, 255, 140))
 end)
-
-
--- =================================
--- AUTO PROXIMITY - DOOM EVENT
--- =================================
-
-local COOLDOWN = 0.2
-
-local lastFire = {}
-
-RunService.Heartbeat:Connect(function()
-    
-    local doomFolder = workspace:FindFirstChild("DoomEventButtons")
-    if not doomFolder then return end
-
-    -- Procura TODOS os ProximityPrompt dentro da pasta
-    for _, obj in ipairs(doomFolder:GetDescendants()) do
-        
-        if obj:IsA("ProximityPrompt") then
-            
-            if not lastFire[obj] 
-            or tick() - lastFire[obj] > COOLDOWN then
-                
-                -- Remove limitações
-                obj.HoldDuration = 0
-                obj.RequiresLineOfSight = false
-                
-                fireproximityprompt(obj)
-                
-                lastFire[obj] = tick()
-            end
-        end
-    end
-end)
-
-local UserInputService = game:GetService("UserInputService")
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    local inputType = input.UserInputType
-    local keyCode   = input.KeyCode
-
-    -- =============================================
-    -- TOGGLE VFLY (SEMPRE FUNCIONA)
-    -- =============================================
-    if inputType == Enum.UserInputType.Keyboard then
-        if keyCode == Enum.KeyCode.V then
-            if vflyEnabled then
-                stopVFly()
-            else
-                startVFly()
-            end
-            return
-        end
-    end
-
-    -- =============================================
-    -- TECLAS GLOBAIS (FUNCIONAM SEM VFLY)
-    -- =============================================
-    if inputType == Enum.UserInputType.Keyboard then
-        
-        if keyCode == Enum.KeyCode.F then
-            toggleFly()
-            return
-            
-        elseif keyCode == Enum.KeyCode.H then
-            toggleHitboxExpander()
-            return
-            
-        elseif keyCode == Enum.KeyCode.T then
-            hopServer()
-            return
-            
-       end 
-     end
-
-    -- =============================================
-    -- DAQUI PRA BAIXO SÓ SE VFLY ESTIVER ATIVO
-    -- =============================================
-    if inputType == Enum.UserInputType.Keyboard then
-        
-        local changed = false
-        
-        -- VELOCIDADE
-        if keyCode == Enum.KeyCode.Equals or keyCode == Enum.KeyCode.Plus then
-            vflySpeed += 100
-            changed = true
-            
-        elseif keyCode == Enum.KeyCode.Minus then
-            vflySpeed = math.max(100, vflySpeed - 100)
-            changed = true
-            
-        elseif keyCode == Enum.KeyCode.I then
-            vflySpeed = 500
-            notify("VFly Speed resetado para 500", Color3.fromRGB(200,200,255))
-            changed = true
-   -- MOVIMENTO
-        elseif keyCode == Enum.KeyCode.W then controls.W = 1
-        elseif keyCode == Enum.KeyCode.S then controls.S = 1
-        elseif keyCode == Enum.KeyCode.A then controls.A = 1
-        elseif keyCode == Enum.KeyCode.D then controls.D = 1
-        elseif keyCode == Enum.KeyCode.Space then controls.Space = 1
-        elseif keyCode == Enum.KeyCode.LeftControl then controls.Ctrl = 1
-        end
-
-        if changed then
-            notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(100,255,100))
-        end
-    end
-end)
-
--- =============================================
--- INPUT ENDED (MOVIMENTO)
--- =============================================
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-    
-    local key = input.KeyCode
-    
-    if     key == Enum.KeyCode.W then controls.W = 0
-    elseif key == Enum.KeyCode.S then controls.S = 0
-    elseif key == Enum.KeyCode.A then controls.A = 0
-    elseif key == Enum.KeyCode.D then controls.D = 0
-    elseif key == Enum.KeyCode.Space then controls.Space = 0
-    elseif key == Enum.KeyCode.LeftControl then controls.Ctrl = 0
-    end
-end)
-
--- =============================================
--- Final
--- =============================================
-notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0))
