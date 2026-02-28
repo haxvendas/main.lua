@@ -23,7 +23,6 @@ local smoothFastTP
 local smoothFastTP2
 
 local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService") -- Adicionado para o Hop
 
 local notifyBusy = false
 local scriptFullyLoaded = false
