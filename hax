@@ -27,6 +27,13 @@ local TeleportService = game:GetService("TeleportService")
 local notifyBusy = false
 local scriptFullyLoaded = false
 
+local TERMOS = {"garama", "madundung"}
+local INTERVALO = 1.2
+local DISTANCIA_MAX_FORCADA = 450   -- mude se quiser mais
+
+local currentHighlight = nil
+local promptsModificados = {}     -- evita repetir no mesmo prompt
+local ultimoSlot = nil
 
 -- =============================================
 -- Notify Function
@@ -397,6 +404,147 @@ local function stopVFly()
 
     notify("VFLY: DESATIVADO", Color3.fromRGB(255, 80, 80))
 end
+
+-- =============================================
+-- auto garama
+-- =============================================
+local function acharGaramaInfo()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+
+    local client = workspace:FindFirstChild("Client")
+    if not client then return nil end
+
+    local bases = client:FindFirstChild("Bases")
+    if not bases then return nil end
+
+    for _, base in ipairs(bases:GetChildren()) do
+        local slots = base:FindFirstChild("Slots")
+        if not slots then continue end
+
+        for _, slot in ipairs(slots:GetChildren()) do
+            local ui = slot:FindFirstChild("Brainrot_UI")
+            if not ui then continue end
+
+            local frame = ui:FindFirstChild("Frame")
+            if not frame then continue end
+
+            local title = frame:FindFirstChild("Title")
+            if not title or not title:IsA("TextLabel") then continue end
+
+            local txt = title.Text:lower()
+            local achou = false
+            for _, termo in ipairs(TERMOS) do
+                if txt:find(termo) then
+                    achou = true
+                    break
+                end
+            end
+
+            if achou then
+                -- Procura ProximityPrompt dentro do slot ou na base
+                local promptReal = nil
+
+                -- Prioridade 1: dentro do slot
+                for _, obj in ipairs(slot:GetDescendants()) do
+                    if obj:IsA("ProximityPrompt") then
+                        promptReal = obj
+                        break
+                    end
+                end
+
+                -- Prioridade 2: na base inteira
+                if not promptReal then
+                    for _, obj in ipairs(base:GetDescendants()) do
+                        if obj:IsA("ProximityPrompt") then
+                            promptReal = obj
+                            break
+                        end
+                    end
+                end
+
+                return {
+                    slot = slot,
+                    base = base,
+                    title = title,
+                    texto = title.Text,
+                    promptReal = promptReal
+                }
+            end
+        end
+    end
+    return nil
+end
+
+local function forcarPromptDeLonge(prompt)
+    if not prompt then return false end
+    if promptsModificados[prompt] then return true end  -- já modificado
+
+    local distAntiga = prompt.MaxActivationDistance
+
+    prompt.MaxActivationDistance = DISTANCIA_MAX_FORCADA
+    prompt.RequiresLineOfSight = false
+    prompt.HoldDuration = 0
+    prompt.Enabled = true
+
+    promptsModificados[prompt] = true
+
+    print("✅ Prompt REAL modificado!")
+    print("   Caminho: " .. prompt:GetFullName())
+    print("   Distância: " .. distAntiga .. " → " .. DISTANCIA_MAX_FORCADA)
+    print("   Sem linha de visão: " .. tostring(prompt.RequiresLineOfSight))
+
+    -- Feedback visual temporário no prompt do jogo
+    task.spawn(function()
+        local old = prompt.ActionText
+        prompt.ActionText = "🟥 E DE LONGE"
+        task.wait(4)
+        if prompt.Parent then prompt.ActionText = old end
+    end)
+
+    return true
+end
+
+-- Loop de busca + modificação
+task.spawn(function()
+    while true do
+        task.wait(INTERVALO)
+
+        local info = acharGaramaInfo()
+
+        if info then
+            -- Highlight no slot/pet
+            if currentHighlight then currentHighlight:Destroy() end
+            currentHighlight = Instance.new("Highlight")
+            currentHighlight.Adornee = info.slot
+            currentHighlight.FillColor = Color3.fromRGB(255, 40, 40)
+            currentHighlight.OutlineColor = Color3.fromRGB(255, 220, 0)
+            currentHighlight.FillTransparency = 0.35
+            currentHighlight.OutlineTransparency = 0
+            currentHighlight.Parent = info.slot
+
+            print("Garama detectado → " .. info.texto .. " | Slot: " .. info.slot.Name)
+
+            -- Modifica o prompt real
+            local modificou = forcarPromptDeLonge(info.promptReal)
+
+            if modificou then
+                print("→ Agora vá longe e aperte E na direção do Garama!")
+            else
+                print("⚠️ Nenhum ProximityPrompt encontrado nesse slot/base")
+                print("   Possível motivo: usa ClickDetector ou RemoteEvent")
+            end
+
+            ultimoSlot = info.slot
+        else
+            if currentHighlight then
+                currentHighlight:Destroy()
+                currentHighlight = nil
+            end
+            ultimoSlot = nil
+        end
+    end
+end)
 -- =============================================
 -- Character Added / Respawn
 -- =============================================
