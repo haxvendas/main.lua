@@ -405,146 +405,90 @@ local function stopVFly()
     notify("VFLY: DESATIVADO", Color3.fromRGB(255, 80, 80))
 end
 
+-- Coloque isso no final do seu script (depois da parte do auto garama)
+
 -- =============================================
--- auto garama
+-- AUTO COLECIONAR GARAMA DE LONGE - VERSÃO AGRESSIVA
 -- =============================================
-local function acharGaramaInfo()
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
 
-    local client = workspace:FindFirstChild("Client")
-    if not client then return nil end
+local COOLDOWN_GARAMA = 0.4   -- tempo entre tentativas de fire
+local lastAttempt = 0
 
-    local bases = client:FindFirstChild("Bases")
-    if not bases then return nil end
-
-    for _, base in ipairs(bases:GetChildren()) do
-        local slots = base:FindFirstChild("Slots")
-        if not slots then continue end
-
-        for _, slot in ipairs(slots:GetChildren()) do
-            local ui = slot:FindFirstChild("Brainrot_UI")
-            if not ui then continue end
-
-            local frame = ui:FindFirstChild("Frame")
-            if not frame then continue end
-
-            local title = frame:FindFirstChild("Title")
-            if not title or not title:IsA("TextLabel") then continue end
-
-            local txt = title.Text:lower()
-            local achou = false
-            for _, termo in ipairs(TERMOS) do
-                if txt:find(termo) then
-                    achou = true
-                    break
-                end
-            end
-
-            if achou then
-                -- Procura ProximityPrompt dentro do slot ou na base
-                local promptReal = nil
-
-                -- Prioridade 1: dentro do slot
-                for _, obj in ipairs(slot:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") then
-                        promptReal = obj
-                        break
-                    end
-                end
-
-                -- Prioridade 2: na base inteira
-                if not promptReal then
-                    for _, obj in ipairs(base:GetDescendants()) do
-                        if obj:IsA("ProximityPrompt") then
-                            promptReal = obj
-                            break
-                        end
-                    end
-                end
-
-                return {
-                    slot = slot,
-                    base = base,
-                    title = title,
-                    texto = title.Text,
-                    promptReal = promptReal
-                }
-            end
-        end
-    end
-    return nil
-end
-
-local function forcarPromptDeLonge(prompt)
-    if not prompt then return false end
-    if promptsModificados[prompt] then return true end  -- já modificado
-
-    local distAntiga = prompt.MaxActivationDistance
-
-    prompt.MaxActivationDistance = DISTANCIA_MAX_FORCADA
+-- Função para tentar coletar o Garama de qualquer distância
+local function tentarColetarGarama(info)
+    if not info or not info.promptReal then return end
+    
+    local agora = tick()
+    if agora - lastAttempt < COOLDOWN_GARAMA then return end
+    lastAttempt = agora
+    
+    local prompt = info.promptReal
+    
+    -- 1. Força propriedades novamente (por garantia)
+    prompt.MaxActivationDistance = 1000
     prompt.RequiresLineOfSight = false
     prompt.HoldDuration = 0
     prompt.Enabled = true
-
-    promptsModificados[prompt] = true
-
-    print("✅ Prompt REAL modificado!")
-    print("   Caminho: " .. prompt:GetFullName())
-    print("   Distância: " .. distAntiga .. " → " .. DISTANCIA_MAX_FORCADA)
-    print("   Sem linha de visão: " .. tostring(prompt.RequiresLineOfSight))
-
-    -- Feedback visual temporário no prompt do jogo
-    task.spawn(function()
-        local old = prompt.ActionText
-        prompt.ActionText = "🟥 E DE LONGE"
-        task.wait(4)
-        if prompt.Parent then prompt.ActionText = old end
+    
+    -- 2. Tenta disparar de várias formas
+    
+    -- Forma A: fireproximityprompt (mais comum em exploits)
+    pcall(function()
+        fireproximityprompt(prompt)
+        print("[Garama Auto] Tentou fireproximityprompt()")
     end)
-
-    return true
+    
+    -- Forma B: simula Triggered event (alguns jogos escutam isso)
+    pcall(function()
+        prompt.Triggered:Fire(LocalPlayer)
+        print("[Garama Auto] Tentou prompt.Triggered:Fire()")
+    end)
+    
+    -- Forma C: se tiver ClickDetector no mesmo objeto ou pai
+    local clickDet = prompt.Parent:FindFirstChildOfClass("ClickDetector") 
+                  or prompt.Parent.Parent:FindFirstChildOfClass("ClickDetector")
+    if clickDet then
+        pcall(function()
+            fireclickdetector(clickDet)
+            print("[Garama Auto] ClickDetector encontrado e disparado!")
+        end)
+    end
+    
+    -- Feedback visual extra
+    local oldText = prompt.ActionText
+    prompt.ActionText = "🟥 TENTANDO COLETAR..."
+    task.delay(1.5, function()
+        if prompt and prompt.Parent then prompt.ActionText = oldText end
+    end)
 end
 
--- Loop de busca + modificação
+-- Loop que tenta coletar automaticamente quando achar
 task.spawn(function()
     while true do
-        task.wait(INTERVALO)
-
+        task.wait(0.35)  -- tenta a cada ~0.35s quando detectado
+        
         local info = acharGaramaInfo()
-
-        if info then
-            -- Highlight no slot/pet
-            if currentHighlight then currentHighlight:Destroy() end
-            currentHighlight = Instance.new("Highlight")
-            currentHighlight.Adornee = info.slot
-            currentHighlight.FillColor = Color3.fromRGB(255, 40, 40)
-            currentHighlight.OutlineColor = Color3.fromRGB(255, 220, 0)
-            currentHighlight.FillTransparency = 0.35
-            currentHighlight.OutlineTransparency = 0
-            currentHighlight.Parent = info.slot
-
-            print("Garama detectado → " .. info.texto .. " | Slot: " .. info.slot.Name)
-
-            -- Modifica o prompt real
-            local modificou = forcarPromptDeLonge(info.promptReal)
-
-            if modificou then
-                print("→ Agora vá longe e aperte E na direção do Garama!")
-            else
-                print("⚠️ Nenhum ProximityPrompt encontrado nesse slot/base")
-                print("   Possível motivo: usa ClickDetector ou RemoteEvent")
-            end
-
-            ultimoSlot = info.slot
-        else
-            if currentHighlight then
-                currentHighlight:Destroy()
-                currentHighlight = nil
-            end
-            ultimoSlot = nil
+        
+        if info and info.promptReal then
+            -- Mostra no console toda tentativa
+            print("[Garama Auto] Tentativa de coleta - Distância estimada: ~" .. math.floor((LocalPlayer.Character.HumanoidRootPart.Position - info.slot:GetPivot().Position).Magnitude) .. " studs")
+            
+            tentarColetarGarama(info)
         end
     end
 end)
+
+-- Quando detectar, avisa que está tentando auto-coletar
+local oldPrint = print
+print = function(...)
+    if select(1, ...) == "Garama detectado" then
+        oldPrint("🔥 AUTO-COLETANDO GARAMA ATIVADO - tentando fire a cada 0.4s")
+    end
+    oldPrint(...)
+end
+
+notify("AUTO GARAMA AGRESSIVO ATIVADO", Color3.fromRGB(255, 80, 0))
+notify("Olhe F9 para ver tentativas de coleta", Color3.fromRGB(255, 200, 100))
 -- =============================================
 -- Character Added / Respawn
 -- =============================================
