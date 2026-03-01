@@ -430,9 +430,7 @@ task.spawn(function() -- roda em thread separada para não travar
 
 end)
 
- 
 
- quero add um esp que mostre o nome e o valor do gamara e fazer com que sempre fique procurando pra caso entre outra base com garama melhor ainda 
 -- =============================================
 -- Inicialização (ORIGINAL)
 -- =============================================
