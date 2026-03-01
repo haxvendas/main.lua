@@ -217,10 +217,6 @@ local function acharMelhorGaramaInfo()
 
     return melhorInfo
 end
-
--- =============================================
--- EXECUÇÃO PRINCIPAL (depois que tudo foi definido)
--- =============================================
 -- =============================================
 -- LOOP DE BUSCA AUTOMÁTICA
 -- =============================================
@@ -243,12 +239,11 @@ task.spawn(function()
             print("Slot:", melhor.slot.Name)
             print("Nome:", melhor.texto)
             print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
-
             if melhor.promptReal then
-                forcarPromptDeLonge(melhor.promptReal)
-                -- Se quiser tentar coletar automaticamente (se o exploit permitir):
-                -- pcall(function() fireproximityprompt(melhor.promptReal) end)
-            else
+            forcarPromptDeLonge(melhor.promptReal)
+            -- Opcional: teleportar ou disparar o prompt aqui
+            -- fireprompt(melhor.promptReal) ← se tiver exploit com essa função
+        else
                 notify("Prompt não encontrado no melhor slot", Color3.fromRGB(255, 80, 80))
             end
         else
