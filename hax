@@ -221,30 +221,41 @@ end
 -- =============================================
 -- EXECUÇÃO PRINCIPAL (depois que tudo foi definido)
 -- =============================================
-task.spawn(function()               -- roda em thread separada para não travar
-    task.wait(1.5)                  -- dá tempo pro jogo carregar as bases/UI
+-- =============================================
+-- LOOP DE BUSCA AUTOMÁTICA
+-- =============================================
 
-    local char = plr.Character or plr.CharacterAdded:Wait()
-    if not char then return end
-
-    local melhor = acharMelhorGaramaInfo()
-
-    if melhor then
-        notify("Garama encontrado: " .. melhor.valorTexto, Color3.fromRGB(0, 255, 120))
-        print("Base:", melhor.base.Name)
-        print("Slot:", melhor.slot.Name)
-        print("Nome:", melhor.texto)
-        print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
-
-        if melhor.promptReal then
-            forcarPromptDeLonge(melhor.promptReal)
-            -- Opcional: teleportar ou disparar o prompt aqui
-            -- fireprompt(melhor.promptReal)   ← se tiver exploit com essa função
-        else
-            notify("Prompt não encontrado no melhor slot", Color3.fromRGB(255, 80, 80))
+task.spawn(function()
+    while true do
+        local char = plr.Character
+        if not char or not char.Parent then
+            -- Espera o personagem reaparecer
+            plr.CharacterAdded:Wait()
+            task.wait(1.5)
+            continue
         end
-    else
-        notify("Nenhum Garama válido encontrado", Color3.fromRGB(255, 140, 0))
+
+        local melhor = acharMelhorGaramaInfo()
+
+        if melhor then
+            notify("Garama: " .. melhor.valorTexto, Color3.fromRGB(0, 255, 120))
+            print("Base:", melhor.base.Name)
+            print("Slot:", melhor.slot.Name)
+            print("Nome:", melhor.texto)
+            print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
+
+            if melhor.promptReal then
+                forcarPromptDeLonge(melhor.promptReal)
+                -- Se quiser tentar coletar automaticamente (se o exploit permitir):
+                -- pcall(function() fireproximityprompt(melhor.promptReal) end)
+            else
+                notify("Prompt não encontrado no melhor slot", Color3.fromRGB(255, 80, 80))
+            end
+        else
+            notify("Nenhum Garama válido encontrado agora...", Color3.fromRGB(255, 140, 0))
+        end
+
+        task.wait(10)   -- ← aqui você controla o intervalo (10 segundos)
     end
 end)
 -- =============================================
