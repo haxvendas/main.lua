@@ -112,16 +112,7 @@ local function waitForCharacter(timeout)
     end
     return plr.Character
 end
--- =============================================
--- Inicialização (ORIGINAL)
--- =============================================
-task.spawn(function()
-    task.wait(1)
-    scriptFullyLoaded = true
-    enableInfiniteZoom()
-    applyGodMode()
-    notify("HAX CARREGADO!", Color3.fromRGB(0, 255, 140))
-end)
+
 -- =============================================
 -- FUNÇÕES AUXILIARES
 -- =============================================
@@ -278,7 +269,16 @@ task.spawn(function()
         task.wait(INTERVALO_VARREDURA)
     end
 end)
-
+-- =============================================
+-- Inicialização (ORIGINAL)
+-- =============================================
+task.spawn(function()
+    task.wait(1)
+    scriptFullyLoaded = true
+    enableInfiniteZoom()
+    applyGodMode()
+    notify("HAX CARREGADO!", Color3.fromRGB(0, 255, 140))
+end)
 -- =============================================
 -- Infinite Zoom
 -- =============================================
