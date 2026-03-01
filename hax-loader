@@ -964,7 +964,8 @@ local targets = {
     "TicketBombTickets",
     "ArcadeEventConsoles",
     "ValentinesCoinParts",
-    "DoomEventParts"
+    "DoomEventParts",
+    "FireAndIceCoin"
 }
 
 RunService.Heartbeat:Connect(function()
