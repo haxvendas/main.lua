@@ -230,7 +230,7 @@ task.spawn(function()               -- roda em thread separada para não travar
     local melhor = acharMelhorGaramaInfo()
 
     if melhor then
-        notify("Melhor Garama encontrado: " .. melhor.valorTexto, Color3.fromRGB(0, 255, 120))
+        notify("Garama encontrado: " .. melhor.valorTexto, Color3.fromRGB(0, 255, 120))
         print("Base:", melhor.base.Name)
         print("Slot:", melhor.slot.Name)
         print("Nome:", melhor.texto)
