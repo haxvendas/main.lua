@@ -1,273 +1,433 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))(); 
 
 if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
-local Players     = game:GetService("Players") 
-local RunService  = game:GetService("RunService")
-local UIS         = game:GetService("UserInputService")
-local Http        = game:GetService("HttpService")
-local TS          = game:GetService("TweenService")
-local Teleport    = game:GetService("TeleportService")
 
-local plr         = Players.LocalPlayer
-local cam         = workspace.CurrentCamera
+    game.Loaded:Wait()
+
+end
+
+local Players = game:GetService("Players")
+
+local RunService = game:GetService("RunService")
+
+local UIS = game:GetService("UserInputService")
+
+local Http = game:GetService("HttpService")
+
+local TS = game:GetService("TweenService")
+
+local Teleport = game:GetService("TeleportService")
+
+local plr = Players.LocalPlayer
+
+local cam = workspace.CurrentCamera
 
 local backpack = plr:WaitForChild("Backpack")
 
-local flying      = false
-local flySpeed    = 2.5
+local flying = false
+
+local flySpeed = 2.5
+
 local autoCollect = false
-local godConns    = {}
-local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
+
+local godConns = {}
+
+local controls = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
 
 local smoothFastTP
+
 local smoothFastTP2
 
 local TeleportService = game:GetService("TeleportService")
 
 local notifyBusy = false
+
 local scriptFullyLoaded = false
 
-- CONFIGURAÇÕES
-local TERMOS = {"garama", "garama v", "garama x", "brainrot"}
-local DISTANCIA_MAX_FORCADA = 500 
-local INTERVALO_VARREDURA = 5 
-local corESP = Color3.fromRGB(0, 255, 120)
+local TERMOS = { -- ← crie essa tabela com os termos que você quer
 
--- VARIÁVEIS DE CONTROLE
-local espAtivos = {}
-local promptsModificados = {}
-local notifyBusy = false
+    "garama", "garama v", "garama x", "brainrot", -- exemplos — ajuste conforme o jogo
+
+    -- adicione mais aqui
+
+}
+
+local DISTANCIA_MAX_FORCADA = 500 -- ajuste conforme necessário
+
+local promptsModificados = {} -- tabela para não modificar o mesmo prompt várias vezes
 
 -- =============================================
+
 -- Notify Function (ORIGINAL)
+
 -- =============================================
+
 local function notify(msg, color)
+
     color = color or Color3.fromRGB(0, 170, 255)
-    
+
+   
+
     if notifyBusy then task.wait(0.4) end
+
     notifyBusy = true
-    
+
+   
+
     task.spawn(function()
+
         local gui = Instance.new("ScreenGui")
+
         gui.Name = "HaxNotify"
+
         gui.Parent = plr:WaitForChild("PlayerGui")
-        
+
+       
+
         local main = Instance.new("Frame", gui)
+
         main.Size = UDim2.new(0, 0, 0, 35)
+
         main.Position = UDim2.new(0.5, 0, 0.08, 0)
+
         main.AnchorPoint = Vector2.new(0.5, 0.5)
+
         main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+
         main.BackgroundTransparency = 0.25
+
         main.BorderSizePixel = 0
+
         main.ClipsDescendants = true
-        
+
+       
+
         local corner = Instance.new("UICorner", main)
+
         corner.CornerRadius = UDim.new(0, 6)
-        
+
+       
+
         local accent = Instance.new("Frame", main)
+
         accent.Size = UDim2.new(0, 4, 1, 0)
+
         accent.BackgroundColor3 = color
+
         accent.BorderSizePixel = 0
-        
+
+       
+
         local txt = Instance.new("TextLabel", main)
+
         txt.Size = UDim2.new(1, -30, 1, 0)
+
         txt.Position = UDim2.new(0, 15, 0, 0)
+
         txt.BackgroundTransparency = 1
+
         txt.Font = Enum.Font.GothamMedium
+
         txt.Text = msg
+
         txt.TextColor3 = Color3.new(1,1,1)
+
         txt.TextSize = 15
+
         txt.TextXAlignment = Enum.TextXAlignment.Left
+
         txt.RichText = true
-        
+
+       
+
         TS:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {
+
             Size = UDim2.new(0, 280, 0, 40)
+
         }):Play()
-        
+
+       
+
         task.wait(3.2)
-        
+
+       
+
         local tweenOut = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {
+
             Size = UDim2.new(0, 0, 0, 40),
+
             BackgroundTransparency = 1
+
         })
+
         tweenOut:Play()
-        
+
+       
+
         tweenOut.Completed:Connect(function()
+
             gui:Destroy()
+
             notifyBusy = false
+
         end)
+
     end)
+
 end
 
 -- =============================================
+
 -- Espera personagem
--- ============================================= 
+
+-- =============================================
+
 local function waitForCharacter(timeout)
+
     timeout = timeout or 1
+
     local start = tick()
+
     while not plr.Character and tick() - start < timeout do
+
         task.wait()
+
     end
+
     return plr.Character
+
 end
 
 -- =============================================
--- FUNÇÕES AUXILIARES
--- =============================================
 
-local function notify(msg, color)
-    color = color or Color3.fromRGB(0, 170, 255)
-    if notifyBusy then task.wait(0.4) end
-    notifyBusy = true
-    
-    task.spawn(function()
-        local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
-        gui.Name = "HaxNotify"
-        
-        local main = Instance.new("Frame", gui)
-        main.Size = UDim2.new(0, 0, 0, 35)
-        main.Position = UDim2.new(0.5, 0, 0.08, 0)
-        main.AnchorPoint = Vector2.new(0.5, 0.5)
-        main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-        main.BackgroundTransparency = 0.25
-        main.BorderSizePixel = 0
-        main.ClipsDescendants = true
-        Instance.new("UICorner", main).CornerRadius = UDim.new(0, 6)
-        
-        local txt = Instance.new("TextLabel", main)
-        txt.Size = UDim2.new(1, -30, 1, 0)
-        txt.Position = UDim2.new(0, 15, 0, 0)
-        txt.BackgroundTransparency = 1
-        txt.Font = Enum.Font.GothamMedium
-        txt.Text = msg
-        txt.TextColor3 = Color3.new(1,1,1)
-        txt.TextSize = 15
-        txt.RichText = true
-        
-        TS:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = UDim2.new(0, 280, 0, 40)}):Play()
-        task.wait(3.2)
-        local tw = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {Size = UDim2.new(0, 0, 0, 40), BackgroundTransparency = 1})
-        tw:Play()
-        tw.Completed:Connect(function() gui:Destroy() notifyBusy = false end)
-    end)
-end
+-- Função auxiliar: forcar prompt de longe
+
+-- =============================================
 
 local function forcarPromptDeLonge(prompt)
-    if not prompt or promptsModificados[prompt] then return end
+
+    if not prompt then return false end
+
+    if promptsModificados[prompt] then return true end
+
     prompt.MaxActivationDistance = DISTANCIA_MAX_FORCADA
+
     prompt.RequiresLineOfSight = false
+
     prompt.HoldDuration = 0
+
+    prompt.Enabled = true
+
     promptsModificados[prompt] = true
-    
-    local oldText = prompt.ActionText
-    prompt.ActionText = "🟥 ATIVADO (LONGE)"
-    task.delay(4, function() if prompt then prompt.ActionText = oldText end end)
+
+    task.spawn(function()
+
+        local oldText = prompt.ActionText
+
+        prompt.ActionText = "🟥 E DE LONGE"
+
+        task.wait(4)
+
+        if prompt and prompt.Parent then
+
+            prompt.ActionText = oldText
+
+        end
+
+    end)
+
+    return true
+
 end
 
+-- =============================================
+
+-- Procura o slot com MAIOR Earn
+
+-- =============================================
+
 local function acharMelhorGaramaInfo()
+
+    local char = plr.Character
+
+    if not char or not char:FindFirstChild("HumanoidRootPart") then
+
+        return nil
+
+    end
+
     local client = workspace:FindFirstChild("Client")
+
     local bases = client and client:FindFirstChild("Bases")
+
     if not bases then return nil end
 
     local melhorValor = -1
+
     local melhorInfo = nil
 
     for _, base in ipairs(bases:GetChildren()) do
+
         local slots = base:FindFirstChild("Slots")
+
         if not slots then continue end
 
         for _, slot in ipairs(slots:GetChildren()) do
+
             local ui = slot:FindFirstChild("Brainrot_UI")
+
             local frame = ui and ui:FindFirstChild("Frame")
-            local title = frame and frame:FindFirstChild("Title")
-            local earnLabel = frame and frame:FindFirstChild("Earn")
-            
-            if title and earnLabel then
-                local txt = title.Text:lower()
-                local ehValido = false
-                for _, termo in ipairs(TERMOS) do
-                    if txt:find(termo, 1, true) then ehValido = true break end
+
+            if not frame then continue end
+
+            local title = frame:FindFirstChild("Title")
+
+            if not title or not title:IsA("TextLabel") then continue end
+
+            local txt = title.Text:lower()
+
+            local ehValido = false
+
+            for _, termo in ipairs(TERMOS) do
+
+                if txt:find(termo, 1, true) then -- plain find (mais rápido)
+
+                    ehValido = true
+
+                    break
+
                 end
 
-                if ehValido then
-                    local textoValor = earnLabel.Text:gsub("[^%d%.%a]", "")
-                    local num, letra = textoValor:match("([%d%.]+)([Kk]?)")
-                    local valorNumerico = tonumber(num) or 0
+            end
+
+            if not ehValido then continue end
+
+            local earnLabel = frame:FindFirstChild("Earn")
+
+            if not earnLabel or not earnLabel:IsA("TextLabel") then continue end
+
+            -- Tenta converter o texto de forma mais robusta
+
+            local texto = earnLabel.Text:gsub("[^%d%.]", "") -- mantém pontos (1.5k → 1.5)
+
+            local valorNumerico = tonumber(texto)
+
+            -- Se falhar (ex: "1.2K", "950/s"), aqui você pode adicionar parsing extra
+
+            if not valorNumerico then
+
+                -- Exemplo básico de suporte a "k" / "K"
+
+                local num, letra = texto:match("([%d%.]+)([Kk]?)")
+
+                if num then
+
+                    valorNumerico = tonumber(num)
+
                     if letra:lower() == "k" then valorNumerico = valorNumerico * 1000 end
 
-                    if valorNumerico > melhorValor then
-                        melhorValor = valorNumerico
-                        melhorInfo = {
-                            slot = slot,
-                            texto = title.Text,
-                            valorTexto = earnLabel.Text,
-                            promptReal = slot:FindFirstChildOfClass("ProximityPrompt") or base:FindFirstChildOfClass("ProximityPrompt")
-                        }
-                    end
                 end
+
             end
+
+            if not valorNumerico or valorNumerico <= melhorValor then continue end
+
+            -- Novo melhor encontrado
+
+            melhorValor = valorNumerico
+
+            local promptReal = nil
+
+            for _, obj in ipairs(slot:GetDescendants()) do
+
+                if obj:IsA("ProximityPrompt") then promptReal = obj break end
+
+            end
+
+            if not promptReal then
+
+                for _, obj in ipairs(base:GetDescendants()) do
+
+                    if obj:IsA("ProximityPrompt") then promptReal = obj break end
+
+                end
+
+            end
+
+            melhorInfo = {
+
+                slot = slot,
+
+                base = base,
+
+                title = title,
+
+                texto = title.Text,
+
+                valor = valorNumerico,
+
+                valorTexto = earnLabel.Text,
+
+                promptReal = promptReal,
+
+            }
+
         end
+
     end
+
     return melhorInfo
+
 end
 
 -- =============================================
--- SISTEMA DE ESP
--- =============================================
 
-local function limparESPs()
-    for _, gui in pairs(espAtivos) do gui:Destroy() end
-    espAtivos = {}
-end
-
-local function criarESP(info)
-    limparESPs() -- Remove o anterior para focar apenas no melhor atual
-
-    local target = info.slot:FindFirstChild("HumanoidRootPart") or info.slot:FindFirstChildWhichIsA("BasePart")
-    if not target then return end
-
-    local billboard = Instance.new("BillboardGui", game.CoreGui)
-    billboard.Adornee = target
-    billboard.Size = UDim2.new(0, 200, 0, 50)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
-    billboard.AlwaysOnTop = true
-
-    local label = Instance.new("TextLabel", billboard)
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = corESP
-    label.TextStrokeTransparency = 0
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 14
-    label.Text = "🌟 " .. info.texto .. "\n💰 " .. info.valorTexto
-
-    espAtivos[info.slot] = billboard
-end
+-- EXECUÇÃO PRINCIPAL (depois que tudo foi definido)
 
 -- =============================================
--- LOOP DE BUSCA (Roda pra sempre)
--- =============================================
 
-task.spawn(function()
-    local ultimoID = ""
-    notify("Busca Automática Iniciada!", Color3.fromRGB(0, 255, 140))
+task.spawn(function() -- roda em thread separada para não travar
 
-    while true do
-        local melhor = acharMelhorGaramaInfo()
-        if melhor then
-            local idAtual = melhor.slot:GetFullName()
-            if idAtual ~= ultimoID then
-                notify("Novo melhor Garama encontrado!", Color3.fromRGB(255, 215, 0))
-                ultimoID = idAtual
-            end
-            
-            criarESP(melhor)
-            if melhor.promptReal then forcarPromptDeLonge(melhor.promptReal) end
+    task.wait(1.5) -- dá tempo pro jogo carregar as bases/UI
+
+    local char = plr.Character or plr.CharacterAdded:Wait()
+
+    if not char then return end
+
+    local melhor = acharMelhorGaramaInfo()
+
+    if melhor then
+
+        notify("Garama encontrado: " .. melhor.valorTexto, Color3.fromRGB(0, 255, 120))
+
+        print("Base:", melhor.base.Name)
+
+        print("Slot:", melhor.slot.Name)
+
+        print("Nome:", melhor.texto)
+
+        print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
+
+        if melhor.promptReal then
+
+            forcarPromptDeLonge(melhor.promptReal)
+
+            -- Opcional: teleportar ou disparar o prompt aqui
+
+            -- fireprompt(melhor.promptReal) ← se tiver exploit com essa função
+
+        else
+
+            notify("Prompt não encontrado no melhor slot", Color3.fromRGB(255, 80, 80))
+
         end
-        task.wait(INTERVALO_VARREDURA)
+
+    else
+
+        notify("Nenhum Garama válido encontrado", Color3.fromRGB(255, 140, 0))
+
     end
+
 end)
 -- =============================================
 -- Inicialização (ORIGINAL)
