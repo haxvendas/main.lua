@@ -218,40 +218,29 @@ local function acharMelhorGaramaInfo()
     return melhorInfo
 end
 -- =============================================
--- LOOP DE BUSCA AUTOMÁTICA
+-- EXECUÇÃO PRINCIPAL (depois que tudo foi definido)
 -- =============================================
-
-task.spawn(function()
-    while true do
-        local char = plr.Character
-        if not char or not char.Parent then
-            -- Espera o personagem reaparecer
-            plr.CharacterAdded:Wait()
-            task.wait(1.5)
-            continue
-        end
-
-        local melhor = acharMelhorGaramaInfo()
-
-        if melhor then
-            notify("Garama: " .. melhor.valorTexto, Color3.fromRGB(0, 255, 120))
-            print("Base:", melhor.base.Name)
-            print("Slot:", melhor.slot.Name)
-            print("Nome:", melhor.texto)
-            print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
-            if melhor.promptReal then
+task.spawn(function() -- roda em thread separada para não travar
+    task.wait(1.5) -- dá tempo pro jogo carregar as bases/UI
+    local char = plr.Character or plr.CharacterAdded:Wait()
+    if not char then return end
+    local melhor = acharMelhorGaramaInfo()
+    if melhor then
+        notify("Garama: " .. melhor.valorTexto, Color3.fromRGB(0, 255, 120))
+        print("Base:", melhor.base.Name)
+        print("Slot:", melhor.slot.Name)
+        print("Nome:", melhor.texto)
+        print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
+        if melhor.promptReal then
             forcarPromptDeLonge(melhor.promptReal)
             -- Opcional: teleportar ou disparar o prompt aqui
             -- fireprompt(melhor.promptReal) ← se tiver exploit com essa função
         else
-                notify("Prompt não encontrado no melhor slot", Color3.fromRGB(255, 80, 80))
-            end
-        else
-            notify("Nenhum Garama válido encontrado agora...", Color3.fromRGB(255, 140, 0))
-        end
-
-        task.wait(10)   -- ← aqui você controla o intervalo (10 segundos)
-    end
+            notify("Prompt não encontrado no melhor slot", Color3.fromRGB(255, 80, 80))
+        end
+    else
+        notify("Nenhum Garama válido encontrado", Color3.fromRGB(255, 140, 0))
+    end
 end)
 -- =============================================
 -- Inicialização (ORIGINAL)
