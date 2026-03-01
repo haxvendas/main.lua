@@ -35,6 +35,9 @@ local TERMOS = {           -- ← crie essa tabela com os termos que você quer
 }
 local DISTANCIA_MAX_FORCADA = 500    -- ajuste conforme necessário
 local promptsModificados = {}        -- tabela para não modificar o mesmo prompt várias vezes
+local INTERVALO_VARREDURA = 5 -- segundos entre cada busca
+local corESP = Color3.fromRGB(0, 255, 120)
+local espAtivos = {} -- Para limpar os desenhos antigos
 -- =============================================
 -- Notify Function (ORIGINAL)
 -- =============================================
@@ -107,6 +110,16 @@ local function waitForCharacter(timeout)
     end
     return plr.Character
 end
+-- =============================================
+-- Inicialização (ORIGINAL)
+-- =============================================
+task.spawn(function()
+    task.wait(1)
+    scriptFullyLoaded = true
+    enableInfiniteZoom()
+    applyGodMode()
+    notify("HAX CARREGADO!", Color3.fromRGB(0, 255, 140))
+end)
 -- =============================================
 -- Função auxiliar: forcar prompt de longe
 -- =============================================
@@ -243,14 +256,88 @@ task.spawn(function() -- roda em thread separada para não travar
     end
 end)
 -- =============================================
--- Inicialização (ORIGINAL)
+-- FUNÇÃO DE CRIAR ESP (Visual)
+-- =============================================
+local function criarESP(info)
+    -- Se já houver um ESP para este objeto, removemos para atualizar
+    if espAtivos[info.slot] then
+        espAtivos[info.slot]:Destroy()
+    end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "GaramaESP"
+    billboard.Adornee = info.slot:FindFirstChild("HumanoidRootPart") or info.slot:FindFirstChildWhichIsA("BasePart")
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0) -- Fica acima do slot
+    billboard.AlwaysOnTop = true
+    billboard.Parent = game.CoreGui -- Protege contra scripts do jogo que limpam a Workspace
+
+    local frame = Instance.new("Frame", billboard)
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundTransparency = 1
+
+    local labelNome = Instance.new("TextLabel", frame)
+    labelNome.Text = "🌟 " .. info.texto
+    labelNome.Size = UDim2.new(1, 0, 0.5, 0)
+    labelNome.TextColor3 = Color3.new(1, 1, 1)
+    labelNome.TextStrokeTransparency = 0
+    labelNome.BackgroundTransparency = 1
+    labelNome.Font = Enum.Font.GothamBold
+    labelNome.TextSize = 14
+
+    local labelValor = Instance.new("TextLabel", frame)
+    labelValor.Text = "Ganho: " .. info.valorTexto
+    labelValor.Position = UDim2.new(0, 0, 0.5, 0)
+    labelValor.Size = UDim2.new(1, 0, 0.5, 0)
+    labelValor.TextColor3 = corESP
+    labelValor.TextStrokeTransparency = 0
+    labelValor.BackgroundTransparency = 1
+    labelValor.Font = Enum.Font.GothamMedium
+    labelValor.TextSize = 13
+
+    espAtivos[info.slot] = billboard
+end
+
+local function limparESPs()
+    for _, gui in pairs(espAtivos) do
+        if gui then gui:Destroy() end
+    end
+    espAtivos = {}
+end
+
+-- =============================================
+-- LOOP DE BUSCA CONTÍNUA
 -- =============================================
 task.spawn(function()
-    task.wait(1)
-    scriptFullyLoaded = true
-    enableInfiniteZoom()
-    applyGodMode()
-    notify("HAX CARREGADO!", Color3.fromRGB(0, 255, 140))
+    print("🚀 Sistema de busca automática iniciado!")
+    
+    local ultimoMelhorId = ""
+
+    while true do
+        local melhorAtual = acharMelhorGaramaInfo()
+        
+        -- Limpa visuais antigos antes de repintar (opcional, para manter atualizado)
+        limparESPs()
+
+        if melhorAtual then
+            -- Se o melhor de agora for diferente do que tínhamos antes, avisa!
+            local idUnico = melhorAtual.base.Name .. melhorAtual.slot.Name
+            if idUnico ~= ultimoMelhorId then
+                notify("Novo Melhor Garama: " .. melhorAtual.valorTexto, Color3.fromRGB(255, 215, 0))
+                ultimoMelhorId = idUnico
+            end
+
+            -- Cria o ESP para o melhor encontrado
+            criarESP(melhorAtual)
+            
+            -- Ativa o prompt automaticamente (opcional)
+            if melhorAtual.promptReal then
+                forcarPromptDeLonge(melhorAtual.promptReal)
+            end
+        end
+
+        task.wait(INTERVALO_VARREDURA)
+    end
 end)
 
 -- =============================================
