@@ -105,70 +105,116 @@ end
 -- =============================================
 -- VARIÁVEIS DO NOVO SCRIPT (GARAMA)
 -- =============================================
-local TERMOS = {"garama", "madundung"}
-local INTERVALO_GARAMA = 1.2
-local DISTANCIA_MAX_FORCADA = 450
-local currentHighlight = nil
-local promptsModificados = {}
+local melhor = acharMelhorGaramaInfo()
+
+if melhor then
+    print("Melhor Garama encontrado!")
+    print("Base:", melhor.base.Name)
+    print("Slot:", melhor.slot.Name)
+    print("Nome:", melhor.texto)
+    print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
+    
+    if melhor.promptReal then
+        forcarPromptDeLonge(melhor.promptReal)
+        -- aqui você pode dar fire, teleportar, etc.
+    else
+        warn("Nenhum ProximityPrompt encontrado para o melhor slot")
+    end
+else
+    warn("Nenhum Garama válido encontrado")
+end
 
 -- =============================================
--- FUNÇÕES DO NOVO SCRIPT (GARAMA)
+-- Procura o slot com o MAIOR valor de Earn
+-- Retorna nil se não encontrar nenhum válido
 -- =============================================
-local function acharGaramaInfo()
+local function acharMelhorGaramaInfo()
     local char = plr.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+    if not char or not char:FindFirstChild("HumanoidRootPart") then 
+        return nil 
+    end
+
     local client = workspace:FindFirstChild("Client")
     local bases = client and client:FindFirstChild("Bases")
-    if not bases then return nil end
+    if not bases then 
+        return nil 
+    end
 
+    local melhorValor = -1
+    local melhorInfo = nil
+
+    -- Percorre todas as bases
     for _, base in ipairs(bases:GetChildren()) do
         local slots = base:FindFirstChild("Slots")
         if not slots then continue end
+
+        -- Percorre todos os slots da base
         for _, slot in ipairs(slots:GetChildren()) do
             local ui = slot:FindFirstChild("Brainrot_UI")
             local frame = ui and ui:FindFirstChild("Frame")
-            local title = frame and frame:FindFirstChild("Title")
-            if title and title:IsA("TextLabel") then
-                local txt = title.Text:lower()
-                local achou = false
-                for _, termo in ipairs(TERMOS) do
-                    if txt:find(termo) then achou = true break end
+            if not frame then continue end
+
+            -- Título (para verificar se é um Garama válido)
+            local title = frame:FindFirstChild("Title")
+            if not title or not title:IsA("TextLabel") then continue end
+
+            local txt = title.Text:lower()
+            local ehValido = false
+            for _, termo in ipairs(TERMOS) do
+                if txt:find(termo) then 
+                    ehValido = true 
+                    break 
                 end
-                if achou then
-                    local promptReal = nil
-                    for _, obj in ipairs(slot:GetDescendants()) do
-                        if obj:IsA("ProximityPrompt") then promptReal = obj break end
+            end
+            if not ehValido then continue end
+
+            -- Valor de ganho (Earn)
+            local earnLabel = frame:FindFirstChild("Earn")
+            if not earnLabel or not earnLabel:IsA("TextLabel") then continue end
+
+            -- Extrai o número do texto (ex: "$1,250" → 1250)
+            local textoEarn = earnLabel.Text
+            local valorNumerico = tonumber(textoEarn:gsub("[^%d]", ""))  -- remove $ , . etc
+
+            if not valorNumerico then continue end
+
+            -- Atualiza se for maior que o atual melhor
+            if valorNumerico > melhorValor then
+                melhorValor = valorNumerico
+
+                local promptReal = nil
+                -- Procura ProximityPrompt dentro do slot primeiro
+                for _, obj in ipairs(slot:GetDescendants()) do
+                    if obj:IsA("ProximityPrompt") then 
+                        promptReal = obj 
+                        break 
                     end
-                    if not promptReal then
-                        for _, obj in ipairs(base:GetDescendants()) do
-                            if obj:IsA("ProximityPrompt") then promptReal = obj break end
+                end
+                -- Se não achou no slot, procura na base inteira
+                if not promptReal then
+                    for _, obj in ipairs(base:GetDescendants()) do
+                        if obj:IsA("ProximityPrompt") then 
+                            promptReal = obj 
+                            break 
                         end
                     end
-                    return {slot = slot, base = base, title = title, texto = title.Text, promptReal = promptReal}
                 end
+
+                melhorInfo = {
+                    slot       = slot,
+                    base       = base,
+                    title      = title,
+                    texto      = title.Text,
+                    valor      = valorNumerico,       -- número limpo
+                    valorTexto = earnLabel.Text,      -- texto original ($1.250 etc)
+                    promptReal = promptReal,
+                }
             end
         end
     end
-    return nil
-end
 
-local function forcarPromptDeLonge(prompt)
-    if not prompt then return false end
-    if promptsModificados[prompt] then return true end
-    prompt.MaxActivationDistance = DISTANCIA_MAX_FORCADA
-    prompt.RequiresLineOfSight = false
-    prompt.HoldDuration = 0
-    prompt.Enabled = true
-    promptsModificados[prompt] = true
-    task.spawn(function()
-        local old = prompt.ActionText
-        prompt.ActionText = "🟥 E DE LONGE"
-        task.wait(4)
-        if prompt.Parent then prompt.ActionText = old end
-    end)
-    return true
+    return melhorInfo
 end
-
 -- =============================================
 -- Inicialização (ORIGINAL)
 -- =============================================
