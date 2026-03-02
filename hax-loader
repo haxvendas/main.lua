@@ -29,11 +29,9 @@ local TeleportService = game:GetService("TeleportService")
 
 local notifyBusy = false
 local scriptFullyLoaded = true
-local detected = {
-    Normal = {},
-    Mutation = {}
-}
-local connections = {}        -- para limpar se necessário no futuro
+local detected = {}
+local connections = {}
+
 local scanBrainrotMutations
 
 
@@ -714,26 +712,15 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ESP SOMENTE MUTAÇÕES ICE & FIRE
+-- ESP ICE & FIRE (ULTRA OTIMIZADO)
 -- =============================================
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local plr = Players.LocalPlayer
 
 local CONFIG = {
     IceMutation   = { Color = Color3.fromRGB(120, 220, 255), Emoji = "❄️" },
     FireMutation  = { Color = Color3.fromRGB(255, 120, 0),   Emoji = "🔥" }
 }
 
-local detected = {
-    Mutation = {}
-}
-
-local connections = {}
-
--- -----------------------------------------------------
+-- =====================================================
 
 local function getBrainrotDisplayName(rendered)
     for _, v in rendered:GetChildren() do
@@ -745,107 +732,155 @@ local function getBrainrotDisplayName(rendered)
     return "?"
 end
 
-local function createHighlight(adornee, color)
-    if adornee:FindFirstChild("UniversalHighlight") then return end
+local function removeESP(obj)
+    if obj:FindFirstChild("UniversalHighlight") then
+        obj.UniversalHighlight:Destroy()
+    end
 
+    if obj:FindFirstChild("UniversalBillboard") then
+        obj.UniversalBillboard:Destroy()
+    end
+
+    if connections[obj] then
+        connections[obj]:Disconnect()
+        connections[obj] = nil
+    end
+
+    detected[obj] = nil
+end
+
+local function createESP(obj, mutationType)
+    if detected[obj] then return end
+    detected[obj] = mutationType
+
+    local cfg = CONFIG[mutationType]
+
+    -- Highlight
     local h = Instance.new("Highlight")
     h.Name = "UniversalHighlight"
-    h.Adornee = adornee
-    h.FillColor = color
+    h.Adornee = obj
+    h.FillColor = cfg.Color
     h.OutlineColor = Color3.new(1,1,1)
     h.FillTransparency = 0.45
     h.OutlineTransparency = 0.1
-    h.Parent = adornee
-end
+    h.Parent = obj
 
-local function createDistanceBillboard(adornee, labelText, emoji, color)
-    if adornee:FindFirstChild("UniversalBillboard") then return end
-
+    -- Billboard
     local bb = Instance.new("BillboardGui")
     bb.Name = "UniversalBillboard"
     bb.Size = UDim2.new(0, 260, 0, 70)
     bb.StudsOffset = Vector3.new(0, 4, 0)
     bb.AlwaysOnTop = true
-    bb.Parent = adornee
+    bb.Parent = obj
 
     local txt = Instance.new("TextLabel")
     txt.Size = UDim2.new(1,0,1,0)
     txt.BackgroundTransparency = 1
-    txt.TextColor3 = color
+    txt.TextColor3 = cfg.Color
     txt.TextStrokeTransparency = 0
     txt.TextStrokeColor3 = Color3.new(0,0,0)
     txt.TextScaled = true
     txt.Font = Enum.Font.GothamBold
     txt.Parent = bb
 
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        if not adornee.Parent then
-            conn:Disconnect()
+    -- Atualização de distância (leve)
+    connections[obj] = RunService.Heartbeat:Connect(function()
+        if not obj.Parent then
+            removeESP(obj)
             return
         end
 
         local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        local dist = (hrp.Position - adornee:GetPivot().Position).Magnitude
-        txt.Text = string.format("%s %s\n📏 %d studs", emoji, labelText, math.floor(dist))
-    end)
+        local dist = (hrp.Position - obj:GetPivot().Position).Magnitude
+        local brainrotName = getBrainrotDisplayName(obj)
 
-    table.insert(connections, conn)
+        txt.Text = string.format("%s %s – %s\n📏 %d studs",
+            cfg.Emoji,
+            mutationType:upper(),
+            brainrotName,
+            math.floor(dist)
+        )
+    end)
 end
 
--- -----------------------------------------------------
+local function detectMutation(obj)
+    local hasIce = false
+    local hasFire = false
 
-local function scanBrainrotMutations()
-    local baseFolder = workspace:FindFirstChild("ActiveBrainrots")
-    if not baseFolder then return end
+    for _, desc in obj:GetDescendants() do
+        local n = string.lower(desc.Name)
+        if n == "ice" then
+            hasIce = true
+        elseif n == "fire" then
+            hasFire = true
+        end
+    end
 
-    for _, rarityFolder in baseFolder:GetChildren() do
-        for _, obj in rarityFolder:GetDescendants() do
-            if obj.Name == "RenderedBrainrot" then
+    if hasIce then
+        return "IceMutation"
+    elseif hasFire then
+        return "FireMutation"
+    end
 
-                if detected.Mutation[obj] then
-                    continue
-                end
+    return nil
+end
 
-                local mutationType = nil
+local function monitorBrainrot(obj)
+    if obj.Name ~= "RenderedBrainrot" then return end
 
-                for _, desc in obj:GetDescendants() do
-                    local nameLower = string.lower(desc.Name)
+    local function update()
+        local mutation = detectMutation(obj)
 
-                    if nameLower == "ice" then
-                        mutationType = "IceMutation"
-                        break
-                    elseif nameLower == "fire" then
-                        mutationType = "FireMutation"
-                        break
-                    end
-                end
-
-                if mutationType then
-                    detected.Mutation[obj] = true
-
-                    local cfg = CONFIG[mutationType]
-                    local brainrotName = getBrainrotDisplayName(obj)
-                    local label = mutationType:upper() .. " – " .. brainrotName
-
-                    createHighlight(obj, cfg.Color)
-                    createDistanceBillboard(obj, label, cfg.Emoji, cfg.Color)
-                end
+        if mutation then
+            if detected[obj] ~= mutation then
+                removeESP(obj)
+                createESP(obj, mutation)
+            end
+        else
+            if detected[obj] then
+                removeESP(obj)
             end
         end
     end
+
+    -- Primeira checagem
+    update()
+
+    -- Monitorar mudanças dentro dele
+    obj.DescendantAdded:Connect(update)
+    obj.DescendantRemoving:Connect(update)
+
+    -- Se for destruído
+    obj.AncestryChanged:Connect(function(_, parent)
+        if not parent then
+            removeESP(obj)
+        end
+    end)
 end
 
--- Scan inicial
-task.delay(4, function()
-    scanBrainrotMutations()
-end)
+-- =====================================================
+-- SCAN INICIAL + MONITORAMENTO APENAS DO ActiveBrainrots
+-- =====================================================
 
--- Monitoramento leve
-workspace.DescendantAdded:Connect(function()
-    task.delay(0.3, scanBrainrotMutations)
+task.delay(3, function()
+    local baseFolder = workspace:FindFirstChild("ActiveBrainrots")
+    if not baseFolder then return end
+
+    -- Scan inicial
+    for _, obj in baseFolder:GetDescendants() do
+        if obj.Name == "RenderedBrainrot" then
+            monitorBrainrot(obj)
+        end
+    end
+
+    -- Monitorar apenas a pasta certa (ULTRA LEVE)
+    baseFolder.DescendantAdded:Connect(function(obj)
+        if obj.Name == "RenderedBrainrot" then
+            monitorBrainrot(obj)
+        end
+    end)
 end)
 -- =================================
 -- MAGNET COLLECT ROBUST
