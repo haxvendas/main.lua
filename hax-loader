@@ -714,59 +714,26 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ESP Celestial / Divine / Brainrots / Arcade Ticket / Ticket Bomb
+-- ESP SOMENTE MUTAÇÕES ICE & FIRE
 -- =============================================
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local plr = Players.LocalPlayer
+
 local CONFIG = {
-    Divine    = { Color = Color3.fromRGB(180, 120, 255), Emoji = "👑" },
-    Infinity  = { Color = Color3.fromRGB(80, 120, 255),  Emoji = "♾️" },
-    Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" },
-    Candy     = { Color = Color3.fromRGB(255, 120, 120), Emoji = "🍬" },
-    Blockevent = { Color = Color3.fromRGB(255, 0, 0),     Emoji = "📦" },
     IceMutation   = { Color = Color3.fromRGB(120, 220, 255), Emoji = "❄️" },
     FireMutation  = { Color = Color3.fromRGB(255, 120, 0),   Emoji = "🔥" }
-
-
 }
 
-local TARGETS = {
-    -- Lucky Blocks
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Divine"},   Type = "Divine"},
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Infinity"}, Type = "Infinity"},
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Candy"},    Type = "Candy"},
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Doom"},    Type = "Blockevent"},
-    {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "FireAndIce"},    Type = "Blockevent"},
-    -- Brainrots
-    {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
-    {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
-
- -- Arcade Tickets
-    {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
-
--- Valentines Coins
-{Path = {"ValentinesCoinParts"}, Match = "ValentinesCoin", Type = "Arcade", Label = "VALENTINE COIN"},
-
+local detected = {
+    Mutation = {}
 }
 
--- ---------------------------------------------------------------------------
+local connections = {}
 
-local function getBaseFolder(path)
-    local current = workspace
-    for _, name in path do
-        current = current:FindFirstChild(name)
-        if not current then return nil end
-    end
-    return current
-end
-
-local function nameContainsAll(haystack, words)
-    for _, word in words do
-        if not string.find(haystack, word, 1, true) then
-            return false
-        end
-    end
-    return true
-end
+-- -----------------------------------------------------
 
 local function getBrainrotDisplayName(rendered)
     for _, v in rendered:GetChildren() do
@@ -778,18 +745,9 @@ local function getBrainrotDisplayName(rendered)
     return "?"
 end
 
-local function getTargetObject(obj, isPerInstance)
-    if isPerInstance then
-        return obj
-    end
-    if obj:IsA("BasePart") and obj.Parent then
-        return obj.Parent
-    end
-    return obj
-end
-
 local function createHighlight(adornee, color)
     if adornee:FindFirstChild("UniversalHighlight") then return end
+
     local h = Instance.new("Highlight")
     h.Name = "UniversalHighlight"
     h.Adornee = adornee
@@ -820,13 +778,13 @@ local function createDistanceBillboard(adornee, labelText, emoji, color)
     txt.Font = Enum.Font.GothamBold
     txt.Parent = bb
 
-    -- Heartbeat é bem mais eficiente que loop com task.wait(0.4)
     local conn
-    conn = game:GetService("RunService").Heartbeat:Connect(function()
+    conn = RunService.Heartbeat:Connect(function()
         if not adornee.Parent then
             conn:Disconnect()
             return
         end
+
         local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
@@ -837,83 +795,20 @@ local function createDistanceBillboard(adornee, labelText, emoji, color)
     table.insert(connections, conn)
 end
 
-local function notifyEvent(text)
-    notify("👁️ " .. text, Color3.fromRGB(255, 60, 60))
-end
+-- -----------------------------------------------------
 
-local function processFolder(folder, target)
-    if not folder then return end
-
-    local isPerInstance = target.PerInstance == true
-
-    for _, child in folder:GetChildren() do
-        local objName = child.Name
-        local matched = false
-
-        if target.Match then
-            matched = (objName == target.Match)
-        elseif target.Contains then
-            matched = nameContainsAll(objName, target.Contains)
-        end
-
-        if not matched then continue end
-
-        local realObj = getTargetObject(child, isPerInstance)
-        if detected.Normal[realObj] then continue end
-          detected.Normal[realObj] = true
-
-        local cfg = CONFIG[target.Type]
-
-        -- Label logic
-        local label
-        if target.IsBrainrot then
-            label = target.Type:upper() .. " – " .. getBrainrotDisplayName(child)
-        elseif string.find(objName, "LuckyBlock", 1, true) then
-            label = target.Type:upper() .. " LUCKY BOX"
-        else
-            label = target.Label or (target.Type:upper() .. " EVENT")
-        end
-
-        createHighlight(realObj, cfg.Color)
-        createDistanceBillboard(realObj, label, cfg.Emoji, cfg.Color)
-
-        notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
-    end
-end
-
-local function scanAllTargets()
- for _, target in TARGETS do
-        local folder = getBaseFolder(target.Path)
-        processFolder(folder, target)
-    end
-end
-
--- Inicial + monitoramento
-task.delay(4, function()
-    scanAllTargets()
-
-    -- Mais eficiente que DescendantAdded global (menos spam)
-    for _, target in TARGETS do
-        local folder = getBaseFolder(target.Path)
-        if folder then
-            local conn = folder.DescendantAdded:Connect(function()
-                task.delay(0.25, scanAllTargets)   -- debounce leve
-            end)
-            table.insert(connections, conn)
-        end
-    end
-end)
-scanBrainrotMutations = function()
+local function scanBrainrotMutations()
     local baseFolder = workspace:FindFirstChild("ActiveBrainrots")
     if not baseFolder then return end
 
     for _, rarityFolder in baseFolder:GetChildren() do
         for _, obj in rarityFolder:GetDescendants() do
             if obj.Name == "RenderedBrainrot" then
-                
-              if detected.Mutation[obj] and obj:FindFirstChild("UniversalHighlight") then
-    continue
-end
+
+                if detected.Mutation[obj] then
+                    continue
+                end
+
                 local mutationType = nil
 
                 for _, desc in obj:GetDescendants() do
@@ -933,18 +828,25 @@ end
 
                     local cfg = CONFIG[mutationType]
                     local brainrotName = getBrainrotDisplayName(obj)
-
                     local label = mutationType:upper() .. " – " .. brainrotName
 
                     createHighlight(obj, cfg.Color)
                     createDistanceBillboard(obj, label, cfg.Emoji, cfg.Color)
-
-                    notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
                 end
             end
         end
     end
 end
+
+-- Scan inicial
+task.delay(4, function()
+    scanBrainrotMutations()
+end)
+
+-- Monitoramento leve
+workspace.DescendantAdded:Connect(function()
+    task.delay(0.3, scanBrainrotMutations)
+end)
 -- =================================
 -- MAGNET COLLECT ROBUST
 -- =================================
