@@ -29,7 +29,10 @@ local TeleportService = game:GetService("TeleportService")
 
 local notifyBusy = false
 local scriptFullyLoaded = true
-local detected = {}           -- [realObj] = true
+local detected = {
+    Normal = {},
+    Mutation = {}
+}
 local connections = {}        -- para limpar se necessário no futuro
 
 
@@ -855,8 +858,8 @@ local function processFolder(folder, target)
         if not matched then continue end
 
         local realObj = getTargetObject(child, isPerInstance)
-        if detected[realObj] then continue end
-        detected[realObj] = true
+        if detected.Normal[realObj] then continue end
+          detected.Normal[realObj] = true
 
         local cfg = CONFIG[target.Type]
 
@@ -908,7 +911,7 @@ local function scanBrainrotMutations()
         for _, obj in rarityFolder:GetDescendants() do
             if obj.Name == "RenderedBrainrot" then
                 
-                if detected[obj] then continue end
+               if detected.Mutation[obj] then continue end
 
                 local mutationType = nil
 
@@ -925,7 +928,7 @@ local function scanBrainrotMutations()
                 end
 
                 if mutationType then
-                    detected[obj] = true
+                    detected.Mutation[obj] = true
 
                     local cfg = CONFIG[mutationType]
                     local brainrotName = getBrainrotDisplayName(obj)
@@ -998,11 +1001,6 @@ end)
 -- =================================
 -- MAGNET POR TOQUE - CANDY + DOOM BUTTON
 -- =================================
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local plr = Players.LocalPlayer
 
 local MAGNET_DISTANCE = 10000
 local COOLDOWN = 0.15
