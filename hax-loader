@@ -757,7 +757,7 @@ local CONFIG = {
     Candy     = { Color = Color3.fromRGB(255, 120, 120), Emoji = "🍬" },
     Blockevent = { Color = Color3.fromRGB(255, 0, 0),     Emoji = "📦" },
     IceMutation   = { Color = Color3.fromRGB(120, 220, 255), Emoji = "❄️" },
-    FireMutation  = { Color = Color3.fromRGB(255, 120, 0),   Emoji = "🔥" },
+    FireMutation  = { Color = Color3.fromRGB(255, 120, 0),   Emoji = "🔥" }
 
 
 }
