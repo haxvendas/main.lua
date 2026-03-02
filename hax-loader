@@ -67,7 +67,7 @@ local smoothFastTP2
 local TeleportService = game:GetService("TeleportService")
 
 local notifyBusy = false
-local scriptFullyLoaded = false
+local scriptFullyLoaded = true
 
 
 -- =============================================
