@@ -508,7 +508,8 @@ createSlider("Speed", 1, 300, 32, "Config", function(val)
     customSpeedVal = val
 end)
 
-createInfoBox("By: ThiagoPhantom", "Script created by this user.", "Credits", false)
+createInfoBox("By: Thiago HAX", "Script created by this user.", "Credits", false)
+createInfoBox("Discord", "My Discord server.", "Credits", true, "")
 
 local isAutoEpic = createOption("Auto Epic", false, "Farm")
 local isAutoLegendary = createOption("Auto Legendary", false, "Farm")
