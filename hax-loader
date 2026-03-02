@@ -29,6 +29,8 @@ local TeleportService = game:GetService("TeleportService")
 
 local notifyBusy = false
 local scriptFullyLoaded = true
+local detected = {}           -- [realObj] = true
+local connections = {}        -- para limpar se necessário no futuro
 
 
 -- =============================================
@@ -743,12 +745,6 @@ local TARGETS = {
 }
 
 -- ---------------------------------------------------------------------------
-
-local Players = game:GetService("Players")
-local plr = Players.LocalPlayer
-
-local detected = {}           -- [realObj] = true
-local connections = {}        -- para limpar se necessário no futuro
 
 local function getBaseFolder(path)
     local current = workspace
