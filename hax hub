@@ -26,7 +26,7 @@ local function saveSettings()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PhantomHub_V1"
+ScreenGui.Name = "HAX HUB V1"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
