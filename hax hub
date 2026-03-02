@@ -26,7 +26,7 @@ local function saveSettings()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "HaxHub_V1"
+ScreenGui.Name = "PhantomHub_V1"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
@@ -93,7 +93,7 @@ TopCorner.Parent = TopBar
 local ScriptTitle = Instance.new("TextLabel")
 ScriptTitle.Size = UDim2.new(0, 150, 1, 0)
 ScriptTitle.Position = UDim2.new(0, 10, 0, 0)
-ScriptTitle.Text = "Hax Hub"
+ScriptTitle.Text = "Phantom Hub"
 ScriptTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 ScriptTitle.Font = Enum.Font.SourceSansBold
 ScriptTitle.TextSize = 22
@@ -508,7 +508,7 @@ createSlider("Speed", 1, 300, 32, "Config", function(val)
     customSpeedVal = val
 end)
 
-createInfoBox("By: ThiagoHAX", "Script created by this user.", "Credits", false)
+createInfoBox("By: ThiagoPhantom", "Script created by this user.", "Credits", false)
 
 local isAutoEpic = createOption("Auto Epic", false, "Farm")
 local isAutoLegendary = createOption("Auto Legendary", false, "Farm")
@@ -1019,11 +1019,11 @@ task.spawn(function()
             if p ~= Player then
                 local char = p.Character
                 if char then
-                    local highlight = char:FindFirstChild("HaxESP")
+                    local highlight = char:FindFirstChild("PhantomESP")
                     if espAtivo then
                         if not highlight then
                             highlight = Instance.new("Highlight")
-                            highlight.Name = "HaxESP"
+                            highlight.Name = "PhantomESP"
                             highlight.FillColor = Color3.fromRGB(255, 0, 0)
                             highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
                             highlight.FillTransparency = 0.5
