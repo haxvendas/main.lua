@@ -921,9 +921,7 @@ local function processFolder(folder, target)
 end
 
 local function scanAllTargets()
-    if not scriptFullyLoaded then return end
-
-    for _, target in TARGETS do
+ for _, target in TARGETS do
         local folder = getBaseFolder(target.Path)
         processFolder(folder, target)
     end
