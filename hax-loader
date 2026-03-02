@@ -10,6 +10,7 @@ local UIS         = game:GetService("UserInputService")
 local Http        = game:GetService("HttpService")
 local TS          = game:GetService("TweenService")
 local Teleport    = game:GetService("TeleportService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 
 local plr         = Players.LocalPlayer
 local cam         = workspace.CurrentCamera
@@ -33,6 +34,8 @@ local detected = {}
 local connections = {}
 
 local scanBrainrotMutations
+
+local MAX_DISTANCE = 15 -- distância máxima para ativar
 
 
 -- =============================================
@@ -280,6 +283,66 @@ task.spawn(function()
         if autoCollect then pcall(collectMoney) end
         task.wait(0.4)
     end
+end)
+-- =============================================
+-- AUTO PROXIMITY ICE & FIRE
+-- =============================================
+
+
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local MAX_DISTANCE = 15 -- distância máxima para ativar
+
+-- =============================================
+
+local function hasMutation(brainrot)
+    local hasIce = false
+    local hasFire = false
+
+    for _, desc in brainrot:GetDescendants() do
+        local n = string.lower(desc.Name)
+        if n == "ice" then
+            hasIce = true
+        elseif n == "fire" then
+            hasFire = true
+        end
+    end
+
+    return hasIce or hasFire
+end
+
+local function getHRP()
+    local char = plr.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function isCloseEnough(obj)
+    local hrp = getHRP()
+    if not hrp then return false end
+
+    local dist = (hrp.Position - obj:GetPivot().Position).Magnitude
+    return dist <= MAX_DISTANCE
+end
+
+-- =============================================
+-- Quando qualquer ProximityPrompt aparecer
+-- =============================================
+
+ProximityPromptService.PromptShown:Connect(function(prompt)
+
+    local brainrot = prompt:FindFirstAncestor("RenderedBrainrot")
+    if not brainrot then return end
+
+    if not hasMutation(brainrot) then
+        return
+    end
+
+    if not isCloseEnough(brainrot) then
+        return
+    end
+
+    -- Ativar automaticamente
+    task.wait(0.05)
+    fireproximityprompt(prompt)
 end)
 -- =============================================
 -- Insta Prompt + Infinite Jump
