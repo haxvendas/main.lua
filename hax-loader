@@ -762,6 +762,7 @@ local TARGETS = {
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Candy"},    Type = "Candy"},
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Doom"},    Type = "Blockevent"},
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "FireAndIce"},    Type = "Blockevent"},
+    {Path = {"ActiveBrainrots"}, Contains = {"RenderedBrainrot", "Ice"},    Type = "Ice"},
     -- Brainrots
     {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
