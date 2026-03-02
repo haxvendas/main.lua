@@ -7,7 +7,7 @@ local VirtualUser = game:GetService("VirtualUser")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 
-local fileName = "HaxHub_" .. tostring(Player.UserId) .. ".json"
+local fileName = "PhantomHub_" .. tostring(Player.UserId) .. ".json"
 local savedSettings = {}
 
 if isfile and isfile(fileName) then
