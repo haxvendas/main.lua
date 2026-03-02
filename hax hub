@@ -26,7 +26,7 @@ local function saveSettings()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "HAX HUB V1"
+ScreenGui.Name = "PhantomHub_V1"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
@@ -93,7 +93,7 @@ TopCorner.Parent = TopBar
 local ScriptTitle = Instance.new("TextLabel")
 ScriptTitle.Size = UDim2.new(0, 150, 1, 0)
 ScriptTitle.Position = UDim2.new(0, 10, 0, 0)
-ScriptTitle.Text = "Phantom Hub"
+ScriptTitle.Text = "HAX Hub"
 ScriptTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 ScriptTitle.Font = Enum.Font.SourceSansBold
 ScriptTitle.TextSize = 22
@@ -767,7 +767,7 @@ TabMain.MouseButton1Click:Connect(function() showTab("Main") end)
 TabBuy.MouseButton1Click:Connect(function() showTab("Buy") end)
 TabFarm.MouseButton1Click:Connect(function() showTab("Farm") end)
 TabConfig.MouseButton1Click:Connect(function() showTab("Config") end)
-Tabts.MouseButton1Click:Connect(function() showTab("ts") end)
+TabCredits.MouseButton1Click:Connect(function() showTab("Credits") end)
 
 local draggingBtn, dragStartBtn, startPosBtn
 FloatingButton.InputBegan:Connect(function(input)
