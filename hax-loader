@@ -371,7 +371,13 @@ task.spawn(function()
     end)
 
 end)
-
+local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
+if brainrotFolder then
+    local conn = brainrotFolder.DescendantAdded:Connect(function()
+        task.delay(0.3, scanBrainrotMutations)
+    end)
+    table.insert(connections, conn)
+end
 -- =============================================
 -- GUI Timers (Celestial / Money)
 -- =============================================
@@ -750,7 +756,8 @@ local CONFIG = {
     Arcade    = { Color = Color3.fromRGB(0, 255, 255),   Emoji = "🎟️" },
     Candy     = { Color = Color3.fromRGB(255, 120, 120), Emoji = "🍬" },
     Blockevent = { Color = Color3.fromRGB(255, 0, 0),     Emoji = "📦" },
-    Ice        = { Color = Color3.fromRGB(0, 170, 255), Emoji = "🧊" }
+    IceMutation   = { Color = Color3.fromRGB(120, 220, 255), Emoji = "❄️" },
+    FireMutation  = { Color = Color3.fromRGB(255, 120, 0),   Emoji = "🔥" },
 
 
 }
@@ -762,11 +769,9 @@ local TARGETS = {
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Candy"},    Type = "Candy"},
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "Doom"},    Type = "Blockevent"},
     {Path = {"ActiveLuckyBlocks"}, Contains = {"LuckyBlock", "FireAndIce"},    Type = "Blockevent"},
-    {Path = {"ActiveBrainrots"}, Contains = {"RenderedBrainrot", "Ice"},    Type = "Ice"},
     -- Brainrots
     {Path = {"ActiveBrainrots", "Divine"},    Match = "RenderedBrainrot", Type = "Divine",    IsBrainrot = true},
     {Path = {"ActiveBrainrots", "Infinity"},  Match = "RenderedBrainrot", Type = "Infinity",  IsBrainrot = true},
-    {Path = {"ActiveBrainrots", "Ice"},  Match = "RenderedBrainrot", Type = "Ice",  IsBrainrot = true},
 
  -- Arcade Tickets
     {Path = {"ArcadeEventTickets"}, Match = "Ticket", Type = "Arcade", Label = "ARCADE TICKET"},
@@ -922,6 +927,7 @@ local function scanAllTargets()
         local folder = getBaseFolder(target.Path)
         processFolder(folder, target)
     end
+    scanBrainrotMutations()
 end
 
 -- Inicial + monitoramento
@@ -939,6 +945,47 @@ task.delay(4, function()
         end
     end
 end)
+local function scanBrainrotMutations()
+    local baseFolder = workspace:FindFirstChild("ActiveBrainrots")
+    if not baseFolder then return end
+
+    for _, rarityFolder in baseFolder:GetChildren() do
+        for _, obj in rarityFolder:GetDescendants() do
+            if obj.Name == "RenderedBrainrot" then
+                
+                if detected[obj] then continue end
+
+                local mutationType = nil
+
+                for _, desc in obj:GetDescendants() do
+                    local nameLower = string.lower(desc.Name)
+
+                    if nameLower == "ice" then
+                        mutationType = "IceMutation"
+                        break
+                    elseif nameLower == "fire" then
+                        mutationType = "FireMutation"
+                        break
+                    end
+                end
+
+                if mutationType then
+                    detected[obj] = true
+
+                    local cfg = CONFIG[mutationType]
+                    local brainrotName = getBrainrotDisplayName(obj)
+
+                    local label = mutationType:upper() .. " – " .. brainrotName
+
+                    createHighlight(obj, cfg.Color)
+                    createDistanceBillboard(obj, label, cfg.Emoji, cfg.Color)
+
+                    notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
+                end
+            end
+        end
+    end
+end
 -- =================================
 -- MAGNET COLLECT ROBUST
 -- =================================
