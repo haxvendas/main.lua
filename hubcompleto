@@ -1,4 +1,4 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))(); 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/hax%20hub"))();
 loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/jumpctrl"))();
-loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/hax"))();
+loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/hax"))()
