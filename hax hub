@@ -32,7 +32,7 @@ ScreenGui.Parent = PlayerGui
 
 local FloatingButton = Instance.new("TextButton")
 FloatingButton.Size = UDim2.new(0, 54, 0, 54)
-FloatingButton.Position = UDim2.new(0, 50, 0.5, 270)
+FloatingButton.Position = UDim2.new(0, 50, 0.5, 240)
 FloatingButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 FloatingButton.Text = ""
 FloatingButton.Parent = ScreenGui
