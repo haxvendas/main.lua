@@ -34,7 +34,7 @@ local FloatingButton = Instance.new("TextButton")
 FloatingButton.Size = UDim2.new(0, 54, 0, 54)
 FloatingButton.Position = UDim2.new(0, 50, 0.5, -300)
 FloatingButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-FloatingButton.Text = "T"
+FloatingButton.Text = ""
 FloatingButton.Parent = ScreenGui
 
 local UICornerBtn = Instance.new("UICorner")
@@ -54,7 +54,7 @@ UICornerInner.Parent = InnerBtn
 local BtnLabel = Instance.new("TextLabel")
 BtnLabel.Size = UDim2.new(1, 0, 1, 0)
 BtnLabel.BackgroundTransparency = 1
-BtnLabel.Text = "P"
+BtnLabel.Text = "H"
 BtnLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 BtnLabel.TextSize = 24
 BtnLabel.Font = Enum.Font.SourceSansBold
