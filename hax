@@ -1,6 +1,5 @@
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))(); 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/hax%20hub"))();
 
 if not game:IsLoaded() then
 
@@ -737,5 +736,6 @@ task.spawn(function()
 end)
 
 notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0));
+loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/hax%20hub"))();
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/jumpctrl"))()
