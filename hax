@@ -736,12 +736,12 @@ task.spawn(function()
 end)
 
 notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0));
-loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/hax%20hub"))();
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/Branch/GUIS/Emotes.lua"))();
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/jumpctrl"))();
 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/hax%20hub"))();
 
 if not game:IsLoaded() then game.Loaded:wait() end
 local Players = game:GetService("Players")
