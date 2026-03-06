@@ -834,7 +834,7 @@ local epicNames = {["Brr Brr Patapim"] = true, ["Rhino Toasterino"] = true, ["Br
 local legendaryNames = {["Blueberrinni Octopusini"] = true, ["Chimpanzini Bananini"] = true, ["Bombardiro Crocodilo"] = true, ["Elefanto Cocofanto"] = true, ["Bombombini Gusini"] = true, ["Pandaccini Bananini"] = true, ["Chef Crabracadabra"] = true}
 local mythicNames = {["Gorillo Watermelondrillo"] = true, ["Frigo Camelo"] = true, ["Girafa Celestre"] = true, ["Ganganzelli Trulala"] = true, ["Tigroligre Frutonni"] = true, ["Matteo"] = true, ["Cavallo Virtuoso"] = true}
 local secretNames = {["La Vacca Saturno Saturnita"] = true, ["Esok Sekolah"] = true, ["Tralaledon"] = true, ["Garama and Madundung"] = true, ["Tralalero Tralala"] = true, ["Chicleteira Bicicleteira"] = true, ["Torrtuginni Dragonfrutini"] = true, ["Nuclearo Dinosauro"] = true, ["Quesadilla Crocodila"] = true, ["Graipussi Medussi"] = true, ["Caramelini Brasilini"] = true, ["Lucky Block"] = true}
-local stellarNames = {["Meowl"] = true, ["Smurf Cat"], ["Capitano Clash Warnini"] = true, ["Strawberry Elephant"] = true}
+local stellarNames = {["Meowl"] = true, ["Smurf Cat"] = true, ["Capitano Clash Warnini"] = true, ["Strawberry Elephant"] = true}
 
 local rebirthTargets = {
     [1] = {["Pipi Potato"] = true, ["Burbaloni Loliloli"] = true},
