@@ -425,7 +425,7 @@ local sellTargets = {}
 local ySellSize = 0
 
 for _, brName in ipairs(sellBrainrots) do
-sellTargets[brName] = {Active = false, Muts = {Normal=true, Gold=true, Diamond=true, Rainbow=true, Galaxy=true}}
+sellTargets[brName] = {Active = false, Muts = {Normal=true, Gold=true, Diamond=true, Rainbow=true, Galaxy=true, Lava=true}}
 
 local itemFrame = Instance.new("Frame")
 itemFrame.Size = UDim2.new(1, 0, 0, 35)
@@ -462,7 +462,7 @@ local smLayout = Instance.new("UIGridLayout")
 smLayout.CellSize = UDim2.new(0, 50, 0, 25)
 smLayout.Parent = mutsFrame
 
-for _, m in ipairs({"Normal", "Gold", "Diamond", "Rainbow", "Galaxy"}) do
+for _, m in ipairs({"Normal", "Gold", "Diamond", "Rainbow", "Galaxy", "Lava"}) do
 local mBtn = Instance.new("TextButton")
 mBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
 mBtn.Text = m:sub(1,3)
@@ -498,6 +498,7 @@ local buyStar = createOption("Auto Star", false, "Buy")
 local buyFlow = createOption("Auto Flower", false, "Buy")
 local buyPhon = createOption("Auto Phone", false, "Buy")
 local buyTaco = createOption("Auto Taco", false, "Buy")
+local buyLighter = createOption("Auto Lighter", false, "Buy")
 
 local isAntiAFK = createOption("Anti AFK", false, "Config")
 local isAntiCheat = createOption("Anti Cheat", false, "Config")
@@ -615,8 +616,8 @@ mutLayout.CellSize = UDim2.new(0, 80, 0, 30)
 mutLayout.SortOrder = Enum.SortOrder.LayoutOrder
 mutLayout.Parent = IndexMutContainer
 
-local mutSelected = {Normal = true, Gold = true, Diamond = true, Rainbow = true, Galaxy = true}
-for _, m in ipairs({"Normal", "Gold", "Diamond", "Rainbow", "Galaxy"}) do
+local mutSelected = {Normal = true, Gold = true, Diamond = true, Rainbow = true, Galaxy = true, Lava = true}
+for _, m in ipairs({"Normal", "Gold", "Diamond", "Rainbow", "Galaxy", "Lava"}) do
     local btn = Instance.new("TextButton")
     btn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
     btn.Text = m
@@ -685,7 +686,7 @@ local specificTargets = {}
 
 local ySpecSize = 0
 for _, brName in ipairs(allBrainrots) do
-    specificTargets[brName] = {Active = false, Muts = {Normal=true, Gold=true, Diamond=true, Rainbow=true, Galaxy=true}}
+    specificTargets[brName] = {Active = false, Muts = {Normal=true, Gold=true, Diamond=true, Rainbow=true, Galaxy=true, Lava=true}}
     
     local itemFrame = Instance.new("Frame")
     itemFrame.Size = UDim2.new(1, 0, 0, 35)
@@ -722,7 +723,7 @@ for _, brName in ipairs(allBrainrots) do
     smLayout.CellSize = UDim2.new(0, 50, 0, 25)
     smLayout.Parent = mutsFrame
 
-    for _, m in ipairs({"Normal", "Gold", "Diamond", "Rainbow", "Galaxy"}) do
+    for _, m in ipairs({"Normal", "Gold", "Diamond", "Rainbow", "Galaxy", "Lava"}) do
         local mBtn = Instance.new("TextButton")
         mBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
         mBtn.Text = m:sub(1,3)
@@ -924,6 +925,7 @@ RunService.Heartbeat:Connect(function()
                 if tText:find("Gold") then currentMut = "Gold"
                 elseif tText:find("Diamond") then currentMut = "Diamond"
                 elseif tText:find("Rainbow") then currentMut = "Rainbow"
+                elseif tText:find("Lava") then currentMut = "Lava"
                 elseif tText:find("Galaxy") then currentMut = "Galaxy" end
 
                 if autoIdx and mutSelected[currentMut] and titleText ~= "Lucky Block" and not checkIndex(titleText, currentMut) then 
@@ -1051,7 +1053,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-local function isAnyBuyActive() return buyIce() or buyVic() or buyStar() or buyFlow() or buyPhon() or buyTaco() end
+local function isAnyBuyActive() return buyIce() or buyVic() or buyStar() or buyFlow() or buyPhon() or buyTaco() or buyLighter() end
 
 PlayerGui.Notification.DescendantAdded:Connect(function(descendant)
     if isAutoRebirth() or isAnyBuyActive() then
@@ -1103,6 +1105,7 @@ task.spawn(function()
                                     if tText:find("Gold") then currentMut = "Gold"
                                     elseif tText:find("Diamond") then currentMut = "Diamond"
                                     elseif tText:find("Rainbow") then currentMut = "Rainbow"
+                                    elseif tText:find("Lava") then currentMut = "Lava"
                                     elseif tText:find("Galaxy") then currentMut = "Galaxy" end
                                     
                                     if sellTargets[titleText] and sellTargets[titleText].Active and sellTargets[titleText].Muts[currentMut] then
@@ -1125,7 +1128,8 @@ local buyList = {
     {get = buyStar, name = "Star"}, 
     {get = buyFlow, name = "Flower"}, 
     {get = buyPhon, name = "Phone"},
-    {get = buyTaco, name = "Taco"}
+    {get = buyTaco, name = "Taco"},
+    {get = buyLighter, name = "Lighter"}
 }
 
 task.spawn(function()
