@@ -42,7 +42,7 @@ end
 
 local TOGGLE_INPUT_PRIORITY = Enum.ContextActionPriority.Low.Value
 local INPUT_PRIORITY = Enum.ContextActionPriority.High.Value
-local FREECAM_MACRO_KB = {Enum.KeyCode.LeftShift, Enum.KeyCode.P}
+local FREECAM_MACRO_KB = {Enum.KeyCode.P}
 
 local NAV_GAIN = Vector3.new(1, 1, 1)*64
 local PAN_GAIN = Vector2.new(0.75, 1)*8
@@ -181,7 +181,7 @@ local Input = {} do
 			keyboard.S - keyboard.W + keyboard.J - keyboard.U
 		)*NAV_KEYBOARD_SPEED
 
-		local FREECAM_MACRO_KB = {Enum.KeyCode.P}
+		local shift = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
 
 		return (kGamepad + kKeyboard)*(navSpeed*(shift and NAV_SHIFT_MUL or 1))
 	end
