@@ -286,21 +286,17 @@ UIS.JumpRequest:Connect(function()
     if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
 -- =============================================
--- AUTO DEPOSIT - CandyGram & GhostCannon
+-- AUTO DEPOSIT - SISTEMA PERSISTENTE (V3)
 -- =============================================
 
-task.spawn(function()
-    local valentinesMap = workspace:WaitForChild("ValentinesMap", 5)
-    local phantomMap = workspace:WaitForChild("PhantomMap", 5)
-
-    -- Função principal de ativação
+local function setupAutoDeposit()
     local function activatePrompt(prompt)
-        if prompt and prompt:IsA("ProximityPrompt") then
+        if prompt:IsA("ProximityPrompt") then
             prompt.HoldDuration = 0
             prompt.RequiresLineOfSight = false
 
             task.spawn(function()
-                -- Loop enquanto o prompt estiver ativo e visível
+                -- O loop verifica se o prompt ainda é válido e se está visível/ativo
                 while prompt and prompt.Parent and prompt.Enabled do
                     fireproximityprompt(prompt)
                     task.wait(0.2)
@@ -309,36 +305,45 @@ task.spawn(function()
         end
     end
 
-    -- 1. Configuração para CandyGramStation (Busca em descendentes)
-    if valentinesMap then
-        local station = valentinesMap:WaitForChild("CandyGramStation", 5)
-        if station then
-            for _, v in pairs(station:GetDescendants()) do
-                activatePrompt(v)
+    -- Função para escanear e aplicar nos alvos
+    local function scanAndApply()
+        -- Procura CandyGramStation
+        local vMap = workspace:FindFirstChild("ValentinesMap")
+        if vMap then
+            local station = vMap:FindFirstChild("CandyGramStation")
+            if station then
+                for _, p in pairs(station:GetDescendants()) do activatePrompt(p) end
+                station.DescendantAdded:Connect(activatePrompt)
             end
-            station.DescendantAdded:Connect(activatePrompt)
+        end
+
+        -- Procura GhostCannon (Caminho específico que você passou)
+        local pMap = workspace:FindFirstChild("PhantomMap")
+        if pMap then
+            local cannon = pMap:FindFirstChild("GhostCannon")
+            if cannon and cannon:FindFirstChild("Part") and cannon.Part:FindFirstChild("Prompts") then
+                local prompt = cannon.Part.Prompts:FindFirstChildOfClass("ProximityPrompt")
+                if prompt then activatePrompt(prompt) end
+            end
         end
     end
 
-    -- 2. Configuração Específica para GhostCannon
-    if phantomMap then
-        -- Caminho direto conforme você enviou
-        local ghostPrompt = phantomMap:WaitForChild("GhostCannon"):WaitForChild("Part"):WaitForChild("Prompts"):WaitForChild("ProximityPrompt")
-        
-        if ghostPrompt then
-            activatePrompt(ghostPrompt)
-            
-            -- Caso o prompt seja recriado ou habilitado/desabilitado
-            ghostPrompt:GetPropertyChangedSignal("Enabled"):Connect(function()
-                if ghostPrompt.Enabled then
-                    activatePrompt(ghostPrompt)
-                end
-            end)
-        end
-    end
-end)
+    -- Executa a verificação inicial
+    scanAndApply()
 
--- Mantendo sua conexão de Brainrot
+    -- Fica de olho se os mapas/pastas forem deletados e recriados
+    workspace.ChildAdded:Connect(function(child)
+        if child.Name == "ValentinesMap" or child.Name == "PhantomMap" then
+            task.wait(1) -- Pequeno delay para garantir que os filhos do mapa carregaram
+            scanAndApply()
+        end
+    end)
+end
+
+-- Inicia o sistema
+task.spawn(setupAutoDeposit)
+
+-- Parte do Brainrot (Mantida)
 local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
 if brainrotFolder then
     local conn = brainrotFolder.DescendantAdded:Connect(function()
@@ -347,28 +352,37 @@ if brainrotFolder then
     table.insert(connections, conn)
 end
 -- =============================================
--- GUI Timers (Celestial / Money)
+-- GUI Timers (Celestial / Money / Evento 3)
 -- =============================================
 task.spawn(function()
     task.wait(3)
+    
+    local plr = game.Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+
     if plr.PlayerGui:FindFirstChild("EventPanelClean") then
         plr.PlayerGui.EventPanelClean:Destroy()
     end
+
     local gui = Instance.new("ScreenGui")
     gui.Name = "EventPanelClean"
     gui.IgnoreGuiInset = true
     gui.ResetOnSpawn = false
     gui.Parent = plr:WaitForChild("PlayerGui")
+
     local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 280, 0, 90)
+    -- Aumentei a altura de 90 para 125 para caber o terceiro timer
+    frame.Size = UDim2.new(0, 280, 0, 125) 
     frame.Position = UDim2.new(1, -300, 1, -160)
     frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
     frame.BackgroundTransparency = 0.25
     frame.BorderSizePixel = 0
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
+
     local stroke = Instance.new("UIStroke", frame)
     stroke.Color = Color3.fromRGB(0, 200, 255)
     stroke.Thickness = 2.2
+
     local function createLabel(name, color, y)
         local lbl = Instance.new("TextLabel", frame)
         lbl.Name = name
@@ -381,38 +395,59 @@ task.spawn(function()
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         return lbl
     end
+
+    -- Labels (Posições Y: 10, 45, 80)
     local celTime = createLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
     local moneyTime = createLabel("Money", Color3.fromRGB(255, 220, 80), 45)
-    local celestialLabel, moneyLabel = nil, nil
+    local extraTime = createLabel("Extra", Color3.fromRGB(180, 100, 255), 80) -- Cor roxa para o 3º
+
+    local celestialLabel, moneyLabel, extraLabel = nil, nil, nil
+
+    -- Loop de busca de labels no Workspace
     task.spawn(function()
         while true do
-            celestialLabel, moneyLabel = nil, nil
+            celestialLabel, moneyLabel, extraLabel = nil, nil, nil
             for _, obj in workspace:GetDescendants() do
                 if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
                     local t = obj.Text:lower()
-                    if t:find("frenzy") or t:find("appears") then celestialLabel = obj end
-                    if t:find("money") or t:find("event") or t:find("ufo") then moneyLabel = obj end
+                    -- Lógica de filtro
+                    if t:find("frenzy") or t:find("appears") then 
+                        celestialLabel = obj 
+                    elseif t:find("money") or t:find("ufo") then 
+                        moneyLabel = obj 
+                    elseif t:find("event") or t:find("boss") or t:find("world") then 
+                        -- Adicione aqui palavras-chave do 3º evento
+                        extraLabel = obj 
+                    end
                 end
             end
             task.wait(3.5)
         end
     end)
+
+    -- Atualização visual (Render)
     RunService.RenderStepped:Connect(function()
-        if celestialLabel and celestialLabel.Parent then
-            local txt = celestialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-            celTime.Text = "✨ " .. txt
-            celTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,150,50)) or Color3.fromRGB(255,150,50)
-        else
-            celTime.Text = "✨ Procurando "
+        -- Helper para limpar texto e atualizar cor de alerta (vermelho se < 1 min)
+        local function updateDisplay(labelObj, guiLabel, icon, defaultText, defaultColor)
+            if labelObj and labelObj.Parent then
+                local txt = labelObj.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
+                guiLabel.Text = icon .. " " .. txt
+                
+                -- Pisca vermelho se o tempo começar com "00:"
+                if txt:find("00:") then
+                    guiLabel.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or defaultColor
+                else
+                    guiLabel.TextColor3 = defaultColor
+                end
+            else
+                guiLabel.Text = icon .. " " .. defaultText
+                guiLabel.TextColor3 = defaultColor
+            end
         end
-       
-        if moneyLabel and moneyLabel.Parent then
-            local txt = moneyLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-            moneyTime.Text = "💰 " .. txt
-            moneyTime.TextColor3 = txt:find("00:") and (tick() % 1 > 0.5 and Color3.new(1,0,0) or Color3.fromRGB(255,220,80)) or Color3.fromRGB(255,220,80)
-        else
-            moneyTime.Text = "💰 Procurando Evento..."
-        end
+
+        updateDisplay(celestialLabel, celTime,  "Procurando...", Color3.fromRGB(255, 150, 50))
+        updateDisplay(moneyLabel, moneyTime,  "Procurando...", Color3.fromRGB(255, 220, 80))
+        updateDisplay(extraLabel, extraTime,  "Procurando...", Color3.fromRGB(180, 100, 255))
     end)
 end)
 
