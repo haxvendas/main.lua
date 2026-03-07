@@ -290,23 +290,18 @@ end)
 -- =============================================
 
 task.spawn(function()
-    local valentinesMap = workspace:WaitForChild("ValentinesMap")
-    
-    -- Tabela com os alvos que queremos monitorar
-    local targets = {
-        valentinesMap:WaitForChild("CandyGramStation"),
-        valentinesMap:WaitForChild("GhostCannon") -- Novo alvo adicionado
-    }
+    local valentinesMap = workspace:WaitForChild("ValentinesMap", 5)
+    local phantomMap = workspace:WaitForChild("PhantomMap", 5)
 
+    -- Função principal de ativação
     local function activatePrompt(prompt)
-        if prompt:IsA("ProximityPrompt") then
-            -- Otimiza o prompt para ativação instantânea
+        if prompt and prompt:IsA("ProximityPrompt") then
             prompt.HoldDuration = 0
             prompt.RequiresLineOfSight = false
 
             task.spawn(function()
-                -- Loop de disparo enquanto o prompt existir
-                while prompt and prompt.Parent do
+                -- Loop enquanto o prompt estiver ativo e visível
+                while prompt and prompt.Parent and prompt.Enabled do
                     fireproximityprompt(prompt)
                     task.wait(0.2)
                 end
@@ -314,21 +309,36 @@ task.spawn(function()
         end
     end
 
-    -- Loop para configurar cada estação (CandyGram e GhostCannon)
-    for _, station in pairs(targets) do
-        -- Ativa prompts que já estão no mapa
-        for _, v in pairs(station:GetDescendants()) do
-            activatePrompt(v)
+    -- 1. Configuração para CandyGramStation (Busca em descendentes)
+    if valentinesMap then
+        local station = valentinesMap:WaitForChild("CandyGramStation", 5)
+        if station then
+            for _, v in pairs(station:GetDescendants()) do
+                activatePrompt(v)
+            end
+            station.DescendantAdded:Connect(activatePrompt)
         end
+    end
 
-        -- Monitora novos prompts que surgirem (ex: respawn da estação)
-        station.DescendantAdded:Connect(function(obj)
-            activatePrompt(obj)
-        end)
+    -- 2. Configuração Específica para GhostCannon
+    if phantomMap then
+        -- Caminho direto conforme você enviou
+        local ghostPrompt = phantomMap:WaitForChild("GhostCannon"):WaitForChild("Part"):WaitForChild("Prompts"):WaitForChild("ProximityPrompt")
+        
+        if ghostPrompt then
+            activatePrompt(ghostPrompt)
+            
+            -- Caso o prompt seja recriado ou habilitado/desabilitado
+            ghostPrompt:GetPropertyChangedSignal("Enabled"):Connect(function()
+                if ghostPrompt.Enabled then
+                    activatePrompt(ghostPrompt)
+                end
+            end)
+        end
     end
 end)
 
--- Parte do Brainrot (mantida conforme seu original)
+-- Mantendo sua conexão de Brainrot
 local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
 if brainrotFolder then
     local conn = brainrotFolder.DescendantAdded:Connect(function()
