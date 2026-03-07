@@ -352,14 +352,15 @@ if brainrotFolder then
     table.insert(connections, conn)
 end
 -- =============================================
--- GUI Timers (Dinâmico para 3 Eventos)
+-- GUI Timers (VERSÃO FINAL UNIFICADA)
 -- =============================================
 task.spawn(function()
-    task.wait(2)
+    task.wait(1)
     
     local plr = game.Players.LocalPlayer
     local RunService = game:GetService("RunService")
 
+    -- Limpa versões antigas para não sobrepor
     if plr.PlayerGui:FindFirstChild("EventPanelClean") then
         plr.PlayerGui.EventPanelClean:Destroy()
     end
@@ -370,22 +371,23 @@ task.spawn(function()
     gui.ResetOnSpawn = false
     gui.Parent = plr:WaitForChild("PlayerGui")
 
+    -- Janela principal (Largura de 350 para caber nomes longos)
     local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 280, 0, 120) -- Altura ajustada para 3 itens
-    frame.Position = UDim2.new(1, -300, 1, -160)
+    frame.Size = UDim2.new(0, 350, 0, 130) 
+    frame.Position = UDim2.new(1, -370, 1, -180)
     frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
     frame.BackgroundTransparency = 0.25
     frame.BorderSizePixel = 0
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
     local stroke = Instance.new("UIStroke", frame)
     stroke.Color = Color3.fromRGB(0, 200, 255)
-    stroke.Thickness = 2.2
+    stroke.Thickness = 2
 
     local function createLabel(y, color)
         local lbl = Instance.new("TextLabel", frame)
-        lbl.Size = UDim2.new(1, -20, 0, 30)
-        lbl.Position = UDim2.new(0, 10, 0, y)
+        lbl.Size = UDim2.new(1, -30, 0, 30)
+        lbl.Position = UDim2.new(0, 15, 0, y)
         lbl.BackgroundTransparency = 1
         lbl.TextColor3 = color
         lbl.TextScaled = true
@@ -395,56 +397,72 @@ task.spawn(function()
         return lbl
     end
 
-    -- Criando os 3 espaços na interface
+    -- Configuração dos 3 slots de exibição
     local slots = {
-        {gui = createLabel(10, Color3.fromRGB(255, 150, 50)), ref = nil, icon = "✨"},
-        {gui = createLabel(45, Color3.fromRGB(255, 220, 80)), ref = nil, icon = "💰"},
-        {gui = createLabel(80, Color3.fromRGB(180, 100, 255)), ref = nil, icon = "🕒"}
+        {gui = createLabel(15, Color3.fromRGB(255, 150, 50)), ref = nil, icon = "✨"},
+        {gui = createLabel(50, Color3.fromRGB(255, 220, 80)), ref = nil, icon = "💰"},
+        {gui = createLabel(85, Color3.fromRGB(190, 100, 255)), ref = nil, icon = "🕒"}
     }
 
-    -- Busca labels no jogo
+    -- Loop de busca: Encontra os objetos de texto no jogo
     task.spawn(function()
         while true do
             local found = {}
-            for _, obj in workspace:GetDescendants() do
-                -- Procura qualquer label que tenha ":" (indicando tempo)
-                if obj:IsA("TextLabel") and obj.Text:find(":") and obj.Visible then
-                    -- Evita pegar o mesmo label duas vezes
-                    local duplicado = false
-                    for _, f in ipairs(found) do 
-                        if f.Text == obj.Text then duplicado = true break end 
+            -- Busca no Workspace e no PlayerGui para garantir
+            local searchAreas = {workspace, plr.PlayerGui}
+            
+            for _, area in ipairs(searchAreas) do
+                for _, obj in area:GetDescendants() do
+                    if obj:IsA("TextLabel") and obj.Text:find(":") and obj.Visible then
+                        -- Evita pegar o próprio texto da nossa GUI
+                        if obj.Parent.Parent == gui then continue end
+                        
+                        -- Limpa o texto para comparar e evitar duplicados
+                        local cleanText = obj.Text:gsub("<[^>]+>", "")
+                        local duplicado = false
+                        for _, alreadyFound in ipairs(found) do
+                            if alreadyFound.Text:gsub("<[^>]+>", "") == cleanText then
+                                duplicado = true
+                                break
+                            end
+                        end
+                        
+                        if not duplicado then
+                            table.insert(found, obj)
+                        end
                     end
-                    
-                    if not duplicado then
-                        table.insert(found, obj)
-                    end
+                    if #found >= 3 then break end
                 end
-                if #found >= 3 then break end -- Para quando achar os 3
+                if #found >= 3 then break end
             end
             
-            -- Atribui os objetos encontrados aos nossos slots da GUI
+            -- Organiza os achados nos slots
             slots[1].ref = found[1]
             slots[2].ref = found[2]
             slots[3].ref = found[3]
             
-            task.wait(5)
+            task.wait(4) -- Atualiza a busca a cada 4 segundos
         end
     end)
 
-    -- Atualização em tempo real
+    -- Loop de renderização: Atualiza os números na tela
     RunService.RenderStepped:Connect(function()
         for _, slot in ipairs(slots) do
             if slot.ref and slot.ref.Parent then
-                -- Limpa o texto (remove tags HTML como <font color...>)
                 local rawText = slot.ref.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
                 slot.gui.Text = slot.icon .. " " .. (rawText or "...")
                 
-                -- Efeito de piscar em vermelho quando falta menos de 1 minuto
+                -- Se o tempo estiver abaixo de 1 minuto (00:xx), pisca em vermelho
                 if rawText:find("00:") then
                     slot.gui.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1, 0, 0) or Color3.fromRGB(255, 255, 255)
+                else
+                    -- Volta para a cor original do slot se não estiver acabando
+                    if _ == 1 then slot.gui.TextColor3 = Color3.fromRGB(255, 150, 50)
+                    elseif _ == 2 then slot.gui.TextColor3 = Color3.fromRGB(255, 220, 80)
+                    elseif _ == 3 then slot.gui.TextColor3 = Color3.fromRGB(190, 100, 255) end
                 end
             else
-                slot.gui.Text = slot.icon .. " Aguardando..."
+                slot.gui.Text = slot.icon .. " Procurando Evento..."
             end
         end
     end)
