@@ -352,10 +352,10 @@ if brainrotFolder then
     table.insert(connections, conn)
 end
 -- =============================================
--- GUI Timers (Celestial / Money / Evento 3)
+-- GUI Timers (Dinâmico para 3 Eventos)
 -- =============================================
 task.spawn(function()
-    task.wait(3)
+    task.wait(2)
     
     local plr = game.Players.LocalPlayer
     local RunService = game:GetService("RunService")
@@ -371,8 +371,7 @@ task.spawn(function()
     gui.Parent = plr:WaitForChild("PlayerGui")
 
     local frame = Instance.new("Frame", gui)
-    -- Aumentei a altura de 90 para 125 para caber o terceiro timer
-    frame.Size = UDim2.new(0, 280, 0, 125) 
+    frame.Size = UDim2.new(0, 280, 0, 120) -- Altura ajustada para 3 itens
     frame.Position = UDim2.new(1, -300, 1, -160)
     frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
     frame.BackgroundTransparency = 0.25
@@ -383,74 +382,73 @@ task.spawn(function()
     stroke.Color = Color3.fromRGB(0, 200, 255)
     stroke.Thickness = 2.2
 
-    local function createLabel(name, color, y)
+    local function createLabel(y, color)
         local lbl = Instance.new("TextLabel", frame)
-        lbl.Name = name
-        lbl.Size = UDim2.new(1, -20, 0, 35)
+        lbl.Size = UDim2.new(1, -20, 0, 30)
         lbl.Position = UDim2.new(0, 10, 0, y)
         lbl.BackgroundTransparency = 1
         lbl.TextColor3 = color
         lbl.TextScaled = true
         lbl.Font = Enum.Font.GothamBold
         lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Text = "Procurando..."
         return lbl
     end
 
-    -- Labels (Posições Y: 10, 45, 80)
-    local celTime = createLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
-    local moneyTime = createLabel("Money", Color3.fromRGB(255, 220, 80), 45)
-    local extraTime = createLabel("Extra", Color3.fromRGB(180, 100, 255), 80) -- Cor roxa para o 3º
+    -- Criando os 3 espaços na interface
+    local slots = {
+        {gui = createLabel(10, Color3.fromRGB(255, 150, 50)), ref = nil, icon = "🕒"},
+        {gui = createLabel(45, Color3.fromRGB(255, 220, 80)), ref = nil, icon = "🕒"},
+        {gui = createLabel(80, Color3.fromRGB(180, 100, 255)), ref = nil, icon = "🕒"}
+    }
 
-    local celestialLabel, moneyLabel, extraLabel = nil, nil, nil
-
-    -- Loop de busca de labels no Workspace
+    -- Busca labels no jogo
     task.spawn(function()
         while true do
-            celestialLabel, moneyLabel, extraLabel = nil, nil, nil
+            local found = {}
             for _, obj in workspace:GetDescendants() do
-                if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
-                    local t = obj.Text:lower()
-                    -- Lógica de filtro
-                    if t:find("frenzy") or t:find("appears") then 
-                        celestialLabel = obj 
-                    elseif t:find("money") or t:find("ufo") then 
-                        moneyLabel = obj 
-                    elseif t:find("event") or t:find("boss") or t:find("world") then 
-                        -- Adicione aqui palavras-chave do 3º evento
-                        extraLabel = obj 
+                -- Procura qualquer label que tenha ":" (indicando tempo)
+                if obj:IsA("TextLabel") and obj.Text:find(":") and obj.Visible then
+                    -- Evita pegar o mesmo label duas vezes
+                    local duplicado = false
+                    for _, f in ipairs(found) do 
+                        if f.Text == obj.Text then duplicado = true break end 
+                    end
+                    
+                    if not duplicado then
+                        table.insert(found, obj)
                     end
                 end
+                if #found >= 3 then break end -- Para quando achar os 3
             end
-            task.wait(3.5)
+            
+            -- Atribui os objetos encontrados aos nossos slots da GUI
+            slots[1].ref = found[1]
+            slots[2].ref = found[2]
+            slots[3].ref = found[3]
+            
+            task.wait(5)
         end
     end)
 
-    -- Atualização visual (Render)
+    -- Atualização em tempo real
     RunService.RenderStepped:Connect(function()
-        -- Helper para limpar texto e atualizar cor de alerta (vermelho se < 1 min)
-        local function updateDisplay(labelObj, guiLabel, icon, defaultText, defaultColor)
-            if labelObj and labelObj.Parent then
-                local txt = labelObj.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-                guiLabel.Text = icon .. " " .. txt
+        for _, slot in ipairs(slots) do
+            if slot.ref and slot.ref.Parent then
+                -- Limpa o texto (remove tags HTML como <font color...>)
+                local rawText = slot.ref.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
+                slot.gui.Text = slot.icon .. " " .. (rawText or "...")
                 
-                -- Pisca vermelho se o tempo começar com "00:"
-                if txt:find("00:") then
-                    guiLabel.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or defaultColor
-                else
-                    guiLabel.TextColor3 = defaultColor
+                -- Efeito de piscar em vermelho quando falta menos de 1 minuto
+                if rawText:find("00:") then
+                    slot.gui.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1, 0, 0) or Color3.fromRGB(255, 255, 255)
                 end
             else
-                guiLabel.Text = icon .. " " .. defaultText
-                guiLabel.TextColor3 = defaultColor
+                slot.gui.Text = slot.icon .. " Aguardando..."
             end
         end
-
-        updateDisplay(celestialLabel, celTime,  "Procurando...", Color3.fromRGB(255, 150, 50))
-        updateDisplay(moneyLabel, moneyTime,  "Procurando...", Color3.fromRGB(255, 220, 80))
-        updateDisplay(extraLabel, extraTime,  "Procurando...", Color3.fromRGB(180, 100, 255))
     end)
 end)
-
 -- =============================================
 -- VFLY (BODYGYRO / BODYVELOCITY) - TECLA V
 -- =============================================
