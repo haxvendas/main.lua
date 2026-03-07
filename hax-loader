@@ -264,19 +264,26 @@ UIS.JumpRequest:Connect(function()
     if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 end)
 -- =============================================
--- AUTO DEPOSIT - CandyGramStation
+-- AUTO DEPOSIT - CandyGram & GhostCannon
 -- =============================================
 
 task.spawn(function()
-
-    local station = workspace:WaitForChild("ValentinesMap"):WaitForChild("CandyGramStation")
+    local valentinesMap = workspace:WaitForChild("ValentinesMap")
+    
+    -- Tabela com os alvos que queremos monitorar
+    local targets = {
+        valentinesMap:WaitForChild("CandyGramStation"),
+        valentinesMap:WaitForChild("GhostCannon") -- Novo alvo adicionado
+    }
 
     local function activatePrompt(prompt)
         if prompt:IsA("ProximityPrompt") then
+            -- Otimiza o prompt para ativação instantânea
             prompt.HoldDuration = 0
             prompt.RequiresLineOfSight = false
 
-            task.spawn(function() -- evita travar o script principal
+            task.spawn(function()
+                -- Loop de disparo enquanto o prompt existir
                 while prompt and prompt.Parent do
                     fireproximityprompt(prompt)
                     task.wait(0.2)
@@ -285,17 +292,21 @@ task.spawn(function()
         end
     end
 
-    -- Prompts que já existem
-    for _, v in pairs(station:GetDescendants()) do
-        activatePrompt(v)
+    -- Loop para configurar cada estação (CandyGram e GhostCannon)
+    for _, station in pairs(targets) do
+        -- Ativa prompts que já estão no mapa
+        for _, v in pairs(station:GetDescendants()) do
+            activatePrompt(v)
+        end
+
+        -- Monitora novos prompts que surgirem (ex: respawn da estação)
+        station.DescendantAdded:Connect(function(obj)
+            activatePrompt(obj)
+        end)
     end
-
-    -- Novos prompts que aparecerem
-    station.DescendantAdded:Connect(function(obj)
-        activatePrompt(obj)
-    end)
-
 end)
+
+-- Parte do Brainrot (mantida conforme seu original)
 local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
 if brainrotFolder then
     local conn = brainrotFolder.DescendantAdded:Connect(function()
