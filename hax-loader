@@ -397,8 +397,8 @@ task.spawn(function()
 
     -- Criando os 3 espaços na interface
     local slots = {
-        {gui = createLabel(10, Color3.fromRGB(255, 150, 50)), ref = nil, icon = "🕒"},
-        {gui = createLabel(45, Color3.fromRGB(255, 220, 80)), ref = nil, icon = "🕒"},
+        {gui = createLabel(10, Color3.fromRGB(255, 150, 50)), ref = nil, icon = "✨"},
+        {gui = createLabel(45, Color3.fromRGB(255, 220, 80)), ref = nil, icon = "💰"},
         {gui = createLabel(80, Color3.fromRGB(180, 100, 255)), ref = nil, icon = "🕒"}
     }
 
