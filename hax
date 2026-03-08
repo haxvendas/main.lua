@@ -345,7 +345,7 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -- =============================================
--- GUI Timers (CAMINHO FINAL: UI.FRAME.TITLE)
+-- GUI Timers (CORREÇÃO DO ALERTA DE PISCAR)
 -- =============================================
 task.spawn(function()
     local plr = game.Players.LocalPlayer
@@ -367,7 +367,7 @@ task.spawn(function()
     frame.BackgroundTransparency = 0.2
     frame.BorderSizePixel = 0
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
-    Instance.new("UIStroke", frame).Color = Color3.fromRGB(0, 200, 255)
+    Instance.new("UIStroke", frame).Color = Color3.fromRGB(120, 120, 120)
 
     local function createLabel(y, color)
         local lbl = Instance.new("TextLabel", frame)
@@ -378,94 +378,68 @@ task.spawn(function()
         lbl.TextScaled = true
         lbl.Font = Enum.Font.GothamBold
         lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.Text = "Sincronizando..."
         return lbl
     end
 
     local slots = {
-        {gui = createLabel(15, Color3.fromRGB(255, 160, 50)), ref = nil, icon = "⭐"},
-        {gui = createLabel(55, Color3.fromRGB(255, 230, 100)), ref = nil, icon = "🔥"},
-        {gui = createLabel(95, Color3.fromRGB(180, 100, 255)), ref = nil, icon = "🕒"} 
+        {gui = createLabel(15, Color3.fromRGB(255, 215, 0)), ref = nil, defaultColor = Color3.fromRGB(255, 215, 0)},
+        {gui = createLabel(55, Color3.fromRGB(255, 60, 60)), ref = nil, defaultColor = Color3.fromRGB(255, 60, 60)},
+        {gui = createLabel(95, Color3.fromRGB(255, 140, 0)), ref = nil, defaultColor = Color3.fromRGB(255, 140, 0)}
     }
+
+    local traducoes = {
+        ["next event in"] = "Evento de Lava em",
+        ["guaranteed legendary in"] = "Lendário Garantido em",
+        ["guaranteed mythic in"] = "Mítico Garantido em"
+    }
+
+    local function traduzirTexto(txt)
+        local textoLimpo = txt:gsub("<[^>]+>", ""):lower()
+        for eng, pt in pairs(traducoes) do
+            if textoLimpo:find(eng) then
+                local tempo = txt:match("%d+:%d+") or txt:match("%d+m %d+s") or txt:match("%d+s") or ""
+                return pt .. " " .. tempo
+            end
+        end
+        return txt
+    end
 
     task.spawn(function()
         while true do
-            -- SLOT 3: CAMINHO QUE VOCÊ ESPECIFICOU
-            local targetTitle = nil
-            
-            -- Navegação segura pelo Workspace
-            local workspaceObj = game:GetService("Workspace")
-            local server = workspaceObj:FindFirstChild("Server")
-            if server then
-                local nextEvent = server:FindFirstChild("NextEvent")
-                if nextEvent then
-                    local uiFolder = nextEvent:FindFirstChild("UI")
-                    if uiFolder then
-                        local uiFrame = uiFolder:FindFirstChild("Frame")
-                        if uiFrame then
-                            local title = uiFrame:FindFirstChild("Title")
-                            if title and title:IsA("TextLabel") then
-                                -- Verifica se o texto é o do evento (Next Event In:)
-                                if title.Text:lower():find("next") or title.Text:find(":") then
-                                    targetTitle = title
-                                end
-                            end
-                        end
-                    end
+            pcall(function()
+                slots[3].ref = game:GetService("Workspace").Server.NextEvent.UI.Frame.Title
+            end)
+            local found = {}
+            for _, obj in pairs(game:GetService("Workspace"):GetDescendants()) do
+                if obj:IsA("TextLabel") and obj.Visible and obj.Text:find(":") then
+                    if obj:IsDescendantOf(gui) or obj == slots[3].ref then continue end
+                    table.insert(found, obj)
                 end
             end
-            
-            slots[3].ref = targetTitle
-
-            -- SLOTS 1 e 2: Automático (Evita duplicar o Slot 3)
-            local foundLabels = {}
-            local scanAreas = {workspaceObj, plr.PlayerGui}
-            for _, area in ipairs(scanAreas) do
-                for _, obj in pairs(area:GetDescendants()) do
-                    if obj:IsA("TextLabel") and obj.Visible and obj.Text:find(":") then
-                        if obj:IsDescendantOf(gui) or obj == slots[3].ref then continue end
-                        
-                        local cleanText = obj.Text:gsub("<[^>]+>", "")
-                        local isDuplicate = false
-                        for _, alreadyFound in ipairs(foundLabels) do
-                            if alreadyFound.Text:gsub("<[^>]+>", "") == cleanText then
-                                isDuplicate = true
-                                break
-                            end
-                        end
-
-                        if not isDuplicate then
-                            table.insert(foundLabels, obj)
-                        end
-                    end
-                    if #foundLabels >= 2 then break end
-                end
-                if #foundLabels >= 2 then break end
-            end
-
-            slots[1].ref = foundLabels[1]
-            slots[2].ref = foundLabels[2]
-            
+            slots[1].ref = found[1]
+            slots[2].ref = found[2]
             task.wait(2)
         end
     end)
 
     RunService.RenderStepped:Connect(function()
-        for i, slot in ipairs(slots) do
+        for _, slot in ipairs(slots) do
             if slot.ref and slot.ref.Parent then
-                -- Limpeza de Tags HTML e espaços extras
-                local raw = slot.ref.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
-                slot.gui.Text = slot.icon .. " " .. raw
+                local raw = slot.ref.Text:lower()
+                slot.gui.Text = traduzirTexto(slot.ref.Text)
                 
-                if raw:find("00:") then
-                    slot.gui.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or Color3.new(1,1,1)
+                -- NOVA LÓGICA DE PISCAR (MAIS ABRANGENTE)
+                -- Pisca se encontrar "00:" OU "0m" OU se o tempo total for só segundos (ex: "45s")
+                local estaAcabando = raw:find("00:") or raw:find(" 0m") or (raw:find("%ds") and not raw:find("m"))
+                
+                if estaAcabando then
+                    slot.gui.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,1,1) or Color3.new(1,0,0)
                 else
-                    if i == 1 then slot.gui.TextColor3 = Color3.fromRGB(255, 160, 50)
-                    elseif i == 2 then slot.gui.TextColor3 = Color3.fromRGB(255, 230, 100)
-                    elseif i == 3 then slot.gui.TextColor3 = Color3.fromRGB(180, 100, 255) end
+                    slot.gui.TextColor3 = slot.defaultColor
                 end
             else
-                slot.gui.Text = slot.icon .. (i == 3 and " Aguardando Server..." or " Procurando...")
+                slot.gui.Text = "Aguardando..."
+                slot.gui.TextColor3 = slot.defaultColor
             end
         end
     end)
