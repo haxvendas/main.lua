@@ -345,62 +345,129 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -- =============================================
--- GUI Timers (Celestial / Money)
+-- GUI Timers (CAMINHO FINAL: UI.FRAME.TITLE)
 -- =============================================
 task.spawn(function()
-    task.wait(3)
-    if plr.PlayerGui:FindFirstChild("EventPanelClean") then plr.PlayerGui.EventPanelClean:Destroy() end
-    local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
+    local plr = game.Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+
+    if plr.PlayerGui:FindFirstChild("EventPanelClean") then
+        plr.PlayerGui.EventPanelClean:Destroy()
+    end
+
+    local gui = Instance.new("ScreenGui")
     gui.Name = "EventPanelClean"
-    gui.IgnoreGuiInset = true
     gui.ResetOnSpawn = false
+    gui.Parent = plr:WaitForChild("PlayerGui")
+
     local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 280, 0, 90)
-    frame.Position = UDim2.new(1, -300, 1, -160)
+    frame.Size = UDim2.new(0, 360, 0, 135) 
+    frame.Position = UDim2.new(1, -380, 1, -180)
     frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
-    frame.BackgroundTransparency = 0.25
+    frame.BackgroundTransparency = 0.2
     frame.BorderSizePixel = 0
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
-    local stroke = Instance.new("UIStroke", frame)
-    stroke.Color = Color3.fromRGB(0, 200, 255)
-    stroke.Thickness = 2.2
-    local function createLabel(name, color, y)
+    Instance.new("UIStroke", frame).Color = Color3.fromRGB(0, 200, 255)
+
+    local function createLabel(y, color)
         local lbl = Instance.new("TextLabel", frame)
-        lbl.Name = name
-        lbl.Size = UDim2.new(1, -20, 0, 35)
-        lbl.Position = UDim2.new(0, 10, 0, y)
+        lbl.Size = UDim2.new(1, -40, 0, 32)
+        lbl.Position = UDim2.new(0, 20, 0, y)
         lbl.BackgroundTransparency = 1
         lbl.TextColor3 = color
         lbl.TextScaled = true
         lbl.Font = Enum.Font.GothamBold
         lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Text = "Sincronizando..."
         return lbl
     end
-    local celTime = createLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
-    local moneyTime = createLabel("Money", Color3.fromRGB(255, 220, 80), 45)
-    local celestialLabel, moneyLabel = nil, nil
+
+    local slots = {
+        {gui = createLabel(15, Color3.fromRGB(255, 160, 50)), ref = nil, icon = "⭐"},
+        {gui = createLabel(55, Color3.fromRGB(255, 230, 100)), ref = nil, icon = "🔥"},
+        {gui = createLabel(95, Color3.fromRGB(180, 100, 255)), ref = nil, icon = "🕒"} 
+    }
+
     task.spawn(function()
         while true do
-            celestialLabel, moneyLabel = nil, nil
-            for _, obj in workspace:GetDescendants() do
-                if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
-                    local t = obj.Text:lower()
-                    if t:find("frenzy") or t:find("appears") then celestialLabel = obj end
-                    if t:find("money") or t:find("event") or t:find("ufo") then moneyLabel = obj end
+            -- SLOT 3: CAMINHO QUE VOCÊ ESPECIFICOU
+            local targetTitle = nil
+            
+            -- Navegação segura pelo Workspace
+            local workspaceObj = game:GetService("Workspace")
+            local server = workspaceObj:FindFirstChild("Server")
+            if server then
+                local nextEvent = server:FindFirstChild("NextEvent")
+                if nextEvent then
+                    local uiFolder = nextEvent:FindFirstChild("UI")
+                    if uiFolder then
+                        local uiFrame = uiFolder:FindFirstChild("Frame")
+                        if uiFrame then
+                            local title = uiFrame:FindFirstChild("Title")
+                            if title and title:IsA("TextLabel") then
+                                -- Verifica se o texto é o do evento (Next Event In:)
+                                if title.Text:lower():find("next") or title.Text:find(":") then
+                                    targetTitle = title
+                                end
+                            end
+                        end
+                    end
                 end
             end
-            task.wait(3.5)
+            
+            slots[3].ref = targetTitle
+
+            -- SLOTS 1 e 2: Automático (Evita duplicar o Slot 3)
+            local foundLabels = {}
+            local scanAreas = {workspaceObj, plr.PlayerGui}
+            for _, area in ipairs(scanAreas) do
+                for _, obj in pairs(area:GetDescendants()) do
+                    if obj:IsA("TextLabel") and obj.Visible and obj.Text:find(":") then
+                        if obj:IsDescendantOf(gui) or obj == slots[3].ref then continue end
+                        
+                        local cleanText = obj.Text:gsub("<[^>]+>", "")
+                        local isDuplicate = false
+                        for _, alreadyFound in ipairs(foundLabels) do
+                            if alreadyFound.Text:gsub("<[^>]+>", "") == cleanText then
+                                isDuplicate = true
+                                break
+                            end
+                        end
+
+                        if not isDuplicate then
+                            table.insert(foundLabels, obj)
+                        end
+                    end
+                    if #foundLabels >= 2 then break end
+                end
+                if #foundLabels >= 2 then break end
+            end
+
+            slots[1].ref = foundLabels[1]
+            slots[2].ref = foundLabels[2]
+            
+            task.wait(2)
         end
     end)
+
     RunService.RenderStepped:Connect(function()
-        if celestialLabel and celestialLabel.Parent then
-            local txt = celestialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-            celTime.Text = "✨ " .. txt
-        else celTime.Text = "✨ Procurando " end
-        if moneyLabel and moneyLabel.Parent then
-            local txt = moneyLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-            moneyTime.Text = "💰 " .. txt
-        else moneyTime.Text = "💰 Procurando Evento..." end
+        for i, slot in ipairs(slots) do
+            if slot.ref and slot.ref.Parent then
+                -- Limpeza de Tags HTML e espaços extras
+                local raw = slot.ref.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
+                slot.gui.Text = slot.icon .. " " .. raw
+                
+                if raw:find("00:") then
+                    slot.gui.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or Color3.new(1,1,1)
+                else
+                    if i == 1 then slot.gui.TextColor3 = Color3.fromRGB(255, 160, 50)
+                    elseif i == 2 then slot.gui.TextColor3 = Color3.fromRGB(255, 230, 100)
+                    elseif i == 3 then slot.gui.TextColor3 = Color3.fromRGB(180, 100, 255) end
+                end
+            else
+                slot.gui.Text = slot.icon .. (i == 3 and " Aguardando Server..." or " Procurando...")
+            end
+        end
     end)
 end)
 
