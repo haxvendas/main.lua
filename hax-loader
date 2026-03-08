@@ -900,6 +900,115 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 -- =============================================
+-- TP SECUNDÁRIO COM TWEEN RÁPIDO (SÓ R = Próxima) - CICLO INFINITO
+-- =============================================
+local vipPos2 = {
+    Vector3.new(448.55, 172.06, 335.86)
+    -- Adicione mais posições aqui se quiser expandir (ex: , Vector3.new(x,y,z))
+}
+local vipNames2 = {
+    "SEC 1"
+    -- Edite se quiser nomes melhores
+}
+local curIndex2 = 0
+local isTweening2 = false
+local lastInputTime2 = 0
+local DEBOUNCE2 = 0.12
+task.spawn(function()
+    task.wait(2.0) -- delay pra não conflitar com a GUI VIP
+   
+    local tpGui2 = Instance.new("ScreenGui")
+    tpGui2.Name = "SecTPGui"
+    tpGui2.ResetOnSpawn = false
+    tpGui2.Parent = plr:WaitForChild("PlayerGui")
+    local frame2 = Instance.new("Frame", tpGui2)
+    frame2.Size = UDim2.new(0, 220, 0, 70)
+    frame2.Position = UDim2.new(0, 15, 0, 100) -- abaixo da GUI principal
+    frame2.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+    frame2.BorderSizePixel = 0
+    frame2.Active = true
+    frame2.Draggable = true
+    Instance.new("UICorner", frame2).CornerRadius = UDim.new(0, 8)
+    local title2 = Instance.new("TextLabel", frame2)
+    title2.Size = UDim2.new(1, 0, 0, 25)
+    title2.BackgroundColor3 = Color3.fromRGB(140, 80, 180)
+    title2.Text = " TP SECUNDÁRIO "
+    title2.TextColor3 = Color3.new(1,1,1)
+    title2.Font = Enum.Font.GothamBold
+    title2.TextScaled = true
+    local statusLabel2 = Instance.new("TextLabel", frame2)
+    statusLabel2.Size = UDim2.new(1, -10, 1, -30)
+    statusLabel2.Position = UDim2.new(0, 5, 0, 25)
+    statusLabel2.BackgroundTransparency = 1
+    statusLabel2.TextColor3 = Color3.fromRGB(200, 180, 255)
+    statusLabel2.TextScaled = true
+    statusLabel2.Font = Enum.Font.Gotham
+    statusLabel2.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel2.RichText = true
+    local function updateStatus2()
+        if curIndex2 == 0 then
+            statusLabel2.Text = "R → Próxima"
+        else
+            statusLabel2.Text = "R → Próxima\n" ..
+                                "<font color='rgb(220,200,255)'>Zona " .. curIndex2 .. "/" .. #vipPos2 ..
+                                " - " .. (vipNames2[curIndex2] or "?") .. "</font>" ..
+                                (isTweening2 and "\n<font color='rgb(255,180,100)'>Movendo...</font>" or "")
+        end
+    end
+    updateStatus2()
+    function smoothFastTP2(targetIndex)
+        if isTweening2 or tick() - lastInputTime2 < DEBOUNCE2 then return end
+       
+        -- Ciclo infinito: wrap around
+        if targetIndex > #vipPos2 then targetIndex = 1 end
+        if targetIndex < 1 then targetIndex = #vipPos2 end
+        local char = plr.Character
+        if not char then return end
+       
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        isTweening2 = true
+        lastInputTime2 = tick()
+        updateStatus2()
+        local targetPos = vipPos2[targetIndex] + Vector3.new(0, 4, 0)
+        local distance = (hrp.Position - targetPos).Magnitude
+        local tweenTime = distance / 800
+        notify("→ SEC " .. targetIndex, Color3.fromRGB(200, 150, 255))
+        local tweenInfo = TweenInfo.new(
+            tweenTime,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out
+        )
+        local tween = TS:Create(hrp, tweenInfo, {
+            CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
+        })
+        tween:Play()
+        tween.Completed:Connect(function()
+            isTweening2 = false
+            curIndex2 = targetIndex
+            updateStatus2()
+        end)
+    end
+  local function onDiedSec()
+        curIndex2 = 0
+        isTweening2 = false
+        lastInputTime2 = 0
+        updateStatus2()
+        notify("Morreu → TP SEC resetado", Color3.fromRGB(255, 120, 120))
+    end
+    if plr.Character then
+        local hum = plr.Character:FindFirstChild("Humanoid")
+        if hum then hum.Died:Connect(onDiedSec) end
+    end
+   
+    plr.CharacterAdded:Connect(function(char)
+        task.wait(0.3)
+        local hum = char:WaitForChild("Humanoid", 3)
+        if hum then hum.Died:Connect(onDiedSec) end
+    end)
+end)
+
+-- =============================================
 -- Hitbox Expander com Toggle (H)
 -- =============================================
 
@@ -1048,6 +1157,13 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             
         elseif keyCode == Enum.KeyCode.T then
             hopServer()
+            return
+           elseif keyCode == Enum.KeyCode.R then
+               smoothFastTP2(curIndex2 + 1)
+                return
+  
+       elseif keyCode == Enum.KeyCode.RightControl then
+          smoothFastTP2(1)
             return
        end 
      end
