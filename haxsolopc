@@ -1,7 +1,5 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/speed", true))();
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/Branch/GUIS/Emotes.lua"))();
-
 loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
 
 
@@ -522,3 +520,5 @@ task.spawn(function()
 end)
 
 notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0));
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/Branch/GUIS/Emotes.lua"))()
