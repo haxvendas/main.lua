@@ -450,19 +450,6 @@ if plr.Character then onCharacterAdded(plr.Character) end
 plr.CharacterAdded:Connect(onCharacterAdded)
 
 -- =============================================
--- Remove VIPWalls + Barrier
--- =============================================
-task.spawn(function()
-    task.wait(3)
-    local function tryRemove(obj)
-        if obj.Name == "VIPWalls" and obj:IsA("Model") then obj:Destroy() end
-        if obj.Name == "Barrier" and obj.Parent and obj.Parent.Name == "Barriers" and obj.Parent.Parent == workspace then obj:Destroy() end
-    end
-    for _, obj in workspace:GetDescendants() do tryRemove(obj) end
-    workspace.DescendantAdded:Connect(tryRemove)
-end)
-
--- =============================================
 -- INPUTS (ORIGINAL)
 -- =============================================
 UIS.InputBegan:Connect(function(input, gameProcessed)
@@ -491,27 +478,6 @@ UIS.InputEnded:Connect(function(input)
     elseif key == Enum.KeyCode.D then controls.D = 0
     elseif key == Enum.KeyCode.Space then controls.Space = 0
     elseif key == Enum.KeyCode.LeftControl then controls.Ctrl = 0
-    end
-end)
-
--- =============================================
--- LOOP DO SCANNER GARAMA (IMPLEMENTADO)
--- =============================================
-task.spawn(function()
-    while true do
-        task.wait(INTERVALO_GARAMA)
-        local info = acharGaramaInfo()
-        if info then
-            if currentHighlight then currentHighlight:Destroy() end
-            currentHighlight = Instance.new("Highlight")
-            currentHighlight.Adornee = info.slot
-            currentHighlight.FillColor = Color3.fromRGB(255, 40, 40)
-            currentHighlight.OutlineColor = Color3.fromRGB(255, 220, 0)
-            currentHighlight.Parent = info.slot
-            forcarPromptDeLonge(info.promptReal)
-        else
-            if currentHighlight then currentHighlight:Destroy() currentHighlight = nil end
-        end
     end
 end)
 
