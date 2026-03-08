@@ -388,7 +388,7 @@ task.spawn(function()
     }
 
     local traducoes = {
-        ["next event in"] = "Evento de Lava em",
+        ["next event in"] = "Lava em",
         ["guaranteed legendary in"] = "Lendário Garantido em",
         ["guaranteed mythic in"] = "Mítico Garantido em"
     }
