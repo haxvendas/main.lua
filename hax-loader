@@ -995,7 +995,7 @@ task.spawn(function()
 
         local targetPos = vipPos2[targetIndex] + Vector3.new(0, 4, 0)
         local distance = (hrp.Position - targetPos).Magnitude
-        local tweenTime = distance / 900
+        local tweenTime = distance / 1550
 
         notify("→ SEC " .. targetIndex, Color3.fromRGB(200, 150, 255))
 
