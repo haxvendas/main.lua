@@ -340,65 +340,93 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -- =============================================
--- GUI Timers (Celestial / Money)
+-- GUI Timer - VERSÃO ESTÁVEL (ANTI-CRASH)
 -- =============================================
-task.spawn(function()
-    task.wait(3)
-    if plr.PlayerGui:FindFirstChild("EventPanelClean") then plr.PlayerGui.EventPanelClean:Destroy() end
-    local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
-    gui.Name = "EventPanelClean"
-    gui.IgnoreGuiInset = true
+local success, err = pcall(function()
+    local plr = game.Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+    local TweenService = game:GetService("TweenService")
+
+    -- Limpeza segura
+    local oldGui = plr.PlayerGui:FindFirstChild("EventPanelPremium")
+    if oldGui then oldGui:Destroy() end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "EventPanelPremium"
     gui.ResetOnSpawn = false
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 280, 0, 90)
-    frame.Position = UDim2.new(1, -300, 1, -160)
-    frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
-    frame.BackgroundTransparency = 0.25
-    frame.BorderSizePixel = 0
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
-    local stroke = Instance.new("UIStroke", frame)
-    stroke.Color = Color3.fromRGB(0, 200, 255)
-    stroke.Thickness = 2.2
-    local function createLabel(name, color, y)
-        local lbl = Instance.new("TextLabel", frame)
-        lbl.Name = name
-        lbl.Size = UDim2.new(1, -20, 0, 35)
-        lbl.Position = UDim2.new(0, 10, 0, y)
-        lbl.BackgroundTransparency = 1
-        lbl.TextColor3 = color
-        lbl.TextScaled = true
-        lbl.Font = Enum.Font.GothamBold
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        return lbl
-    end
-    local celTime = createLabel("Celestial", Color3.fromRGB(255, 150, 50), 10)
-    local moneyTime = createLabel("Money", Color3.fromRGB(255, 220, 80), 45)
-    local celestialLabel, moneyLabel = nil, nil
+    gui.IgnoreGuiInset = true -- Evita conflitos de tela
+    gui.Parent = plr:WaitForChild("PlayerGui")
+
+    -- Frame Principal
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 260, 0, 50) 
+    mainFrame.Position = UDim2.new(1, -280, 1, -110)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = gui
+    
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+    
+    local stroke = Instance.new("UIStroke", mainFrame)
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(255, 215, 0)
+
+    -- Label de Texto (Fonte trocada para GothamBold para evitar erro de carregamento)
+    local eventLabel = Instance.new("TextLabel", mainFrame)
+    eventLabel.Size = UDim2.new(1, -20, 1, 0)
+    eventLabel.Position = UDim2.new(0, 10, 0, 0)
+    eventLabel.BackgroundTransparency = 1
+    eventLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    eventLabel.TextScaled = true
+    eventLabel.Font = Enum.Font.GothamBold 
+    eventLabel.RichText = true
+    eventLabel.Text = "CARREGANDO..."
+
+    local targetRef = nil
+
+    -- BUSCA SEGURA (Com espera garantida para não travar o processador)
     task.spawn(function()
         while true do
-            celestialLabel, moneyLabel = nil, nil
-            for _, obj in workspace:GetDescendants() do
-                if obj:IsA("TextLabel") and obj.Text and obj.Text:find(":") then
-                    local t = obj.Text:lower()
-                    if t:find("frenzy") or t:find("appears") then celestialLabel = obj end
-                    if t:find("money") or t:find("event") or t:find("ufo") then moneyLabel = obj end
-                end
-            end
-            task.wait(3.5)
+            local ok, res = pcall(function()
+                return game:GetService("Workspace").Server.NextEvent.UI.Frame.Title
+            end)
+            if ok then targetRef = res end
+            task.wait(5) -- Busca a referência apenas a cada 5 segundos
         end
     end)
+
+    -- ATUALIZAÇÃO VISUAL OTIMIZADA
+    local lastUpdate = 0
     RunService.RenderStepped:Connect(function()
-        if celestialLabel and celestialLabel.Parent then
-            local txt = celestialLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-            celTime.Text = "✨ " .. txt
-        else celTime.Text = "✨ Procurando " end
-        if moneyLabel and moneyLabel.Parent then
-            local txt = moneyLabel.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$") or "carregando..."
-            moneyTime.Text = "💰 " .. txt
-        else moneyTime.Text = "💰 Procurando Evento..." end
+        -- Atualiza o texto apenas a cada 0.1s para poupar CPU
+        if tick() - lastUpdate < 0.1 then return end
+        lastUpdate = tick()
+
+        if targetRef and targetRef.Parent then
+            local rawText = targetRef.Text
+            local rawLower = rawText:lower()
+            
+            -- Extração simples de tempo (Anti-Bug)
+            local tempo = rawText:match("%d+m%s*%d+s") or rawText:match("%d+:%d+") or rawText:match("%d+s") or "..."
+            eventLabel.Text = "<font color='#FFD700'>LAVA EM:</font> " .. tempo:upper()
+            
+            -- Efeito de Piscar (Somente se estiver acabando)
+            local perigo = (rawLower:find("s") and not rawLower:find("m")) or rawLower:find("00:")
+            if perigo then
+                local blink = tick() % 0.6 > 0.3
+                stroke.Color = blink and Color3.new(1,0,0) or Color3.new(0.5,0,0)
+                eventLabel.TextColor3 = blink and Color3.new(1,1,1) or Color3.new(1,0.4,0.4)
+            else
+                stroke.Color = Color3.fromRGB(255, 215, 0)
+                eventLabel.TextColor3 = Color3.new(1,1,1)
+            end
+        end
     end)
 end)
 
+if not success then warn("Erro ao carregar script: " .. err) end
 -- =============================================
 -- VFLY (BODYGYRO / BODYVELOCITY) - TECLA V
 -- =============================================
