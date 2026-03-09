@@ -999,11 +999,11 @@ task.spawn(function()
 
         notify("→ SEC " .. targetIndex, Color3.fromRGB(200, 150, 255))
 
-        local tweenInfo = TweenInfo.new(
-            tweenTime,
-            Enum.EasingStyle.Quad,
-            Enum.EasingDirection.Out
-        )
+       local tweenInfo = TweenInfo.new(
+    tweenTime,
+    Enum.EasingStyle.Linear, -- Isso mantém a velocidade constante
+    Enum.EasingDirection.InOut -- Tanto faz em Linear, mas InOut é o padrão
+)
 
         activeTween2 = TS:Create(hrp, tweenInfo, {
             CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
