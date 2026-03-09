@@ -912,10 +912,11 @@ end)
 -- =============================================
 local vipPos2 = {
     Vector3.new(448.55, 172.06, 335.86),
-    Vector3.new(4268.1640625, 120.27107238769531, -1.1477665901184082),
-    Vector3.new(337.9309997558594, 100.76701354980469, 12.2146577835083)
+    Vector3.new(337.9309997558594, 100.76701354980469, 12.2146577835083),
+	Vector3.new(4268.1640625, 120.27107238769531, -1.1477665901184082),
+	Vector3.new(337.9309997558594, 100.76701354980469, 12.2146577835083)
 }
-local vipNames2 = { "SEC 1", "2", "3" }
+local vipNames2 = { "SEC 1", "2", "3", "4" }
 
 local curIndex2 = 0
 local isTweening2 = false
@@ -995,7 +996,7 @@ task.spawn(function()
 
         local targetPos = vipPos2[targetIndex] + Vector3.new(0, 4, 0)
         local distance = (hrp.Position - targetPos).Magnitude
-        local tweenTime = distance / 1550
+        local tweenTime = distance / 1490
 
         notify("→ SEC " .. targetIndex, Color3.fromRGB(200, 150, 255))
 
