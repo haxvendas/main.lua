@@ -580,7 +580,15 @@ task.spawn(function()
     -- Remove os que spawnarem depois
     workspace.DescendantAdded:Connect(tryRemove)
 end)
+local workspace = game:GetService("Workspace")
+local objetoParaDeletar = workspace:FindFirstChild("___")
 
+if objetoParaDeletar then
+    objetoParaDeletar:Destroy()
+    print("Objeto deletado com sucesso.")
+else
+    warn("O objeto não foi encontrado no Workspace.")
+end
 -- =============================================
 -- ESP Celestial / Divine / Brainrots / Arcade Ticket / Ticket Bomb
 -- =============================================
@@ -903,11 +911,13 @@ end)
 -- TP SECUNDÁRIO COM TWEEN RÁPIDO (SÓ R = Próxima) - CICLO INFINITO
 -- =============================================
 local vipPos2 = {
-    Vector3.new(448.55, 172.06, 335.86)
+    Vector3.new(448.55, 172.06, 335.86),
+    Vector3.new(4268.1640625, 120.27107238769531, -1.1477665901184082),
+    Vector3.new(337.9309997558594, 100.76701354980469, 12.2146577835083)
     -- Adicione mais posições aqui se quiser expandir (ex: , Vector3.new(x,y,z))
 }
 local vipNames2 = {
-    "SEC 1"
+    "SEC 1", "2", "3"
     -- Edite se quiser nomes melhores
 }
 local curIndex2 = 0
