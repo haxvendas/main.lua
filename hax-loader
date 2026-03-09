@@ -842,8 +842,8 @@ end)
 -- MAGNET POR TOQUE - MULTI-ORB & SHARD FIX
 -- =================================
 
-local MAGNET_DISTANCE = 10000
-local COOLDOWN = 0.15
+local MAGNET_DISTANCE = 100000
+local COOLDOWN = 0.01
 
 local lastTouch = {}
 
