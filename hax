@@ -345,106 +345,93 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -- =============================================
--- GUI Timers (CORREÇÃO DO ALERTA DE PISCAR)
+-- GUI Timer - VERSÃO ESTÁVEL (ANTI-CRASH)
 -- =============================================
-task.spawn(function()
+local success, err = pcall(function()
     local plr = game.Players.LocalPlayer
     local RunService = game:GetService("RunService")
+    local TweenService = game:GetService("TweenService")
 
-    if plr.PlayerGui:FindFirstChild("EventPanelClean") then
-        plr.PlayerGui.EventPanelClean:Destroy()
-    end
+    -- Limpeza segura
+    local oldGui = plr.PlayerGui:FindFirstChild("EventPanelPremium")
+    if oldGui then oldGui:Destroy() end
 
     local gui = Instance.new("ScreenGui")
-    gui.Name = "EventPanelClean"
+    gui.Name = "EventPanelPremium"
     gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true -- Evita conflitos de tela
     gui.Parent = plr:WaitForChild("PlayerGui")
 
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 360, 0, 135) 
-    frame.Position = UDim2.new(1, -380, 1, -180)
-    frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
-    frame.BackgroundTransparency = 0.2
-    frame.BorderSizePixel = 0
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
-    Instance.new("UIStroke", frame).Color = Color3.fromRGB(120, 120, 120)
+    -- Frame Principal
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 260, 0, 50) 
+    mainFrame.Position = UDim2.new(1, -280, 1, -110)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = gui
+    
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+    
+    local stroke = Instance.new("UIStroke", mainFrame)
+    stroke.Thickness = 2
+    stroke.Color = Color3.fromRGB(255, 215, 0)
 
-    local function createLabel(y, color)
-        local lbl = Instance.new("TextLabel", frame)
-        lbl.Size = UDim2.new(1, -40, 0, 32)
-        lbl.Position = UDim2.new(0, 20, 0, y)
-        lbl.BackgroundTransparency = 1
-        lbl.TextColor3 = color
-        lbl.TextScaled = true
-        lbl.Font = Enum.Font.GothamBold
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        return lbl
-    end
+    -- Label de Texto (Fonte trocada para GothamBold para evitar erro de carregamento)
+    local eventLabel = Instance.new("TextLabel", mainFrame)
+    eventLabel.Size = UDim2.new(1, -20, 1, 0)
+    eventLabel.Position = UDim2.new(0, 10, 0, 0)
+    eventLabel.BackgroundTransparency = 1
+    eventLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    eventLabel.TextScaled = true
+    eventLabel.Font = Enum.Font.GothamBold 
+    eventLabel.RichText = true
+    eventLabel.Text = "CARREGANDO..."
 
-    local slots = {
-        {gui = createLabel(15, Color3.fromRGB(255, 215, 0)), ref = nil, defaultColor = Color3.fromRGB(255, 215, 0)},
-        {gui = createLabel(55, Color3.fromRGB(255, 60, 60)), ref = nil, defaultColor = Color3.fromRGB(255, 60, 60)},
-        {gui = createLabel(95, Color3.fromRGB(255, 140, 0)), ref = nil, defaultColor = Color3.fromRGB(255, 140, 0)}
-    }
+    local targetRef = nil
 
-    local traducoes = {
-        ["next event in"] = "Lava em",
-        ["guaranteed legendary in"] = "Lendário Garantido em",
-        ["guaranteed mythic in"] = "Mítico Garantido em"
-    }
-
-    local function traduzirTexto(txt)
-        local textoLimpo = txt:gsub("<[^>]+>", ""):lower()
-        for eng, pt in pairs(traducoes) do
-            if textoLimpo:find(eng) then
-                local tempo = txt:match("%d+:%d+") or txt:match("%d+m %d+s") or txt:match("%d+s") or ""
-                return pt .. " " .. tempo
-            end
-        end
-        return txt
-    end
-
+    -- BUSCA SEGURA (Com espera garantida para não travar o processador)
     task.spawn(function()
         while true do
-            pcall(function()
-                slots[3].ref = game:GetService("Workspace").Server.NextEvent.UI.Frame.Title
+            local ok, res = pcall(function()
+                return game:GetService("Workspace").Server.NextEvent.UI.Frame.Title
             end)
-            local found = {}
-            for _, obj in pairs(game:GetService("Workspace"):GetDescendants()) do
-                if obj:IsA("TextLabel") and obj.Visible and obj.Text:find(":") then
-                    if obj:IsDescendantOf(gui) or obj == slots[3].ref then continue end
-                    table.insert(found, obj)
-                end
-            end
-            slots[1].ref = found[1]
-            slots[2].ref = found[2]
-            task.wait(2)
+            if ok then targetRef = res end
+            task.wait(5) -- Busca a referência apenas a cada 5 segundos
         end
     end)
 
+    -- ATUALIZAÇÃO VISUAL OTIMIZADA
+    local lastUpdate = 0
     RunService.RenderStepped:Connect(function()
-        for _, slot in ipairs(slots) do
-            if slot.ref and slot.ref.Parent then
-                local raw = slot.ref.Text:lower()
-                slot.gui.Text = traduzirTexto(slot.ref.Text)
-                
-                -- NOVA LÓGICA DE PISCAR (MAIS ABRANGENTE)
-                -- Pisca se encontrar "00:" OU "0m" OU se o tempo total for só segundos (ex: "45s")
-                local estaAcabando = raw:find("00:") or raw:find(" 0m") or (raw:find("%ds") and not raw:find("m"))
-                
-                if estaAcabando then
-                    slot.gui.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,1,1) or Color3.new(1,0,0)
-                else
-                    slot.gui.TextColor3 = slot.defaultColor
-                end
+        -- Atualiza o texto apenas a cada 0.1s para poupar CPU
+        if tick() - lastUpdate < 0.1 then return end
+        lastUpdate = tick()
+
+        if targetRef and targetRef.Parent then
+            local rawText = targetRef.Text
+            local rawLower = rawText:lower()
+            
+            -- Extração simples de tempo (Anti-Bug)
+            local tempo = rawText:match("%d+m%s*%d+s") or rawText:match("%d+:%d+") or rawText:match("%d+s") or "..."
+            eventLabel.Text = "<font color='#FFD700'>LAVA EM:</font> " .. tempo:upper()
+            
+            -- Efeito de Piscar (Somente se estiver acabando)
+            local perigo = (rawLower:find("s") and not rawLower:find("m")) or rawLower:find("00:")
+            if perigo then
+                local blink = tick() % 0.6 > 0.3
+                stroke.Color = blink and Color3.new(1,0,0) or Color3.new(0.5,0,0)
+                eventLabel.TextColor3 = blink and Color3.new(1,1,1) or Color3.new(1,0.4,0.4)
             else
-                slot.gui.Text = "Aguardando..."
-                slot.gui.TextColor3 = slot.defaultColor
+                stroke.Color = Color3.fromRGB(255, 215, 0)
+                eventLabel.TextColor3 = Color3.new(1,1,1)
             end
         end
     end)
 end)
 
+if not success then warn("Erro ao carregar script: " .. err) end
 -- =============================================
 -- VFLY (BODYGYRO / BODYVELOCITY) - TECLA V
 -- =============================================
