@@ -356,117 +356,118 @@ if brainrotFolder then
 end
 
 
--- =============================================
--- GUI Timers (DETECTOR DINÂMICO DE EVENTOS)
--- =============================================
+-- =========================================================
+-- PREMIUM GOLD EVENT HUD (WIDE & ELEGANT EDITION)
+-- =========================================================
 task.spawn(function()
     local plr = game.Players.LocalPlayer
     local RunService = game:GetService("RunService")
-
-    -- Limpa interface antiga
-    if plr.PlayerGui:FindFirstChild("EventPanelClean") then
-        plr.PlayerGui.EventPanelClean:Destroy()
-    end
+    
+    -- Limpeza total de versões anteriores
+    local old = plr.PlayerGui:FindFirstChild("EventPanelPremium")
+    if old then old:Destroy() end
 
     local gui = Instance.new("ScreenGui")
-    gui.Name = "EventPanelClean"
+    gui.Name = "EventPanelPremium"
     gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
     gui.Parent = plr:WaitForChild("PlayerGui")
 
-    -- Painel Adaptativo
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 360, 0, 135) 
-    frame.Position = UDim2.new(1, -380, 1, -180)
-    frame.BackgroundColor3 = Color3.fromRGB(10, 15, 10)
-    frame.BackgroundTransparency = 0.2
-    frame.BorderSizePixel = 0
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 15)
-    Instance.new("UIStroke", frame).Color = Color3.fromRGB(0, 200, 255)
+    -- Painel Principal (Aumentado para caber tudo)
+    local mainFrame = Instance.new("Frame", gui)
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 320, 0, 130) -- Largura aumentada para 320
+    mainFrame.Position = UDim2.new(1, -340, 1, -190) -- Ajustado para não colapsar na borda
+    mainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.BorderSizePixel = 0
+    
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+    
+    local stroke = Instance.new("UIStroke", mainFrame)
+    stroke.Thickness = 2.5
+    stroke.Color = Color3.fromRGB(255, 215, 0) -- Gold Premium
 
-    local function createLabel(y, color)
-        local lbl = Instance.new("TextLabel", frame)
-        lbl.Size = UDim2.new(1, -40, 0, 32)
-        lbl.Position = UDim2.new(0, 20, 0, y)
+    -- Organização Vertical
+    local list = Instance.new("UIListLayout", mainFrame)
+    list.Padding = UDim.new(0, 5)
+    list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    list.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local function createEventLabel()
+        local lbl = Instance.new("TextLabel", mainFrame)
+        lbl.Size = UDim2.new(0.92, 0, 0, 32) -- Levemente maior para o texto respirar
         lbl.BackgroundTransparency = 1
-        lbl.TextColor3 = color
+        lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
         lbl.TextScaled = true
         lbl.Font = Enum.Font.GothamBold
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.Text = "Procurando..."
+        lbl.RichText = true
+        lbl.TextXAlignment = Enum.TextXAlignment.Left -- Alinhado à esquerda fica mais sofisticado
+        lbl.Text = "AGUARDANDO..."
         return lbl
     end
 
-    -- 3 Slots para qualquer evento encontrado
-    local slots = {
-        {gui = createLabel(15, Color3.fromRGB(255, 160, 50)), ref = nil, icon = "⭐"},
-        {gui = createLabel(55, Color3.fromRGB(255, 230, 100)), ref = nil, icon = "🔥"},
-        {gui = createLabel(95, Color3.fromRGB(180, 100, 255)), ref = nil, icon = "🕒"}
-    }
+    local slots = {createEventLabel(), createEventLabel(), createEventLabel()}
+    local targetLabels = {}
 
-    -- Lógica de Busca Universal
+    -- Busca única e inteligente dos alvos
     task.spawn(function()
-        while true do
-            local foundLabels = {}
-            -- Varre Workspace e PlayerGui em busca de cronômetros
-            local scanAreas = {workspace, plr.PlayerGui}
-            
-            for _, area in ipairs(scanAreas) do
-                for _, obj in pairs(area:GetDescendants()) do
-                    if obj:IsA("TextLabel") and obj.Visible and obj.Text:find(":") then
-                        -- Ignora a própria GUI do script
-                        if obj:IsDescendantOf(gui) then continue end
-                        
-                        -- Filtro para ignorar textos que não são eventos (ex: tempo de jogo corrido)
-                        -- Se o texto tiver números e ":", ele entra na lista
-                        local cleanText = obj.Text:gsub("<[^>]+>", "")
-                        
-                        -- Evita duplicados (mesmo texto em labels diferentes)
-                        local isDuplicate = false
-                        for _, alreadyFound in ipairs(foundLabels) do
-                            if alreadyFound.Text:gsub("<[^>]+>", "") == cleanText then
-                                isDuplicate = true
-                                break
-                            end
-                        end
-
-                        if not isDuplicate then
-                            table.insert(foundLabels, obj)
-                        end
+        while #targetLabels == 0 do
+            for _, desc in ipairs(workspace:GetDescendants()) do
+                if desc.Name == "EventTimers" then
+                    local f = desc:FindFirstChild("Frame", true)
+                    if f then
+                        targetLabels = {
+                            f:FindFirstChild("TextLabel"),
+                            f:FindFirstChild("TextLabel2"),
+                            f:FindFirstChild("TextLabel3")
+                        }
+                        break
                     end
-                    if #foundLabels >= 3 then break end
                 end
-                if #foundLabels >= 3 then break end
             end
-
-            -- Atribui os labels encontrados aos slots
-            slots[1].ref = foundLabels[1]
-            slots[2].ref = foundLabels[2]
-            slots[3].ref = foundLabels[3]
-            
-            task.wait(5) -- Atualiza a lista de eventos a cada 5 segundos
+            task.wait(2)
         end
     end)
 
-    -- Atualização de Texto em Tempo Real
+    -- Atualização Visual Otimizada
+    local lastUpdate = 0
     RunService.RenderStepped:Connect(function()
-        for _, slot in ipairs(slots) do
-            if slot.ref and slot.ref.Parent then
-                -- Limpa tags de cor/fonte do jogo original
-                local raw = slot.ref.Text:gsub("<[^>]+>", ""):gsub("%s+", " "):match("^%s*(.-)%s*$")
-                slot.gui.Text = slot.icon .. " " .. raw
+        if tick() - lastUpdate < 0.05 then return end
+        lastUpdate = tick()
+
+        local hasAnyUrgent = false
+
+        for i, slot in ipairs(slots) do
+            local target = targetLabels[i]
+            
+            if target and target.Parent then
+                local rawText = target.Text:gsub("<[^>]+>", ""):gsub("%s+", " ")
+                local rawUpper = rawText:upper()
+                local rawLower = rawText:lower()
                 
-                -- Alerta visual (pisca vermelho se faltar menos de 1 minuto)
-                if raw:find("00:") then
-                    slot.gui.TextColor3 = (tick() % 1 > 0.5) and Color3.new(1,0,0) or Color3.new(1,1,1)
+                -- Layout Dourado Sofisticado
+                slot.Text = "<font color='#FFD700'>◈</font> " .. rawUpper
+                slot.Visible = true
+                
+                -- Alerta de perigo (00: ou segundos finais)
+                if rawLower:find("00:") or (rawLower:find("s") and not rawLower:find("m")) then
+                    hasAnyUrgent = true
+                    slot.TextColor3 = (tick() % 0.6 > 0.3) and Color3.new(1, 0.3, 0.3) or Color3.new(1, 1, 1)
                 else
-                    -- Reseta para a cor original do slot
-                    if _ == 1 then slot.gui.TextColor3 = Color3.fromRGB(255, 160, 50)
-                    elseif _ == 2 then slot.gui.TextColor3 = Color3.fromRGB(255, 230, 100)
-                    elseif _ == 3 then slot.gui.TextColor3 = Color3.fromRGB(180, 100, 255) end
+                    slot.TextColor3 = Color3.new(1, 1, 1)
                 end
             else
-                slot.gui.Text = slot.icon .. " Nenhum Evento..."
+                slot.Visible = false
             end
+        end
+
+        -- Efeito de Pulso na Borda Gold/Red
+        if hasAnyUrgent then
+            local blink = tick() % 0.6 > 0.3
+            stroke.Color = blink and Color3.new(1, 0, 0) or Color3.fromRGB(150, 0, 0)
+        else
+            stroke.Color = Color3.fromRGB(255, 215, 0)
         end
     end)
 end)
