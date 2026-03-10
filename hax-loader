@@ -910,7 +910,7 @@ end)
 
 
 -- =============================================
--- TP AUTO E MANUAL
+-- TP AUTO E MANUAL (CONFIGURAÇÃO)
 -- =============================================
 local vipPos2 = {
     Vector3.new(448.55, 172.06, 335.86),
@@ -928,13 +928,8 @@ local DEBOUNCE2 = 0.15
 local activeTween2 = nil
 local statusLabel2 = nil 
 
--- Função de Notificação (Placeholder caso não tenha no seu script global)
-local function notify(msg, color)
-    print("[TP]: " .. msg)
-end
-
 -- =============================================
--- FUNÇÕES DE LÓGICA
+-- FUNÇÕES DE LÓGICA DO TP
 -- =============================================
 
 local function updateStatus2()
@@ -983,26 +978,24 @@ local function smoothFastTP2(targetIndex)
     end)
 end
 
--- Gerenciador do Loop (Tecla Q)
-local function toggleAutoLoop()
-    isAutoLooping = not isAutoLooping
-    updateStatus2()
-    
-    if isAutoLooping then
-        notify("AUTO-LOOP: LIGADO", Color3.fromRGB(100, 255, 100))
-        task.spawn(function()
-            while isAutoLooping do
-                local nextIndex = (curIndex2 % #vipPos2) + 1
-                smoothFastTP2(nextIndex)
-                
-                if activeTween2 then
-                    activeTween2.Completed:Wait()
-                end
-                task.wait(0.2)
-            end
-            notify("AUTO-LOOP: DESLIGADO", Color3.fromRGB(255, 100, 100))
-        end)
+-- Função que executa o Loop
+local function startAutoLoop()
+    while isAutoLooping do
+        local nextIndex = (curIndex2 % #vipPos2) + 1
+        smoothFastTP2(nextIndex)
+
+        if activeTween2 then
+            activeTween2.Completed:Wait()
+        end
+        task.wait(0.2) -- Pausa entre pontos
+        
+        -- Segurança caso o char suma
+        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+            isAutoLooping = false
+            break
+        end
     end
+    updateStatus2()
 end
 
 -- =============================================
@@ -1015,9 +1008,10 @@ task.spawn(function()
     tpGui2.Parent = plr:WaitForChild("PlayerGui")
     
     local frame2 = Instance.new("Frame", tpGui2)
-    frame2.Size = UDim2.new(0, 220, 0, 85)
+    frame2.Size = UDim2.new(0, 220, 0, 80)
     frame2.Position = UDim2.new(0, 15, 0, 100)
     frame2.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+    frame2.BorderSizePixel = 0
     frame2.Active = true
     frame2.Draggable = true
     Instance.new("UICorner", frame2).CornerRadius = UDim.new(0, 8)
@@ -1025,14 +1019,14 @@ task.spawn(function()
     local title2 = Instance.new("TextLabel", frame2)
     title2.Size = UDim2.new(1, 0, 0, 25)
     title2.BackgroundColor3 = Color3.fromRGB(140, 80, 180)
-    title2.Text = " TP SECUNDÁRIO "
+    title2.Text = " TP SECUNDÁRIO AUTO "
     title2.TextColor3 = Color3.new(1,1,1)
     title2.Font = Enum.Font.GothamBold
     title2.TextScaled = true
     
     statusLabel2 = Instance.new("TextLabel", frame2)
     statusLabel2.Size = UDim2.new(1, -10, 1, -30)
-    statusLabel2.Position = UDim2.new(0, 5, 0, 28)
+    statusLabel2.Position = UDim2.new(0, 5, 0, 25)
     statusLabel2.BackgroundTransparency = 1
     statusLabel2.TextColor3 = Color3.fromRGB(200, 180, 255)
     statusLabel2.TextScaled = true
@@ -1041,6 +1035,9 @@ task.spawn(function()
 
     updateStatus2()
 end)
+
+notify("SISTEMA PRONTO!", Color3.fromRGB(255, 200, 0))
+
 -- =============================================
 -- Hitbox Expander com Toggle (H)
 -- =============================================
@@ -1192,32 +1189,30 @@ if inputType == Enum.UserInputType.Keyboard then
         hopServer()
         return
 
-    -- [NOVO] Q PARA AUTOMÁTICO
-    elseif keyCode == Enum.KeyCode.Q then
-        if isAutoLooping then
-            isAutoLooping = false -- Desliga o loop se já estiver ativo
-        else
-            task.spawn(startAutoLoop) -- Inicia o loop (startAutoLoop deve estar definido no seu script)
-        end
-        return
+   -- NOVO: Q PARA AUTOMÁTICO
+        elseif keyCode == Enum.KeyCode.Q then
+            isAutoLooping = not isAutoLooping
+            if isAutoLooping then
+                notify("AUTO-LOOP: LIGADO", Color3.fromRGB(100, 255, 100))
+                task.spawn(startAutoLoop)
+            else
+                notify("AUTO-LOOP: DESLIGADO", Color3.fromRGB(255, 80, 80))
+            end
+            updateStatus2()
 
-    -- [ALTERADO] R PARA MANUAL
-    elseif keyCode == Enum.KeyCode.R then
-        -- Se apertar R (manual), desligamos o automático para não dar conflito
-        if isAutoLooping then 
-            isAutoLooping = false 
-        end
-        
-        -- Calcula o próximo índice e teleporta
-        local nextIndex = (curIndex2 % #vipPos2) + 1
-        smoothFastTP2(nextIndex)
-        return
+        -- NOVO: R PARA MANUAL
+        elseif keyCode == Enum.KeyCode.R then
+            if isAutoLooping then 
+                isAutoLooping = false 
+                notify("MODO MANUAL ATIVADO", Color3.fromRGB(255, 200, 0))
+            end
+            local nextIndex = (curIndex2 % #vipPos2) + 1
+            smoothFastTP2(nextIndex)
 
-    elseif keyCode == Enum.KeyCode.RightControl then
-        smoothFastTP2(1)
-        return
-    end 
-end
+        elseif keyCode == Enum.KeyCode.RightControl then
+            smoothFastTP2(1)
+        end
+     end
 
     -- =============================================
     -- DAQUI PRA BAIXO SÓ SE VFLY ESTIVER ATIVO
