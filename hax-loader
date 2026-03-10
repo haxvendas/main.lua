@@ -908,9 +908,15 @@ game:GetService("RunService").Heartbeat:Connect(function()
         end
     end
 end)
+
+
 -- =============================================
--- CONFIGURAÇÕES E VARIÁVEIS DO TP SECUNDÁRIO
+-- TP AUTO E MANUAL
 -- =============================================
+local UIS = game:GetService("UserInputService")
+local TS = game:GetService("TweenService")
+local plr = game.Players.LocalPlayer
+
 local vipPos2 = {
     Vector3.new(448.55, 172.06, 335.86),
     Vector3.new(337.931, 104.767, 12.215),
@@ -921,42 +927,38 @@ local vipNames2 = { "SEC 1", "2", "3", "4" }
 
 local curIndex2 = 0
 local isTweening2 = false
-local isAutoLooping = false -- Controle do Loop
+local isAutoLooping = false 
 local lastInputTime2 = 0
-local DEBOUNCE2 = 0.12
+local DEBOUNCE2 = 0.15
 local activeTween2 = nil
-local statusLabel2 = nil -- Será definido na criação da GUI
+local statusLabel2 = nil 
+
+-- Função de Notificação (Placeholder caso não tenha no seu script global)
+local function notify(msg, color)
+    print("[TP]: " .. msg)
+end
 
 -- =============================================
 -- FUNÇÕES DE LÓGICA
 -- =============================================
 
--- Atualiza o texto na tela
 local function updateStatus2()
     if not statusLabel2 then return end
-    if curIndex2 == 0 then
-        statusLabel2.Text = "R → Iniciar Auto Loop"
-    else
-        local loopStatus = isAutoLooping and "<font color='rgb(100,255,100)'> [LOOP ATIVO]</font>" or ""
-        statusLabel2.Text = "R → Alternar Loop" .. loopStatus .. "\n" ..
-                            "<font color='rgb(220,200,255)'>Zona " .. curIndex2 .. "/" .. #vipPos2 ..
-                            " - " .. (vipNames2[curIndex2] or "?") .. "</font>" ..
-                            (isTweening2 and "\n<font color='rgb(255,180,100)'>Movendo...</font>" or "")
-    end
+    local loopStatus = isAutoLooping and "<font color='rgb(100,255,100)'> [AUTO ATIVO]</font>" or "<font color='rgb(255,100,100)'> [MANUAL]</font>"
+    
+    statusLabel2.Text = "Q → Alternar Auto | R → Próximo\n" ..
+                        "Status: " .. loopStatus .. "\n" ..
+                        "<font color='rgb(220,200,255)'>Zona " .. (curIndex2 == 0 and "-" or curIndex2) .. "/" .. #vipPos2 ..
+                        " - " .. (vipNames2[curIndex2] or "Aguardando") .. "</font>"
 end
 
--- Função de Teleporte Suave
 local function smoothFastTP2(targetIndex)
     if tick() - lastInputTime2 < DEBOUNCE2 then return end
     
     if activeTween2 then 
         activeTween2:Cancel() 
-        activeTween2 = nil
     end
 
-    if targetIndex > #vipPos2 then targetIndex = 1 end
-    if targetIndex < 1 then targetIndex = #vipPos2 end
-    
     local char = plr.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
@@ -968,71 +970,59 @@ local function smoothFastTP2(targetIndex)
 
     local targetPos = vipPos2[targetIndex] + Vector3.new(0, 4, 0)
     local distance = (hrp.Position - targetPos).Magnitude
-    local tweenTime = distance / 1400
-
-    -- Notificação opcional (remova se poluir muito o chat no loop)
-    if not isAutoLooping then
-        notify("→ SEC " .. targetIndex, Color3.fromRGB(200, 150, 255))
-    end
+    local speed = 1300
+    local tweenTime = distance / speed
 
     local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
-
     activeTween2 = TS:Create(hrp, tweenInfo, {
         CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
     })
 
     activeTween2:Play()
 
-    activeTween2.Completed:Connect(function(playbackState)
-        if playbackState == Enum.PlaybackState.Completed then
+    activeTween2.Completed:Connect(function(state)
+        if state == Enum.PlaybackState.Completed then
             isTweening2 = false
-            activeTween2 = nil
             updateStatus2()
         end
     end)
 end
 
--- Função que executa o Loop Infinito
-local function startAutoLoop()
-    if isAutoLooping then return end
-    isAutoLooping = true
-    notify("AUTO-LOOP: LIGADO", Color3.fromRGB(100, 255, 100))
+-- Gerenciador do Loop (Tecla Q)
+local function toggleAutoLoop()
+    isAutoLooping = not isAutoLooping
     updateStatus2()
-
-    while isAutoLooping do
-        local nextIndex = curIndex2 + 1
-        if nextIndex > #vipPos2 then nextIndex = 1 end
-        
-        smoothFastTP2(nextIndex)
-
-        -- Espera importante: Aguarda o Tween chegar no destino antes de ir para o próximo
-        if activeTween2 then
-            activeTween2.Completed:Wait()
-        end
-        
-        task.wait(0.2) -- Pausa de descanso entre cada ponto
-    end
     
-    notify("AUTO-LOOP: DESLIGADO", Color3.fromRGB(255, 100, 100))
-    updateStatus2()
+    if isAutoLooping then
+        notify("AUTO-LOOP: LIGADO", Color3.fromRGB(100, 255, 100))
+        task.spawn(function()
+            while isAutoLooping do
+                local nextIndex = (curIndex2 % #vipPos2) + 1
+                smoothFastTP2(nextIndex)
+                
+                if activeTween2 then
+                    activeTween2.Completed:Wait()
+                end
+                task.wait(0.2)
+            end
+            notify("AUTO-LOOP: DESLIGADO", Color3.fromRGB(255, 100, 100))
+        end)
+    end
 end
 
 -- =============================================
--- INTERFACE (GUI) E EVENTOS
+-- INTERFACE (GUI)
 -- =============================================
 task.spawn(function()
-    task.wait(2.0)
-    
     local tpGui2 = Instance.new("ScreenGui")
     tpGui2.Name = "SecTPGui"
     tpGui2.ResetOnSpawn = false
     tpGui2.Parent = plr:WaitForChild("PlayerGui")
     
     local frame2 = Instance.new("Frame", tpGui2)
-    frame2.Size = UDim2.new(0, 220, 0, 70)
+    frame2.Size = UDim2.new(0, 220, 0, 85)
     frame2.Position = UDim2.new(0, 15, 0, 100)
     frame2.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
-    frame2.BorderSizePixel = 0
     frame2.Active = true
     frame2.Draggable = true
     Instance.new("UICorner", frame2).CornerRadius = UDim.new(0, 8)
@@ -1040,39 +1030,21 @@ task.spawn(function()
     local title2 = Instance.new("TextLabel", frame2)
     title2.Size = UDim2.new(1, 0, 0, 25)
     title2.BackgroundColor3 = Color3.fromRGB(140, 80, 180)
-    title2.Text = " TP SECUNDÁRIO AUTO "
+    title2.Text = " TP SECUNDÁRIO "
     title2.TextColor3 = Color3.new(1,1,1)
     title2.Font = Enum.Font.GothamBold
     title2.TextScaled = true
     
     statusLabel2 = Instance.new("TextLabel", frame2)
     statusLabel2.Size = UDim2.new(1, -10, 1, -30)
-    statusLabel2.Position = UDim2.new(0, 5, 0, 25)
+    statusLabel2.Position = UDim2.new(0, 5, 0, 28)
     statusLabel2.BackgroundTransparency = 1
     statusLabel2.TextColor3 = Color3.fromRGB(200, 180, 255)
     statusLabel2.TextScaled = true
     statusLabel2.Font = Enum.Font.Gotham
-    statusLabel2.TextXAlignment = Enum.TextXAlignment.Left
     statusLabel2.RichText = true
 
     updateStatus2()
-
-    -- Evento de Morte
-    local function onDiedSec()
-        isAutoLooping = false -- Desliga o loop ao morrer
-        if activeTween2 then activeTween2:Cancel() end
-        curIndex2 = 0
-        isTweening2 = false
-        activeTween2 = nil
-        updateStatus2()
-        notify("Resetado → Auto TP desligado", Color3.fromRGB(255, 120, 120))
-    end
-
-    plr.CharacterAdded:Connect(function(char)
-        task.wait(0.3)
-        local hum = char:WaitForChild("Humanoid", 3)
-        if hum then hum.Died:Connect(onDiedSec) end
-    end)
 end)
 -- =============================================
 -- Hitbox Expander com Toggle (H)
@@ -1225,15 +1197,25 @@ if inputType == Enum.UserInputType.Keyboard then
         hopServer()
         return
 
-    -- AQUI ENTRA O LOOP AUTOMÁTICO DO R
-    elseif keyCode == Enum.KeyCode.R then
+    -- [NOVO] Q PARA AUTOMÁTICO
+    elseif keyCode == Enum.KeyCode.Q then
         if isAutoLooping then
-            isAutoLooping = false -- Desliga o loop
-            if activeTween2 then activeTween2:Cancel() end
+            isAutoLooping = false -- Desliga o loop se já estiver ativo
         else
-            -- Dispara o loop em uma thread separada para não travar o script
-            task.spawn(startAutoLoop) 
+            task.spawn(startAutoLoop) -- Inicia o loop (startAutoLoop deve estar definido no seu script)
         end
+        return
+
+    -- [ALTERADO] R PARA MANUAL
+    elseif keyCode == Enum.KeyCode.R then
+        -- Se apertar R (manual), desligamos o automático para não dar conflito
+        if isAutoLooping then 
+            isAutoLooping = false 
+        end
+        
+        -- Calcula o próximo índice e teleporta
+        local nextIndex = (curIndex2 % #vipPos2) + 1
+        smoothFastTP2(nextIndex)
         return
 
     elseif keyCode == Enum.KeyCode.RightControl then
