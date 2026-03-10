@@ -914,9 +914,9 @@ end)
 -- =============================================
 local vipPos2 = {
     Vector3.new(448.55, 172.06, 335.86),
-    Vector3.new(340.626, -34.566, 136.683),
-    Vector3.new(3600.852, -22.724, 79.799),
-    Vector3.new(340.626, -34.566, 136.683)
+    Vector3.new(344.604, -33.399, 123.946),
+    Vector3.new(3866.398, -17.399, 38.846),
+    Vector3.new(344.604, -33.399, 123.946)
 }
 local vipNames2 = { "SEC 1", "2", "3", "4" }
 
@@ -960,7 +960,7 @@ local function smoothFastTP2(targetIndex)
 
     local targetPos = vipPos2[targetIndex] + Vector3.new(0, 4, 0)
     local distance = (hrp.Position - targetPos).Magnitude
-    local speed = 1500
+    local speed = 1450
     local tweenTime = distance / speed
 
     local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
