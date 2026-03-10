@@ -360,9 +360,10 @@ end
 -- PREMIUM GOLD HUD - PRECISION TIME CHECK (FIXED BLINK)
 -- =========================================================
 task.spawn(function()
+
     local plr = game.Players.LocalPlayer
     local RunService = game:GetService("RunService")
-    
+
     local old = plr.PlayerGui:FindFirstChild("EventPanelPremium")
     if old then old:Destroy() end
 
@@ -373,101 +374,134 @@ task.spawn(function()
     gui.Parent = plr:WaitForChild("PlayerGui")
 
     local mainFrame = Instance.new("Frame", gui)
-    mainFrame.Size = UDim2.new(0, 340, 0, 140) 
-    mainFrame.Position = UDim2.new(1, -360, 1, -200) 
-    mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+    mainFrame.Size = UDim2.new(0,340,0,140)
+    mainFrame.Position = UDim2.new(1,-360,1,-200)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(10,10,12)
     mainFrame.BackgroundTransparency = 0.15
     mainFrame.BorderSizePixel = 0
-    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 14)
-    
+
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0,14)
+
     local stroke = Instance.new("UIStroke", mainFrame)
     stroke.Thickness = 2.5
-    stroke.Color = Color3.fromRGB(255, 215, 0)
+    stroke.Color = Color3.fromRGB(255,215,0)
 
     local list = Instance.new("UIListLayout", mainFrame)
-    list.Padding = UDim.new(0, 6)
+    list.Padding = UDim.new(0,6)
     list.HorizontalAlignment = Enum.HorizontalAlignment.Center
     list.VerticalAlignment = Enum.VerticalAlignment.Center
 
     local function createEventLabel()
         local lbl = Instance.new("TextLabel", mainFrame)
-        lbl.Size = UDim2.new(0.9, 0, 0, 34)
+        lbl.Size = UDim2.new(0.9,0,0,34)
         lbl.BackgroundTransparency = 1
-        lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
         lbl.TextScaled = true
-        lbl.Font = Enum.Font.GothamBold
         lbl.RichText = true
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         lbl.Text = "WAITING..."
         return lbl
     end
 
-    local slots = {createEventLabel(), createEventLabel(), createEventLabel()}
+    local slots = {
+        createEventLabel(),
+        createEventLabel(),
+        createEventLabel()
+    }
+
     local targetLabels = {}
 
     task.spawn(function()
-        while #targetLabels == 0 do
-            for _, desc in ipairs(workspace:GetDescendants()) do
-                if desc.Name == "EventTimers" then
-                    local f = desc:FindFirstChild("Frame", true)
-                    if f then
-                        targetLabels = {f:FindFirstChild("TextLabel"), f:FindFirstChild("TextLabel2"), f:FindFirstChild("TextLabel3")}
-                        break
-                    end
-                end
-            end
-            task.wait(2)
+
+        local folder = workspace
+            :WaitForChild("GameObjects")
+            :WaitForChild("PlaceSpecific")
+            :WaitForChild("root")
+            :WaitForChild("EventTimers")
+
+        for _,obj in ipairs(folder:GetChildren()) do
+
+    local gui = obj:FindFirstChildOfClass("SurfaceGui")
+    if gui then
+
+        local frame = gui:FindFirstChild("Frame")
+        if frame then
+
+            local l1 = frame:FindFirstChild("TextLabel")
+            local l2 = frame:FindFirstChild("TextLabel2")
+            local l3 = frame:FindFirstChild("TextLabel3")
+
+            if l1 then table.insert(targetLabels, l1) end
+            if l2 then table.insert(targetLabels, l2) end
+            if l3 then table.insert(targetLabels, l3) end
+
         end
-    end)
+
+    end
+
+end
+end)
 
     RunService.RenderStepped:Connect(function()
+
         local hasAnyUrgent = false
         local t = tick()
 
-        for i, slot in ipairs(slots) do
+        for i,slot in ipairs(slots) do
+
             local target = targetLabels[i]
-            
+
             if target and target.Parent then
-                local rawText = target.Text:gsub("<[^>]+>", ""):gsub("%s+", " ")
-                
-                -- LOGICA DE PRECISÃO: Extrai os minutos (ex: de "08:24" pega o "08")
-                local minutes = rawText:match("(%d+):") or rawText:match("(%d+)m")
-                local secondsOnly = not rawText:find(":") and not rawText:find("m") and rawText:find("%d+")
-                
+         
+		        slot.Visible = true
+                slot.Font = target.Font
+                slot.RichText = true
+
+                local rawText = target.Text
+                local cleanText = rawText:gsub("<[^>]+>", "")
+
+                local minutes = cleanText:match("(%d+):") or cleanText:match("(%d+)m")
+                local secondsOnly = not cleanText:find(":") and not cleanText:find("m") and cleanText:find("%d+")
+
                 local isUrgent = false
-                
+
                 if minutes then
-                    -- Só é urgente se os minutos forem 00
                     if tonumber(minutes) == 0 then
                         isUrgent = true
                     end
                 elseif secondsOnly then
-                    -- Se só tiver segundos (ex: "45s"), também é urgente
                     isUrgent = true
                 end
-                
-                slot.Text = "<font color='#FFD700'>◈</font> " .. rawText:upper()
-                slot.Visible = true
-                
+
+                local eventName = rawText:match("^(.-) IN")
+                local timePart = rawText:match("IN .+")
+
+if eventName and timePart then
+    slot.Text = "<font color='#FFD700'>◈</font> "..eventName.." <font color='#FFFFFF'>"..timePart.."</font>"
+else
+    slot.Text = "<font color='#FFD700'>◈</font> "..rawText
+end
+
                 if isUrgent then
                     hasAnyUrgent = true
-                    local pulse = (math.sin(t * 8) + 1) / 2
-                    slot.TextColor3 = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(255, 80, 80), pulse)
-                else
-                    slot.TextColor3 = Color3.new(1, 1, 1)
+                    local pulse = (math.sin(t*8)+1)/2
+                    slot.TextColor3 = Color3.new(1,1,1):Lerp(Color3.fromRGB(255,80,80),pulse)
                 end
+
             else
                 slot.Visible = false
             end
+
         end
 
         if hasAnyUrgent then
-            local blink = (t % 0.6 > 0.3)
-            stroke.Color = blink and Color3.new(1, 0, 0) or Color3.fromRGB(150, 0, 0)
+            local blink = (t%0.6 > 0.3)
+            stroke.Color = blink and Color3.new(1,0,0) or Color3.fromRGB(150,0,0)
         else
-            stroke.Color = Color3.fromRGB(255, 215, 0)
+            stroke.Color = Color3.fromRGB(255,215,0)
         end
+
     end)
+
 end)
 -- =============================================
 -- VFLY (BODYGYRO / BODYVELOCITY) - TECLA V
