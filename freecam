@@ -44,14 +44,14 @@ local TOGGLE_INPUT_PRIORITY = Enum.ContextActionPriority.Low.Value
 local INPUT_PRIORITY = Enum.ContextActionPriority.High.Value
 local FREECAM_MACRO_KB = {Enum.KeyCode.P}
 
-local NAV_GAIN = Vector3.new(1, 1, 1)*64
+local NAV_GAIN = Vector3.new(1, 1, 1)*32 -- Diminuído de 64 para 32 para mais controle
 local PAN_GAIN = Vector2.new(0.75, 1)*8
 local FOV_GAIN = 300
 
 local PITCH_LIMIT = rad(90)
 
-local VEL_STIFFNESS = 1.5
-local PAN_STIFFNESS = 1.0
+local VEL_STIFFNESS = 4.0 -- Aumentado de 1.5 para 4.0 (Para de mover mais rápido)
+local PAN_STIFFNESS = 3.0 -- Aumentado de 1.0 para 3.0 (Rotação mais firme)
 local FOV_STIFFNESS = 4.0
 
 ------------------------------------------------------------------------
@@ -162,7 +162,7 @@ local Input = {} do
 	local FOV_WHEEL_SPEED    = 1.0
 	local FOV_GAMEPAD_SPEED  = 0.25
 	local NAV_ADJ_SPEED      = 0.75
-	local NAV_SHIFT_MUL      = 0.25
+	local NAV_SHIFT_MUL      = 0.1 -- Diminuir para 0.1 torna o movimento muito lento e preciso ao segurar Shift
 
 	local navSpeed = 1
 
