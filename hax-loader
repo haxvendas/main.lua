@@ -920,9 +920,9 @@ local plr = game.Players.LocalPlayer
 
 local vipPos2 = {
     Vector3.new(448.55, 172.06, 335.86),
-    Vector3.new(337.931, 104.767, 12.215),
-    Vector3.new(3816.764, 105.091, -2.244),
-    Vector3.new(337.931, 104.767, 12.215)
+    Vector3.new(340.626, -34.566, 136.683),
+    Vector3.new(3816.764, -35.909, -2.244),
+    Vector3.new(340.626, -34.566, 136.683)
 }
 local vipNames2 = { "SEC 1", "2", "3", "4" }
 
