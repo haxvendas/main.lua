@@ -506,85 +506,101 @@ end)
 -- VFLY (BODYGYRO / BODYVELOCITY) - TECLA V
 -- =============================================
 
-local vflyEnabled = false
-local vflySpeed = 500
+local vflyEnabled = true
+local flyConnection
+local bv
+local bg
 
-local vflyGyro, vflyVel, vflyConn
+local keys = {
+    W = false,
+    A = false,
+    S = false,
+    D = false, 
+	SPACE = false
+}
 
-local function startVFly()
-    if vflyEnabled then return end
-    vflyEnabled = true
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.W then keys.W = true end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = true end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = true end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = true end
+	if input.KeyCode == Enum.KeyCode.Space then keys.Space = true end
+end)
 
-    local char = waitForCharacter()
-    if not char then return end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
-
-    hum.PlatformStand = true
-
-    vflyGyro = Instance.new("BodyGyro")
-    vflyGyro.P = 9e4
-    vflyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    vflyGyro.CFrame = cam.CFrame
-    vflyGyro.Parent = hrp
-
-    vflyVel = Instance.new("BodyVelocity")
-    vflyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    vflyVel.Velocity = Vector3.zero
-    vflyVel.Parent = hrp
-
-    vflyConn = RunService.RenderStepped:Connect(function()
-        local move = Vector3.new(
-            controls.D - controls.A,
-            controls.Space - controls.Ctrl,
-            controls.W - controls.S
-        )
-
-        if move.Magnitude > 0 then
-            move = move.Unit
-        end
-
-        local camCF = cam.CFrame
-        vflyGyro.CFrame = camCF
-
-        vflyVel.Velocity =
-            camCF.LookVector * move.Z * vflySpeed +
-            camCF.RightVector * move.X * vflySpeed +
-            Vector3.new(0, move.Y * vflySpeed, 0)
-    end)
-
-    notify("VFLY: ATIVADO", Color3.fromRGB(0, 200, 255))
-end
+UIS.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then keys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = false end
+	if input.KeyCode == Enum.KeyCode.Space then keys.Space = false end
+end)
 
 local function stopVFly()
-    vflyEnabled = false
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    if bv then bv:Destroy() bv = nil end
+    if bg then bg:Destroy() bg = nil end
+end
 
-    if vflyConn then vflyConn:Disconnect() vflyConn = nil end
-    if vflyGyro then vflyGyro:Destroy() vflyGyro = nil end
-    if vflyVel then vflyVel:Destroy() vflyVel = nil end
+function startVFly()
+    stopVFly()
 
     local char = plr.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        hum.PlatformStand = false
-    end
+    if not char then return end
 
-    notify("VFLY: DESATIVADO", Color3.fromRGB(255, 80, 80))
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local cam = workspace.CurrentCamera
+
+    bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e9,1e9,1e9)
+    bv.Velocity = Vector3.zero
+    bv.Parent = hrp
+
+    bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1e9,1e9,1e9)
+    bg.P = 1e4
+    bg.CFrame = hrp.CFrame
+    bg.Parent = hrp
+
+    flyConnection = RunService.RenderStepped:Connect(function()
+
+        local dir = Vector3.zero
+
+        if keys.W then dir += cam.CFrame.LookVector end
+        if keys.S then dir -= cam.CFrame.LookVector end
+        if keys.A then dir -= cam.CFrame.RightVector end
+        if keys.D then dir += cam.CFrame.RightVector end
+
+        bv.Velocity = dir * 500
+        bg.CFrame = cam.CFrame
+    end)
 end
--- =============================================
--- Character Added / Respawn
--- =============================================
+
 local function onCharacterAdded(char)
-    task.wait(0.6)
+
+    local hum = char:WaitForChild("Humanoid")
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    task.wait(0.3)
+
     applyGodMode()
     enableInfiniteZoom()
+
+    if vflyEnabled then
+        startVFly()
+    end
 end
 
-if plr.Character then onCharacterAdded(plr.Character) end
-plr.CharacterAdded:Connect(onCharacterAdded)
+-- personagem atual
+if plr.Character then
+    onCharacterAdded(plr.Character)
+end
 
+-- respawn
+plr.CharacterAdded:Connect(onCharacterAdded)
 -- =============================================
 -- Remove VIPWalls + Barrier
 -- =============================================
@@ -932,12 +948,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     -- TOGGLE VFLY (SEMPRE FUNCIONA)
     -- =============================================
     if inputType == Enum.UserInputType.Keyboard then
-        if keyCode == Enum.KeyCode.V then
-            if vflyEnabled then
-                stopVFly()
-            else
-                startVFly()
-            end
+         if input.KeyCode == Enum.KeyCode.V then
+        vflyEnabled = not vflyEnabled
+
+        if vflyEnabled then
+            startVFly()
+        else
+            stopVFly()
+        end
             return
         end
     end
