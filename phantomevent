@@ -32,32 +32,20 @@ local notifyBusy = false
 local scriptFullyLoaded = true
 local detected = {}
 local connections = {}
-local Noclip = nil
-local Clip = nil
+local noclipEnabled = false
 
-function noclip()
-	Clip = false
-	local function Nocl()
-		if Clip == false and game.Players.LocalPlayer.Character ~= nil then
-			for _,v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
-				if v:IsA('BasePart') and v.CanCollide and v.Name ~= floatName then
-					v.CanCollide = false
-				end
-			end
-		end
-		wait(0.21) -- basic optimization
-	end
-	Noclip = game:GetService('RunService').Stepped:Connect(Nocl)
-end
-
-function clip()
-	if Noclip then Noclip:Disconnect() end
-	Clip = true
-end
-
-noclip() -- to toggle noclip() and clip()
-
-
+RunService.Stepped:Connect(function()
+    if noclipEnabled then
+        local char = plr.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+end)
 -- =============================================
 -- Notify Function
 -- =============================================
@@ -964,7 +952,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 -- TECLAS GLOBAIS (FUNCIONAM SEM VFLY)
 -- =============================================
 if inputType == Enum.UserInputType.Keyboard then
-    
+
+    if input.KeyCode == Enum.KeyCode.N then
+    noclipEnabled = not noclipEnabled
+    notify("NOCLIP: " .. (noclipEnabled and "ON" or "OFF"), Color3.fromRGB(120,255,120))
+    return
+end
     if keyCode == Enum.KeyCode.F then
         toggleFly()
         return
