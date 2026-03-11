@@ -1213,12 +1213,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     -- TOGGLE VFLY (SEMPRE FUNCIONA)
     -- =============================================
     if inputType == Enum.UserInputType.Keyboard then
-        if keyCode == Enum.KeyCode.V then
-            if vflyEnabled then
-                stopVFly()
-            else
-                startVFly()
-            end
+         if input.KeyCode == Enum.KeyCode.V then
+        vflyEnabled = not vflyEnabled
+
+        if vflyEnabled then
+            startVFly()
+        else
+            stopVFly()
+        end
             return
         end
     end
