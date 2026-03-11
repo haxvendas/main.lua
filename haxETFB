@@ -948,7 +948,7 @@ end)
 local vipPos2 = {
     Vector3.new(448.55, 172.06, 335.86),
     Vector3.new(344.604, -33.399, 123.946),
-    Vector3.new(2567.058, -17.953, -17.336),
+    Vector3.new(4021.991, -17.010, -24.029)),
     Vector3.new(344.604, -33.399, 123.946)
 }
 local vipNames2 = { "SEC 1", "2", "3", "4" }
@@ -957,7 +957,7 @@ local curIndex2 = 0
 local isTweening2 = false
 local isAutoLooping = false 
 local lastInputTime2 = 0
-local DEBOUNCE2 = 0.15
+local DEBOUNCE2 = 0.05
 local activeTween2 = nil
 local statusLabel2 = nil 
 
@@ -1020,7 +1020,7 @@ local function startAutoLoop()
         if activeTween2 then
             activeTween2.Completed:Wait()
         end
-        task.wait(0.2) -- Pausa entre pontos
+        task.wait(0.1) -- Pausa entre pontos
         
         -- Segurança caso o char suma
         if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -1070,6 +1070,7 @@ task.spawn(function()
 end)
 
 notify("SISTEMA PRONTO!", Color3.fromRGB(255, 200, 0))
+
 
 -- =============================================
 -- Hitbox Expander com Toggle (H)
