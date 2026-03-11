@@ -773,7 +773,7 @@ local function startAutoLoop()
         if activeTween2 then
             activeTween2.Completed:Wait()
         end
-        task.wait(0.2) -- Pausa entre pontos
+        task.wait(0.1) -- Pausa entre pontos
         
         -- Segurança caso o char suma
         if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
