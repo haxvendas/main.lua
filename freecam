@@ -162,7 +162,7 @@ local Input = {} do
 	local FOV_WHEEL_SPEED    = 1.0
 	local FOV_GAMEPAD_SPEED  = 0.25
 	local NAV_ADJ_SPEED      = 0.75
-	local NAV_SHIFT_MUL      = 0.1 -- Diminuir para 0.1 torna o movimento muito lento e preciso ao segurar Shift
+	local NAV_SHIFT_MUL      = 1 -- Diminuir para 0.1 torna o movimento muito lento e preciso ao segurar Shift
 
 	local navSpeed = 1
 
