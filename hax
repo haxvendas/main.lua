@@ -553,7 +553,6 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/B
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/freecam"))();
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))(); 
 
 if not game:IsLoaded() then game.Loaded:wait() end
 local Players = game:GetService("Players")
@@ -599,4 +598,6 @@ RunService.RenderStepped:Connect(function()
             end
         end
     end
-end)
+end);
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))(); 
