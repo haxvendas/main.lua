@@ -6,6 +6,17 @@ end
 local Players     = game:GetService("Players") 
 local RunService  = game:GetService("RunService")
 local UIS         = game:GetService("UserInputService")
+UIS.JumpRequest:Connect(function()
+
+    if flying or vflyEnabled then
+        controls.Space = 1
+
+        task.delay(0.15,function()
+            controls.Space = 0
+        end)
+    end
+
+end)
 local Http        = game:GetService("HttpService")
 local TS          = game:GetService("TweenService")
 local Teleport    = game:GetService("TeleportService")
@@ -24,7 +35,6 @@ local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
 
 local smoothFastTP
 local smoothFastTP2
-local isAutoLooping = false
 
 local TeleportService = game:GetService("TeleportService")
 
@@ -157,7 +167,6 @@ local function updateFly()
         hrp.CFrame = hrp.CFrame + vel * flySpeed 
     end
 end
-
 local function toggleFly()
     if not scriptFullyLoaded then return end
     flying = not flying
@@ -754,22 +763,27 @@ end
 
 -- Função que executa o Loop
 local function startAutoLoop()
+
     while isAutoLooping do
+
         local nextIndex = (curIndex2 % #vipPos2) + 1
         smoothFastTP2(nextIndex)
 
         if activeTween2 then
             activeTween2.Completed:Wait()
         end
-        task.wait(0.2) -- Pausa entre pontos
-        
-        -- Segurança caso o char suma
-        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
-            isAutoLooping = false
-            break
+
+        -- tempo diferente para SEC 1
+        if nextIndex == 1 then
+            task.wait(0.39)
+        else
+            task.wait(0.1)
         end
+
     end
+
     updateStatus2()
+
 end
 
 -- =============================================
@@ -1046,50 +1060,126 @@ UserInputService.InputEnded:Connect(function(input)
     elseif key == Enum.KeyCode.LeftControl then controls.Ctrl = 0
     end
 end)
+-- =============================================
+-- MOBILE SUPPORT (JOYSTICK)
+-- =============================================
+RunService.RenderStepped:Connect(function()
 
+    if not scriptFullyLoaded then return end
+
+    local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+
+    local move = hum.MoveDirection
+
+    controls.W = move.Z < -0.1 and 1 or 0
+    controls.S = move.Z > 0.1 and 1 or 0
+    controls.A = move.X < -0.1 and 1 or 0
+    controls.D = move.X > 0.1 and 1 or 0
+
+end)
+-- =============================================
+-- BOTÃO DE PULAR DO MOBILE = SUBIR NO FLY
+-- =============================================
+UserInputService.JumpRequest:Connect(function()
+
+    if flying then
+        controls.Space = 1
+
+        task.delay(0.2,function()
+            controls.Space = 0
+        end)
+    end
+
+end)
 -- =============================================
 -- Final
 -- =============================================
 notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0))
+
 local gui = Instance.new("ScreenGui")
-gui.Name = "HaxHub"
-gui.Parent = plr.PlayerGui
+gui.Name = "HaxPremiumHub"
 gui.ResetOnSpawn = false
+gui.Parent = plr.PlayerGui
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0,220,0,260)
-frame.Position = UDim2.new(0,20,0.5,-130)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,25)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
+-- FRAME PRINCIPAL
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0,260,0,320)
+main.Position = UDim2.new(0,20,0.5,-160)
+main.BackgroundColor3 = Color3.fromRGB(15,15,20)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
 
-Instance.new("UICorner",frame).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner",main).CornerRadius = UDim.new(0,10)
 
-local layout = Instance.new("UIListLayout",frame)
+local stroke = Instance.new("UIStroke",main)
+stroke.Color = Color3.fromRGB(0,255,140)
+stroke.Thickness = 2
+
+-- TOPO
+local top = Instance.new("Frame",main)
+top.Size = UDim2.new(1,0,0,35)
+top.BackgroundColor3 = Color3.fromRGB(20,20,25)
+top.BorderSizePixel = 0
+
+Instance.new("UICorner",top).CornerRadius = UDim.new(0,10)
+
+local title = Instance.new("TextLabel",top)
+title.Size = UDim2.new(1,-60,1,0)
+title.Position = UDim2.new(0,10,0,0)
+title.BackgroundTransparency = 1
+title.Text = "HAX PREMIUM HUB"
+title.TextColor3 = Color3.fromRGB(0,255,140)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- BOTÃO MINIMIZAR
+local minimize = Instance.new("TextButton",top)
+minimize.Size = UDim2.new(0,30,0,30)
+minimize.Position = UDim2.new(1,-35,0,2)
+minimize.Text = "-"
+minimize.BackgroundColor3 = Color3.fromRGB(30,30,35)
+minimize.TextColor3 = Color3.new(1,1,1)
+minimize.Font = Enum.Font.GothamBold
+minimize.TextSize = 18
+Instance.new("UICorner",minimize)
+
+-- AREA DE BOTÕES
+local container = Instance.new("Frame",main)
+container.Size = UDim2.new(1,0,1,-40)
+container.Position = UDim2.new(0,0,0,40)
+container.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout",container)
 layout.Padding = UDim.new(0,6)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-local function makeButton(text,callback)
+-- FUNÇÃO DE BOTÃO
+local function createButton(text,callback)
 
     local btn = Instance.new("TextButton")
-    btn.Parent = frame
-    btn.Size = UDim2.new(1,-10,0,30)
-    btn.Position = UDim2.new(0,5,0,0)
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(40,40,50)
+    btn.Parent = container
+    btn.Size = UDim2.new(0.9,0,0,32)
+    btn.BackgroundColor3 = Color3.fromRGB(35,35,45)
     btn.TextColor3 = Color3.new(1,1,1)
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 14
+    btn.Text = text
 
     Instance.new("UICorner",btn).CornerRadius = UDim.new(0,6)
 
     btn.MouseButton1Click:Connect(callback)
+
 end
-makeButton("Fly", function()
+
+-- BOTÕES
+createButton("Fly", function()
     toggleFly()
 end)
 
-makeButton("VFly", function()
+createButton("VFly", function()
     vflyEnabled = not vflyEnabled
     if vflyEnabled then
         startVFly()
@@ -1098,21 +1188,40 @@ makeButton("VFly", function()
     end
 end)
 
-makeButton("Noclip", function()
+createButton("Noclip", function()
     noclipEnabled = not noclipEnabled
 end)
 
-makeButton("Server Hop", function()
+createButton("Server Hop", function()
     hopServer()
 end)
 
-makeButton("Hitbox Expander", function()
+createButton("Hitbox Expander", function()
     toggleHitboxExpander()
 end)
 
-makeButton("Auto TP", function()
+createButton("Auto TP", function()
     isAutoLooping = not isAutoLooping
     if isAutoLooping then
         task.spawn(startAutoLoop)
     end
+end)
+
+-- MINIMIZAR
+local minimized = false
+
+minimize.MouseButton1Click:Connect(function()
+
+    minimized = not minimized
+
+    if minimized then
+        container.Visible = false
+        main.Size = UDim2.new(0,260,0,40)
+        minimize.Text = "+"
+    else
+        container.Visible = true
+        main.Size = UDim2.new(0,260,0,320)
+        minimize.Text = "-"
+    end
+
 end)
