@@ -1,0 +1,1118 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/freecam"))();
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+local Players     = game:GetService("Players") 
+local RunService  = game:GetService("RunService")
+local UIS         = game:GetService("UserInputService")
+local Http        = game:GetService("HttpService")
+local TS          = game:GetService("TweenService")
+local Teleport    = game:GetService("TeleportService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+local plr         = Players.LocalPlayer
+local cam         = workspace.CurrentCamera
+
+local backpack = plr:WaitForChild("Backpack")
+
+local flying      = false
+local flySpeed    = 5
+local autoCollect = false
+local godConns    = {}
+local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
+
+local smoothFastTP
+local smoothFastTP2
+local isAutoLooping = false
+
+local TeleportService = game:GetService("TeleportService")
+
+local notifyBusy = false
+local scriptFullyLoaded = true
+local detected = {}
+local connections = {}
+local noclipEnabled = false
+
+RunService.Stepped:Connect(function()
+    if noclipEnabled then
+        local char = plr.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+-- =============================================
+-- Notify Function
+-- =============================================
+local function notify(msg, color)
+    color = color or Color3.fromRGB(0, 170, 255)
+    
+    if notifyBusy then task.wait(0.4) end
+    notifyBusy = true
+    
+    task.spawn(function()
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "HaxNotify"
+        gui.Parent = plr:WaitForChild("PlayerGui")
+        
+        local main = Instance.new("Frame", gui)
+        main.Size = UDim2.new(0, 0, 0, 35)
+        main.Position = UDim2.new(0.5, 0, 0.08, 0)
+        main.AnchorPoint = Vector2.new(0.5, 0.5)
+        main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+        main.BackgroundTransparency = 0.25
+        main.BorderSizePixel = 0
+        main.ClipsDescendants = true
+        
+        local corner = Instance.new("UICorner", main)
+        corner.CornerRadius = UDim.new(0, 6)
+        
+        local accent = Instance.new("Frame", main)
+        accent.Size = UDim2.new(0, 4, 1, 0)
+        accent.BackgroundColor3 = color
+        accent.BorderSizePixel = 0
+        
+        local txt = Instance.new("TextLabel", main)
+        txt.Size = UDim2.new(1, -30, 1, 0)
+        txt.Position = UDim2.new(0, 15, 0, 0)
+        txt.BackgroundTransparency = 1
+        txt.Font = Enum.Font.GothamMedium
+        txt.Text = msg
+        txt.TextColor3 = Color3.new(1,1,1)
+        txt.TextSize = 15
+        txt.TextXAlignment = Enum.TextXAlignment.Left
+        txt.RichText = true
+        
+        TS:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {
+            Size = UDim2.new(0, 280, 0, 40)
+        }):Play()
+        
+        task.wait(3.2)
+        
+        local tweenOut = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {
+            Size = UDim2.new(0, 0, 0, 40),
+            BackgroundTransparency = 1
+        })
+        tweenOut:Play()
+        
+        tweenOut.Completed:Connect(function()
+            gui:Destroy()
+            notifyBusy = false
+        end)
+    end)
+end
+
+
+-- =============================================
+-- Espera personagem
+-- ============================================= 
+local function waitForCharacter(timeout)
+    timeout = timeout or 1
+    local start = tick()
+    while not plr.Character and tick() - start < timeout do
+        task.wait()
+    end
+    return plr.Character
+end
+
+-- =============================================
+-- Inicialização
+-- =============================================
+task.spawn(function()
+    task.wait(1)  -- reduzido
+    scriptFullyLoaded = true
+    enableInfiniteZoom()
+    applyGodMode()
+    notify("HAX CARREGADO!", Color3.fromRGB(0, 255, 140))
+end)
+
+-- =============================================
+-- Infinite Zoom
+-- =============================================
+function enableInfiniteZoom()
+    if not scriptFullyLoaded then return end
+    plr.CameraMaxZoomDistance = 40000
+    plr.CameraMinZoomDistance = 0.5
+end
+
+-- =============================================
+-- Fly (F)
+-- =============================================
+local function updateFly()
+    if not flying or not scriptFullyLoaded then return end
+    local move = Vector3.new(controls.D - controls.A, controls.Space - controls.Ctrl, controls.W - controls.S)
+    if move.Magnitude > 0 then move = move.Unit end
+    
+    local look = cam.CFrame.LookVector
+    local right = cam.CFrame.RightVector
+    local vel = look * move.Z + right * move.X + Vector3.new(0, move.Y, 0)
+    
+    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then 
+        hrp.CFrame = hrp.CFrame + vel * flySpeed 
+    end
+end
+
+local function toggleFly()
+    if not scriptFullyLoaded then return end
+    flying = not flying
+    local char = waitForCharacter()
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+    
+    hrp.Anchored = flying
+    hum.PlatformStand = flying
+    
+    if flying then
+        RunService:BindToRenderStep("CFly", Enum.RenderPriority.Character.Value + 1, updateFly)
+        notify("FLY: ATIVADO", Color3.fromRGB(0, 255, 120))
+    else
+        RunService:UnbindFromRenderStep("CFly")
+        notify("FLY: DESATIVADO", Color3.fromRGB(255, 70, 70))
+    end
+end
+
+-- =============================================
+-- GodMode
+-- =============================================
+function applyGodMode()
+    if not scriptFullyLoaded then return end
+    local char = waitForCharacter()
+    if not char then return end
+    
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    
+    -- Limpa conexões antigas
+    for _, conn in godConns do pcall(conn.Disconnect, conn) end
+    godConns = {}
+    
+    hum.MaxHealth = math.huge
+    hum.Health = math.huge
+    hum.JumpPower = 50
+    
+    table.insert(godConns, hum.HealthChanged:Connect(function(h)
+        if h < math.huge then
+            hum.Health = math.huge
+        end
+    end))
+    
+    table.insert(godConns, hum.Died:Connect(function()
+        task.wait(0.1)
+        hum.Health = math.huge
+        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+    end))
+    
+    table.insert(godConns, RunService.Heartbeat:Connect(function()
+        local s = hum:GetState()
+        if s == Enum.HumanoidStateType.Ragdoll or s == Enum.HumanoidStateType.Physics or s == Enum.HumanoidStateType.FallingDown then
+            hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+        end
+        
+        for _, v in hum:GetChildren() do
+            if (v:IsA("BoolValue") or v:IsA("NumberValue")) and v.Name:lower():find("stun|slow|poison|bleed|knock") then
+                v:Destroy()
+            end
+        end
+    end))
+end
+
+-- =============================================
+--              S E R V E R   H O P   (T)
+-- =============================================
+
+local function hopServer()
+    print("🔄 HOPPING SERVER... (procurando servidor com poucos players)")
+    
+    local success, servers = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+    end)
+    
+    if success and servers and servers.data then
+        for _, v in pairs(servers.data) do
+            if type(v) == "table" and v.playing and v.maxPlayers and v.playing < v.maxPlayers and v.id and #v.id > 10 then
+                print("🚀 Teleportando para servidor com " .. v.playing .. "/" .. v.maxPlayers .. " players")
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
+                return
+            end
+        end
+    end
+    
+    -- Fallback: teleport aleatório se não achar
+    print("⚠️ Fallback: teleport aleatório")
+    TeleportService:Teleport(game.PlaceId, plr)
+end
+
+-- =============================================
+-- Insta Prompt + Infinite Jump
+-- =============================================
+local function instaPrompt(p)
+    if p:IsA("ProximityPrompt") then 
+        p.HoldDuration = 0
+        p.RequiresLineOfSight = false
+        p.MaxActivationDistance = 15
+    end
+end
+
+task.spawn(function()
+    task.wait(1.5)
+    workspace.DescendantAdded:Connect(instaPrompt)
+    for _, v in workspace:GetDescendants() do instaPrompt(v) end
+end)
+
+UIS.JumpRequest:Connect(function()
+    if not scriptFullyLoaded then return end
+    local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
+    if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+end)
+
+
+-- =============================================
+-- AUTO DEPOSIT - SISTEMA PERSISTENTE (V3)
+-- =============================================
+local function setupAutoDeposit()
+    local function activatePrompt(prompt)
+        if not prompt or not prompt:IsA("ProximityPrompt") then return end
+        prompt.HoldDuration = 0
+        prompt.RequiresLineOfSight = false
+        prompt.MaxActivationDistance = 30
+        
+        task.spawn(function()
+            while prompt and prompt.Parent and prompt.Enabled do
+                pcall(fireproximityprompt, prompt)
+                task.wait(0.18)
+            end
+        end)
+    end
+
+    local function scanForCannon()
+        local pMap = workspace:FindFirstChild("PhantomMap")
+        if not pMap then return end
+        
+        local cannon = pMap:FindFirstChild("GhostCannon")
+        if not cannon then return end
+        
+        local part = cannon:FindFirstChild("Part")
+        if not part then return end
+        
+        local prompts = part:FindFirstChild("Prompts")
+        if not prompts then return end
+        
+        for _, prompt in prompts:GetChildren() do
+            activatePrompt(prompt)
+        end
+    end
+
+    -- Primeira tentativa
+    task.wait(1.5)
+    scanForCannon()
+
+    -- Monitora novos PhantomMap
+    workspace.ChildAdded:Connect(function(child)
+        if child.Name == "PhantomMap" then
+            task.wait(1.2)
+            scanForCannon()
+        end
+    end)
+    
+    -- Monitora já existentes (caso recarregue rápido)
+    for _, map in workspace:GetChildren() do
+        if map.Name == "PhantomMap" then
+            task.spawn(scanForCannon)
+        end
+    end
+end
+
+task.spawn(setupAutoDeposit)
+
+-- Parte do Brainrot (Mantida)
+local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
+if brainrotFolder then
+    local conn = brainrotFolder.DescendantAdded:Connect(function()
+        task.delay(0.3, scanBrainrotMutations)
+    end)
+    table.insert(connections, conn)
+end
+
+
+-- =========================================================
+-- PREMIUM GOLD HUD - PRECISION TIME CHECK (FIXED BLINK)
+-- =========================================================
+task.spawn(function()
+
+    local plr = game.Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+
+    local old = plr.PlayerGui:FindFirstChild("EventPanelPremium")
+    if old then old:Destroy() end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "EventPanelPremium"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.Parent = plr:WaitForChild("PlayerGui")
+
+    local mainFrame = Instance.new("Frame", gui)
+    mainFrame.Size = UDim2.new(0,340,0,140)
+    mainFrame.Position = UDim2.new(1,-360,1,-200)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(10,10,12)
+    mainFrame.BackgroundTransparency = 0.15
+    mainFrame.BorderSizePixel = 0
+
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0,14)
+
+    local stroke = Instance.new("UIStroke", mainFrame)
+    stroke.Thickness = 2.5
+    stroke.Color = Color3.fromRGB(255,215,0)
+
+    local list = Instance.new("UIListLayout", mainFrame)
+    list.Padding = UDim.new(0,6)
+    list.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    list.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local function createEventLabel()
+        local lbl = Instance.new("TextLabel", mainFrame)
+        lbl.Size = UDim2.new(0.9,0,0,34)
+        lbl.BackgroundTransparency = 1
+        lbl.TextScaled = true
+        lbl.RichText = true
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Text = "WAITING..."
+        return lbl
+    end
+
+    local slots = {
+        createEventLabel(),
+        createEventLabel(),
+        createEventLabel()
+    }
+
+    local targetLabels = {}
+
+    task.spawn(function()
+
+        local folder = workspace
+            :WaitForChild("GameObjects")
+            :WaitForChild("PlaceSpecific")
+            :WaitForChild("root")
+            :WaitForChild("EventTimers")
+
+        for _,obj in ipairs(folder:GetChildren()) do
+
+    local gui = obj:FindFirstChildOfClass("SurfaceGui")
+    if gui then
+
+        local frame = gui:FindFirstChild("Frame")
+        if frame then
+
+            local l1 = frame:FindFirstChild("TextLabel")
+            local l2 = frame:FindFirstChild("TextLabel2")
+            local l3 = frame:FindFirstChild("TextLabel3")
+
+            if l1 then table.insert(targetLabels, l1) end
+            if l2 then table.insert(targetLabels, l2) end
+            if l3 then table.insert(targetLabels, l3) end
+
+        end
+
+    end
+
+end
+end)
+
+    RunService.RenderStepped:Connect(function()
+
+        local hasAnyUrgent = false
+        local t = tick()
+
+        for i,slot in ipairs(slots) do
+
+            local target = targetLabels[i]
+
+            if target and target.Parent then
+         
+		        slot.Visible = true
+                slot.Font = target.Font
+                slot.RichText = true
+
+                local rawText = target.Text
+                local cleanText = rawText:gsub("<[^>]+>", "")
+
+                local minutes = cleanText:match("(%d+):") or cleanText:match("(%d+)m")
+                local secondsOnly = not cleanText:find(":") and not cleanText:find("m") and cleanText:find("%d+")
+
+                local isUrgent = false
+
+                if minutes then
+                    if tonumber(minutes) == 0 then
+                        isUrgent = true
+                    end
+                elseif secondsOnly then
+                    isUrgent = true
+                end
+
+                local eventName = rawText:match("^(.-) IN")
+                local timePart = rawText:match("IN .+")
+
+if eventName and timePart then
+    slot.Text = "<font color='#FFD700'>◈</font> "..eventName.." <font color='#FFFFFF'>"..timePart.."</font>"
+else
+    slot.Text = "<font color='#FFD700'>◈</font> "..rawText
+end
+
+                if isUrgent then
+                    hasAnyUrgent = true
+                    local pulse = (math.sin(t*8)+1)/2
+                    slot.TextColor3 = Color3.new(1,1,1):Lerp(Color3.fromRGB(255,80,80),pulse)
+                end
+
+            else
+                slot.Visible = false
+            end
+
+        end
+
+        if hasAnyUrgent then
+            local blink = (t%0.6 > 0.3)
+            stroke.Color = blink and Color3.new(1,0,0) or Color3.fromRGB(150,0,0)
+        else
+            stroke.Color = Color3.fromRGB(255,215,0)
+        end
+
+    end)
+
+end)
+-- =============================================
+-- VFLY (BODYGYRO / BODYVELOCITY) - TECLA V
+-- =============================================
+
+local vflyEnabled = true
+local flyConnection
+local bv
+local bg
+
+local keys = {
+    W = false,
+    A = false,
+    S = false,
+    D = false, 
+	SPACE = false
+}
+
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.W then keys.W = true end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = true end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = true end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = true end
+	if input.KeyCode == Enum.KeyCode.Space then keys.Space = true end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then keys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = false end
+	if input.KeyCode == Enum.KeyCode.Space then keys.Space = false end
+end)
+
+local function stopVFly()
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    if bv then bv:Destroy() bv = nil end
+    if bg then bg:Destroy() bg = nil end
+end
+
+function startVFly()
+    stopVFly()
+
+    local char = plr.Character
+    if not char then return end
+
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local cam = workspace.CurrentCamera
+
+    bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e9,1e9,1e9)
+    bv.Velocity = Vector3.zero
+    bv.Parent = hrp
+
+    bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1e9,1e9,1e9)
+    bg.P = 1e4
+    bg.CFrame = hrp.CFrame
+    bg.Parent = hrp
+
+    flyConnection = RunService.RenderStepped:Connect(function()
+
+        local dir = Vector3.zero
+
+        if keys.W then dir += cam.CFrame.LookVector end
+        if keys.S then dir -= cam.CFrame.LookVector end
+        if keys.A then dir -= cam.CFrame.RightVector end
+        if keys.D then dir += cam.CFrame.RightVector end
+
+        bv.Velocity = dir * 500
+        bg.CFrame = cam.CFrame
+    end)
+end
+
+local function onCharacterAdded(char)
+
+    local hum = char:WaitForChild("Humanoid")
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    task.wait(0.3)
+
+    applyGodMode()
+    enableInfiniteZoom()
+
+    if vflyEnabled then
+        startVFly()
+    end
+end
+
+-- personagem atual
+if plr.Character then
+    onCharacterAdded(plr.Character)
+end
+
+-- respawn
+plr.CharacterAdded:Connect(onCharacterAdded)
+-- =============================================
+-- Remove VIPWalls + Barrier
+-- =============================================
+task.spawn(function()
+    task.wait(3)
+
+    local function tryRemove(obj)
+        -- Remove VIPWalls
+        if obj.Name == "VIPWalls" and obj:IsA("Model") then
+            obj:Destroy()
+        end
+
+        -- Remove Workspace.Barriers.Barrier
+        if obj.Name == "Barrier" and obj.Parent 
+            and obj.Parent.Name == "Barriers"
+            and obj.Parent.Parent == workspace then
+            obj:Destroy()
+        end
+    end
+    
+    -- Remove os que já existem
+    for _, obj in workspace:GetDescendants() do
+        tryRemove(obj)
+    end
+
+    -- Remove os que spawnarem depois
+    workspace.DescendantAdded:Connect(tryRemove)
+end)
+local workspace = game:GetService("Workspace")
+local objetoParaDeletar = workspace:FindFirstChild("___")
+
+if objetoParaDeletar then
+    objetoParaDeletar:Destroy()
+    print("Objeto deletado com sucesso.")
+else
+    warn("O objeto não foi encontrado no Workspace.")
+end
+
+-- =================================
+-- MAGNET POR TOQUE - MULTI-ORB & SHARD FIX
+-- =================================
+
+local MAGNET_DISTANCE = 100000
+local COOLDOWN = 0.01
+
+local lastTouch = {}
+
+local function getHRP()
+    local char = game.Players.LocalPlayer.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function tryTouch(part, hrp)
+    if not part or not hrp or not part:IsA("BasePart") then return end
+    
+    local dist = (part.Position - hrp.Position).Magnitude
+
+    if dist <= MAGNET_DISTANCE then
+        if not lastTouch[part] or tick() - lastTouch[part] > COOLDOWN then
+            firetouchinterest(hrp, part, 0)
+            firetouchinterest(hrp, part, 1)
+            lastTouch[part] = tick()
+        end
+    end
+end
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    local hrp = getHRP()
+    if not hrp then return end
+
+    -- 3. PHANTOM ORBS (Pega 1, 2, 3... qualquer um dentro da pasta)
+    local orbFolder = workspace:FindFirstChild("PhantomOrbParts")
+    if orbFolder then
+        for _, orb in ipairs(orbFolder:GetChildren()) do
+            local hitbox = orb:FindFirstChild("Hitbox")
+            if hitbox then
+                tryTouch(hitbox, hrp)
+            end
+        end
+    end
+
+    -- 4. PHANTOM SHARDS (Pega todos os shards na pasta)
+    local shardFolder = workspace:FindFirstChild("PhantomShardParts")
+    if shardFolder then
+        for _, shard in ipairs(shardFolder:GetChildren()) do
+            local hitbox = shard:FindFirstChild("Hitbox")
+            if hitbox then
+                tryTouch(hitbox, hrp)
+            end
+        end
+    end
+end)
+
+
+-- =============================================
+-- TP AUTO E MANUAL (CONFIGURAÇÃO)
+-- =============================================
+local vipPos2 = {
+    Vector3.new(448.55, 172.06, 335.86),
+    Vector3.new(344.604, -33.399, 123.946),
+    Vector3.new(4021.991, -17.010, -24.029),
+    Vector3.new(344.604, -33.399, 123.946)
+}
+local vipNames2 = { "SEC 1", "2", "3", "4" }
+
+local curIndex2 = 0
+local isTweening2 = false
+local isAutoLooping = false 
+local lastInputTime2 = 0
+local DEBOUNCE2 = 0.05
+local activeTween2 = nil
+local statusLabel2 = nil 
+
+-- =============================================
+-- FUNÇÕES DE LÓGICA DO TP
+-- =============================================
+
+local function updateStatus2()
+    if not statusLabel2 then return end
+    local loopStatus = isAutoLooping and "<font color='rgb(100,255,100)'> [AUTO ATIVO]</font>" or "<font color='rgb(255,100,100)'> [MANUAL]</font>"
+    
+    statusLabel2.Text = "Q → Alternar Auto | R → Próximo\n" ..
+                        "Status: " .. loopStatus .. "\n" ..
+                        "<font color='rgb(220,200,255)'>Zona " .. (curIndex2 == 0 and "-" or curIndex2) .. "/" .. #vipPos2 ..
+                        " - " .. (vipNames2[curIndex2] or "Aguardando") .. "</font>"
+end
+
+local function smoothFastTP2(targetIndex)
+    if tick() - lastInputTime2 < DEBOUNCE2 then return end
+    
+    if activeTween2 then 
+        activeTween2:Cancel() 
+    end
+
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    isTweening2 = true
+    lastInputTime2 = tick()
+    curIndex2 = targetIndex 
+    updateStatus2()
+
+    local targetPos = vipPos2[targetIndex] + Vector3.new(0, 4, 0)
+    local distance = (hrp.Position - targetPos).Magnitude
+    local speed = 1500
+    local tweenTime = distance / speed
+
+    local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
+    activeTween2 = TS:Create(hrp, tweenInfo, {
+        CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
+    })
+
+    activeTween2:Play()
+
+    activeTween2.Completed:Connect(function(state)
+        if state == Enum.PlaybackState.Completed then
+            isTweening2 = false
+            updateStatus2()
+        end
+    end)
+end
+
+-- Função que executa o Loop
+local function startAutoLoop()
+    while isAutoLooping do
+        local nextIndex = (curIndex2 % #vipPos2) + 1
+        smoothFastTP2(nextIndex)
+
+        if activeTween2 then
+            activeTween2.Completed:Wait()
+        end
+        task.wait(0.1) -- Pausa entre pontos
+        
+        -- Segurança caso o char suma
+        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+            isAutoLooping = false
+            break
+        end
+    end
+    updateStatus2()
+end
+
+-- =============================================
+-- INTERFACE (GUI)
+-- =============================================
+task.spawn(function()
+    local tpGui2 = Instance.new("ScreenGui")
+    tpGui2.Name = "SecTPGui"
+    tpGui2.ResetOnSpawn = false
+    tpGui2.Parent = plr:WaitForChild("PlayerGui")
+    
+    local frame2 = Instance.new("Frame", tpGui2)
+    frame2.Size = UDim2.new(0, 220, 0, 80)
+    frame2.Position = UDim2.new(0, 15, 0, 100)
+    frame2.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+    frame2.BorderSizePixel = 0
+    frame2.Active = true
+    frame2.Draggable = true
+    Instance.new("UICorner", frame2).CornerRadius = UDim.new(0, 8)
+    
+    local title2 = Instance.new("TextLabel", frame2)
+    title2.Size = UDim2.new(1, 0, 0, 25)
+    title2.BackgroundColor3 = Color3.fromRGB(140, 80, 180)
+    title2.Text = " TP SECUNDÁRIO AUTO "
+    title2.TextColor3 = Color3.new(1,1,1)
+    title2.Font = Enum.Font.GothamBold
+    title2.TextScaled = true
+    
+    statusLabel2 = Instance.new("TextLabel", frame2)
+    statusLabel2.Size = UDim2.new(1, -10, 1, -30)
+    statusLabel2.Position = UDim2.new(0, 5, 0, 25)
+    statusLabel2.BackgroundTransparency = 1
+    statusLabel2.TextColor3 = Color3.fromRGB(200, 180, 255)
+    statusLabel2.TextScaled = true
+    statusLabel2.Font = Enum.Font.Gotham
+    statusLabel2.RichText = true
+
+    updateStatus2()
+end)
+
+notify("SISTEMA PRONTO!", Color3.fromRGB(255, 200, 0))
+
+-- =============================================
+-- Hitbox Expander com Toggle (H)
+-- =============================================
+
+local hitboxExpanded = false
+local originalSizes = {}           -- guarda tamanhos originais por tool
+local NOVO_TAMANHO = Vector3.new(40, 40, 40)
+local HITBOX_TRANSPARENCY = 0.7   -- 1 = invisível, 0.7 = semi-visível pra debug
+
+local function expandHitboxes()
+    local backpack = plr:WaitForChild("Backpack")
+    local character = plr.Character
+    
+    -- Salva tamanhos originais (só na primeira expansão)
+    if not hitboxExpanded then
+        originalSizes = {}
+        
+        -- Backpack
+        for _, tool in backpack:GetChildren() do
+            if tool:IsA("Tool") then
+                local hitbox = tool:FindFirstChild("Hitbox", true)
+                if hitbox and hitbox:IsA("BasePart") then
+                    originalSizes[tool] = hitbox.Size
+                end
+            end
+        end
+        
+        -- Character (ferramentas equipadas)
+        if character then
+            for _, tool in character:GetChildren() do
+                if tool:IsA("Tool") then
+                    local hitbox = tool:FindFirstChild("Hitbox", true)
+                    if hitbox and hitbox:IsA("BasePart") then
+                        originalSizes[tool] = hitbox.Size
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Aplica novo tamanho
+    local count = 0
+    
+    -- Backpack
+    for _, tool in backpack:GetChildren() do
+        if tool:IsA("Tool") then
+            local hitbox = tool:FindFirstChild("Hitbox", true)
+            if hitbox and hitbox:IsA("BasePart") then
+                hitbox.Size = NOVO_TAMANHO
+                hitbox.Transparency = HITBOX_TRANSPARENCY
+                hitbox.CanCollide = false
+                count += 1
+            end
+        end
+    end
+    
+    -- Character (equipada)
+    if character then
+        for _, tool in character:GetChildren() do
+            if tool:IsA("Tool") then
+                local hitbox = tool:FindFirstChild("Hitbox", true)
+                if hitbox and hitbox:IsA("BasePart") then
+                    hitbox.Size = NOVO_TAMANHO
+                    hitbox.Transparency = HITBOX_TRANSPARENCY
+                    hitbox.CanCollide = false
+                    count += 1
+                end
+            end
+        end
+    end
+    
+    return count
+end
+
+local function restoreHitboxes()
+    local count = 0
+    
+    for tool, originalSize in pairs(originalSizes) do
+        if tool and tool.Parent then  -- ainda existe?
+            local hitbox = tool:FindFirstChild("Hitbox", true)
+            if hitbox and hitbox:IsA("BasePart") then
+                hitbox.Size = originalSize
+                hitbox.Transparency = 0   -- ou valor original do jogo
+                count += 1
+            end
+        end
+    end
+    
+    -- Limpa se tool foi destruída
+    originalSizes = {}
+    return count
+end
+
+local function toggleHitboxExpander()
+    hitboxExpanded = not hitboxExpanded
+    
+    local count
+    
+    if hitboxExpanded then
+        count = expandHitboxes()
+        if count > 0 then
+            notify("HITBOX EXPANDER: ATIVADO (" .. count .. " ferramentas)", Color3.fromRGB(255, 180, 60))
+        else
+            notify("Nenhuma hitbox encontrada para expandir", Color3.fromRGB(255, 100, 100))
+            hitboxExpanded = false  -- reverte se nada mudou
+        end
+    else
+        count = restoreHitboxes()
+        notify("HITBOX EXPANDER: DESATIVADO", Color3.fromRGB(180, 180, 180))
+    end
+end
+
+local UserInputService = game:GetService("UserInputService")
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    local inputType = input.UserInputType
+    local keyCode   = input.KeyCode
+
+    -- =============================================
+    -- TOGGLE VFLY (SEMPRE FUNCIONA)
+    -- =============================================
+    if inputType == Enum.UserInputType.Keyboard then
+         if input.KeyCode == Enum.KeyCode.V then
+        vflyEnabled = not vflyEnabled
+
+        if vflyEnabled then
+            startVFly()
+        else
+            stopVFly()
+        end
+            return
+        end
+    end
+
+-- =============================================
+-- TECLAS GLOBAIS (FUNCIONAM SEM VFLY)
+-- =============================================
+if inputType == Enum.UserInputType.Keyboard then
+
+    if input.KeyCode == Enum.KeyCode.N then
+    noclipEnabled = not noclipEnabled
+    notify("NOCLIP: " .. (noclipEnabled and "ON" or "OFF"), Color3.fromRGB(120,255,120))
+    return
+end
+    if keyCode == Enum.KeyCode.F then
+        toggleFly()
+        return
+        
+    elseif keyCode == Enum.KeyCode.H then
+        toggleHitboxExpander()
+        return
+        
+    elseif keyCode == Enum.KeyCode.T then
+        hopServer()
+        return
+
+   -- NOVO: Q PARA AUTOMÁTICO
+        elseif keyCode == Enum.KeyCode.Q then
+            isAutoLooping = not isAutoLooping
+            if isAutoLooping then
+                notify("AUTO-LOOP: LIGADO", Color3.fromRGB(100, 255, 100))
+                task.spawn(startAutoLoop)
+            else
+                notify("AUTO-LOOP: DESLIGADO", Color3.fromRGB(255, 80, 80))
+            end
+            updateStatus2()
+
+        -- NOVO: R PARA MANUAL
+        elseif keyCode == Enum.KeyCode.R then
+            if isAutoLooping then 
+                isAutoLooping = false 
+                notify("MODO MANUAL ATIVADO", Color3.fromRGB(255, 200, 0))
+            end
+            local nextIndex = (curIndex2 % #vipPos2) + 1
+            smoothFastTP2(nextIndex)
+
+        elseif keyCode == Enum.KeyCode.RightControl then
+            smoothFastTP2(1)
+        end
+     end
+
+    -- =============================================
+    -- DAQUI PRA BAIXO SÓ SE VFLY ESTIVER ATIVO
+    -- =============================================
+    if inputType == Enum.UserInputType.Keyboard then
+        
+        local changed = false
+        
+        -- VELOCIDADE
+        if keyCode == Enum.KeyCode.Equals or keyCode == Enum.KeyCode.Plus then
+            vflySpeed += 100
+            changed = true
+            
+        elseif keyCode == Enum.KeyCode.Minus then
+            vflySpeed = math.max(100, vflySpeed - 100)
+            changed = true
+            
+        elseif keyCode == Enum.KeyCode.I then
+            vflySpeed = 500
+            notify("VFly Speed resetado para 500", Color3.fromRGB(200,200,255))
+            changed = true
+   -- MOVIMENTO
+        elseif keyCode == Enum.KeyCode.W then controls.W = 1
+        elseif keyCode == Enum.KeyCode.S then controls.S = 1
+        elseif keyCode == Enum.KeyCode.A then controls.A = 1
+        elseif keyCode == Enum.KeyCode.D then controls.D = 1
+        elseif keyCode == Enum.KeyCode.Space then controls.Space = 1
+        elseif keyCode == Enum.KeyCode.LeftControl then controls.Ctrl = 1
+        end
+
+        if changed then
+            notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(100,255,100))
+        end
+    end
+end)
+
+-- =============================================
+-- INPUT ENDED (MOVIMENTO)
+-- =============================================
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+    
+    local key = input.KeyCode
+    
+    if     key == Enum.KeyCode.W then controls.W = 0
+    elseif key == Enum.KeyCode.S then controls.S = 0
+    elseif key == Enum.KeyCode.A then controls.A = 0
+    elseif key == Enum.KeyCode.D then controls.D = 0
+    elseif key == Enum.KeyCode.Space then controls.Space = 0
+    elseif key == Enum.KeyCode.LeftControl then controls.Ctrl = 0
+    end
+end)
+
+-- =============================================
+-- Final
+-- =============================================
+notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0))
+local gui = Instance.new("ScreenGui")
+gui.Name = "HaxHub"
+gui.Parent = plr.PlayerGui
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,220,0,260)
+frame.Position = UDim2.new(0,20,0.5,-130)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,25)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+Instance.new("UICorner",frame).CornerRadius = UDim.new(0,8)
+
+local layout = Instance.new("UIListLayout",frame)
+layout.Padding = UDim.new(0,6)
+
+local function makeButton(text,callback)
+
+    local btn = Instance.new("TextButton")
+    btn.Parent = frame
+    btn.Size = UDim2.new(1,-10,0,30)
+    btn.Position = UDim2.new(0,5,0,0)
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,50)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+
+    Instance.new("UICorner",btn).CornerRadius = UDim.new(0,6)
+
+    btn.MouseButton1Click:Connect(callback)
+end
+makeButton("Fly", function()
+    toggleFly()
+end)
+
+makeButton("VFly", function()
+    vflyEnabled = not vflyEnabled
+    if vflyEnabled then
+        startVFly()
+    else
+        stopVFly()
+    end
+end)
+
+makeButton("Noclip", function()
+    noclipEnabled = not noclipEnabled
+end)
+
+makeButton("Server Hop", function()
+    hopServer()
+end)
+
+makeButton("Hitbox Expander", function()
+    toggleHitboxExpander()
+end)
+
+makeButton("Auto TP", function()
+    isAutoLooping = not isAutoLooping
+    if isAutoLooping then
+        task.spawn(startAutoLoop)
+    end
+end)
