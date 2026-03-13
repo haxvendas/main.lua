@@ -562,7 +562,7 @@ function startVFly()
         if keys.A then dir -= cam.CFrame.RightVector end
         if keys.D then dir += cam.CFrame.RightVector end
 
-        bv.Velocity = dir * 1500
+        bv.Velocity = dir * 600
         bg.CFrame = cam.CFrame
     end)
 end
