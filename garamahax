@@ -41,6 +41,10 @@ local TeleportService = game:GetService("TeleportService")
 
 local notifyBusy = false
 
+local currentBestGarama = nil
+local currentHighlight = nil
+local INTERVALO_BUSCA_GARAMA = 3.5
+
 local scriptFullyLoaded = false
 
 local TERMOS = { -- ← crie essa tabela com os termos que você quer
@@ -86,117 +90,81 @@ noclip() -- to toggle noclip() and clip()
 -- =============================================
 
 local function notify(msg, color)
-
     color = color or Color3.fromRGB(0, 170, 255)
-
-   
-
+    
     if notifyBusy then task.wait(0.4) end
-
     notifyBusy = true
-
-   
-
+    
     task.spawn(function()
-
         local gui = Instance.new("ScreenGui")
-
         gui.Name = "HaxNotify"
-
         gui.Parent = plr:WaitForChild("PlayerGui")
-
-       
-
+        gui.ResetOnSpawn = false
+        
         local main = Instance.new("Frame", gui)
-
-        main.Size = UDim2.new(0, 0, 0, 35)
-
+        main.Size = UDim2.new(0, 0, 0, 35)           -- começa pequeno
         main.Position = UDim2.new(0.5, 0, 0.08, 0)
-
         main.AnchorPoint = Vector2.new(0.5, 0.5)
-
         main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-
         main.BackgroundTransparency = 0.25
-
         main.BorderSizePixel = 0
-
         main.ClipsDescendants = true
-
-       
-
+        main.AutomaticSize = Enum.AutomaticSize.Y    -- ← importante para crescer com o texto
+        
         local corner = Instance.new("UICorner", main)
-
-        corner.CornerRadius = UDim.new(0, 6)
-
-       
-
+        corner.CornerRadius = UDim.new(0, 8)         -- um pouco mais arredondado fica bonito
+        
         local accent = Instance.new("Frame", main)
-
-        accent.Size = UDim2.new(0, 4, 1, 0)
-
+        accent.Size = UDim2.new(0, 5, 1, 0)
         accent.BackgroundColor3 = color
-
         accent.BorderSizePixel = 0
-
-       
-
+        
         local txt = Instance.new("TextLabel", main)
-
-        txt.Size = UDim2.new(1, -30, 1, 0)
-
-        txt.Position = UDim2.new(0, 15, 0, 0)
-
+        txt.Size = UDim2.new(1, -40, 0, 0)           -- altura 0 + AutomaticSize
+        txt.Position = UDim2.new(0, 35, 0, 8)        -- mais espaço em cima e à esquerda
         txt.BackgroundTransparency = 1
-
         txt.Font = Enum.Font.GothamMedium
-
         txt.Text = msg
-
         txt.TextColor3 = Color3.new(1,1,1)
-
         txt.TextSize = 15
-
         txt.TextXAlignment = Enum.TextXAlignment.Left
-
+        txt.TextYAlignment = Enum.TextYAlignment.Top
+        txt.TextWrapped = true                       -- ← quebra linha automaticamente
         txt.RichText = true
-
-       
-
-        TS:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {
-
-            Size = UDim2.new(0, 280, 0, 40)
-
+        txt.AutomaticSize = Enum.AutomaticSize.Y     -- ← cresce com o texto
+        
+        -- Padding interno para não ficar colado nas bordas
+        local padding = Instance.new("UIPadding", main)
+        padding.PaddingLeft = UDim.new(0, 12)
+        padding.PaddingRight = UDim.new(0, 12)
+        padding.PaddingTop = UDim.new(0, 10)
+        padding.PaddingBottom = UDim.new(0, 10)
+        
+        -- Animação de entrada (largura + altura automática)
+        local targetWidth = math.clamp(#msg * 7 + 80, 280, 520)  -- largura dinâmica baseada no tamanho da msg
+        
+        TS:Create(main, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, targetWidth, 0, 0)   -- altura será automática
         }):Play()
-
-       
-
-        task.wait(3.2)
-
-       
-
-        local tweenOut = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {
-
-            Size = UDim2.new(0, 0, 0, 40),
-
-            BackgroundTransparency = 1
-
+        
+        task.wait(0.1)  -- pequena espera para o AutomaticSize funcionar
+        
+        -- Espera um pouco para o texto se ajustar
+        task.wait(3.5 + (#msg > 60 and 1.5 or 0))  -- textos muito longos ficam mais tempo
+        
+        -- Animação de saída
+        local tweenOut = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, main.AbsoluteSize.Y),
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0.5, 0, 0.08, -20)  -- sobe um pouco ao sumir
         })
-
         tweenOut:Play()
-
-       
-
+        
         tweenOut.Completed:Connect(function()
-
             gui:Destroy()
-
             notifyBusy = false
-
         end)
-
     end)
-
 end
 
 -- =============================================
@@ -404,55 +372,66 @@ local function acharMelhorGaramaInfo()
 end
 
 -- =============================================
-
--- EXECUÇÃO PRINCIPAL (depois que tudo foi definido)
-
+-- LOOP ETERNO - Sempre buscando o melhor Garama
 -- =============================================
+task.spawn(function()
+    while true do
+        task.wait(INTERVALO_BUSCA_GARAMA)  -- está definido como 1 segundo
 
-task.spawn(function() -- roda em thread separada para não travar
+        local melhor = acharMelhorGaramaInfo()
 
-    task.wait(1.5) -- dá tempo pro jogo carregar as bases/UI
+        if melhor then
+            local eraNil = not currentBestGarama
+            local ehMelhor = eraNil or (melhor.valor > currentBestGarama.valor)
 
-    local char = plr.Character or plr.CharacterAdded:Wait()
+            -- Atualiza sempre o "melhor atual"
+            currentBestGarama = melhor
 
-    if not char then return end
+            -- Notificação diferenciada
+            if ehMelhor then
+                notify("Novo MELHOR Garama: " .. melhor.valorTexto, Color3.fromRGB(100, 255, 100))
+                print("Novo melhor → Base:", melhor.base.Name, "Slot:", melhor.slot.Name)
+                print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
+            else
+                notify("Garama detectado (mas não melhor): " .. melhor.valorTexto, Color3.fromRGB(255, 200, 80))
+            end
 
-    local melhor = acharMelhorGaramaInfo()
+            -- Atualiza o highlight apenas quando for melhor ou primeira vez
+            if ehMelhor then
+                if currentHighlight then
+                    currentHighlight:Destroy()
+                    currentHighlight = nil
+                end
 
-    if melhor then
+                currentHighlight = Instance.new("Highlight")
+                currentHighlight.Adornee = melhor.slot
+                currentHighlight.FillColor = Color3.fromRGB(255, 60, 80)
+                currentHighlight.OutlineColor = Color3.fromRGB(255, 240, 60)
+                currentHighlight.FillTransparency = 0.4
+                currentHighlight.OutlineTransparency = 0.1
+                currentHighlight.Parent = melhor.slot
+            end
 
-        notify("Garama encontrado: " .. melhor.valorTexto, Color3.fromRGB(0, 255, 120))
-
-        print("Base:", melhor.base.Name)
-
-        print("Slot:", melhor.slot.Name)
-
-        print("Nome:", melhor.texto)
-
-        print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
-
-        if melhor.promptReal then
-
-            forcarPromptDeLonge(melhor.promptReal)
-
-            -- Opcional: teleportar ou disparar o prompt aqui
-
-            -- fireprompt(melhor.promptReal) ← se tiver exploit com essa função
+            -- Força o prompt no melhor encontrado (sempre que existir)
+            if melhor.promptReal then
+                forcarPromptDeLonge(melhor.promptReal)
+            end
 
         else
+            -- Não encontrou nenhum Garama válido
+            if currentBestGarama then
+                notify("Garama sumiu / ninguém tem mais", Color3.fromRGB(255, 140, 60))
+            end
 
-            notify("Prompt não encontrado no melhor slot", Color3.fromRGB(255, 80, 80))
+            currentBestGarama = nil
 
+            if currentHighlight then
+                currentHighlight:Destroy()
+                currentHighlight = nil
+            end
         end
-
-    else
-
-        notify("Nenhum Garama válido encontrado", Color3.fromRGB(255, 140, 0))
-
     end
-
 end)
-
 
 -- =============================================
 -- Inicialização (ORIGINAL)
