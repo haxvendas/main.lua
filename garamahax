@@ -237,139 +237,127 @@ end
 -- =============================================
 
 local function acharMelhorGaramaInfo()
-
     local char = plr.Character
-
     if not char or not char:FindFirstChild("HumanoidRootPart") then
-
         return nil
-
     end
-
+    
     local client = workspace:FindFirstChild("Client")
-
     local bases = client and client:FindFirstChild("Bases")
-
     if not bases then return nil end
-
+    
     local melhorValor = -1
-
     local melhorInfo = nil
-
+    
     for _, base in ipairs(bases:GetChildren()) do
-
-        local slots = base:FindFirstChild("Slots")
-
-        if not slots then continue end
-
-        for _, slot in ipairs(slots:GetChildren()) do
-
-            local ui = slot:FindFirstChild("Brainrot_UI")
-
-            local frame = ui and ui:FindFirstChild("Frame")
-
-            if not frame then continue end
-
-            local title = frame:FindFirstChild("Title")
-
-            if not title or not title:IsA("TextLabel") then continue end
-
-            local txt = title.Text:lower()
-
-            local ehValido = false
-
-            for _, termo in ipairs(TERMOS) do
-
-                if txt:find(termo, 1, true) then -- plain find (mais rápido)
-
-                    ehValido = true
-
-                    break
-
-                end
-
+        -- Verificação: ignora se for a base do jogador local
+        local ehMinhaBase = false
+        
+        -- Possíveis caminhos comuns para detectar dono (adicione mais se necessário)
+        local owner = base:FindFirstChild("Owner") or base:FindFirstChild("Player") or base:FindFirstChild("OwnerId")
+        if owner then
+            if owner:IsA("ObjectValue") and owner.Value == plr then
+                ehMinhaBase = true
+            elseif owner:IsA("StringValue") and owner.Value == plr.Name then
+                ehMinhaBase = true
+            elseif owner:IsA("NumberValue") and owner.Value == plr.UserId then
+                ehMinhaBase = true
             end
-
-            if not ehValido then continue end
-
-            local earnLabel = frame:FindFirstChild("Earn")
-
-            if not earnLabel or not earnLabel:IsA("TextLabel") then continue end
-
-            -- Tenta converter o texto de forma mais robusta
-
-            local texto = earnLabel.Text:gsub("[^%d%.]", "") -- mantém pontos (1.5k → 1.5)
-
-            local valorNumerico = tonumber(texto)
-
-            -- Se falhar (ex: "1.2K", "950/s"), aqui você pode adicionar parsing extra
-
-            if not valorNumerico then
-
-                -- Exemplo básico de suporte a "k" / "K"
-
-                local num, letra = texto:match("([%d%.]+)([Kk]?)")
-
-                if num then
-
-                    valorNumerico = tonumber(num)
-
-                    if letra:lower() == "k" then valorNumerico = valorNumerico * 1000 end
-
-                end
-
-            end
-
-            if not valorNumerico or valorNumerico <= melhorValor then continue end
-
-            -- Novo melhor encontrado
-
-            melhorValor = valorNumerico
-
-            local promptReal = nil
-
-            for _, obj in ipairs(slot:GetDescendants()) do
-
-                if obj:IsA("ProximityPrompt") then promptReal = obj break end
-
-            end
-
-            if not promptReal then
-
-                for _, obj in ipairs(base:GetDescendants()) do
-
-                    if obj:IsA("ProximityPrompt") then promptReal = obj break end
-
-                end
-
-            end
-
-            melhorInfo = {
-
-                slot = slot,
-
-                base = base,
-
-                title = title,
-
-                texto = title.Text,
-
-                valor = valorNumerico,
-
-                valorTexto = earnLabel.Text,
-
-                promptReal = promptReal,
-
-            }
-
         end
-
+        
+        -- Alternativa: se o nome da base contém o nome do jogador
+        if base.Name:lower():find(plr.Name:lower()) then
+            ehMinhaBase = true
+        end
+        
+        if ehMinhaBase then
+            continue  -- pula a base inteira se for a sua
+        end
+        
+        local slots = base:FindFirstChild("Slots")
+        if not slots then continue end
+        
+        for _, slot in ipairs(slots:GetChildren()) do
+            -- Verificação extra no slot (alguns jogos colocam owner no slot também)
+            local slotOwner = slot:FindFirstChild("Owner") or slot:FindFirstChild("Player")
+            if slotOwner and slotOwner.Value == plr then
+                continue
+            end
+            
+            local ui = slot:FindFirstChild("Brainrot_UI")
+            local frame = ui and ui:FindFirstChild("Frame")
+            if not frame then continue end
+            
+            local title = frame:FindFirstChild("Title")
+            if not title or not title:IsA("TextLabel") then continue end
+            
+            local txt = title.Text:lower()
+            local ehValido = false
+            for _, termo in ipairs(TERMOS) do
+                if txt:find(termo, 1, true) then
+                    ehValido = true
+                    break
+                end
+            end
+            if not ehValido then continue end
+            
+            local earnLabel = frame:FindFirstChild("Earn")
+            if not earnLabel or not earnLabel:IsA("TextLabel") then continue end
+            
+            -- Parsing melhorado do valor (recomendado)
+            local function parseEarn(text)
+                if not text then return -1 end
+                text = text:lower():gsub("[^%d%.kmgt]", ""):gsub("/.*", "")
+                
+                local numStr = text:match("^[%d%.]+")
+                local num = tonumber(numStr)
+                if not num then return -1 end
+                
+                local suffix = text:match("[kmgt]$")
+                if suffix == "k" then return num * 1000
+                elseif suffix == "m" then return num * 1000000
+                elseif suffix == "b" then return num * 1000000000
+                elseif suffix == "t" then return num * 1000000000000
+                end
+                return num
+            end
+            
+            local valorNumerico = parseEarn(earnLabel.Text)
+            if valorNumerico <= melhorValor then continue end
+            
+            -- Novo melhor encontrado (e não é seu)
+            melhorValor = valorNumerico
+            
+            local promptReal = nil
+            for _, obj in ipairs(slot:GetDescendants()) do
+                if obj:IsA("ProximityPrompt") then 
+                    promptReal = obj 
+                    break 
+                end
+            end
+            if not promptReal then
+                for _, obj in ipairs(base:GetDescendants()) do
+                    if obj:IsA("ProximityPrompt") then 
+                        promptReal = obj 
+                        break 
+                    end
+                end
+            end
+            
+            melhorInfo = {
+                slot = slot,
+                base = base,
+                title = title,
+                texto = title.Text,
+                valor = valorNumerico,
+                valorTexto = earnLabel.Text,
+                promptReal = promptReal,
+            }
+        end
     end
-
+    
     return melhorInfo
-
 end
-
 -- =============================================
 -- LOOP ETERNO - Sempre buscando o melhor Garama
 -- =============================================
