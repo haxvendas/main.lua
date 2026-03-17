@@ -150,15 +150,14 @@ local function notify(msg, color)
         task.wait(0.1)  -- pequena espera para o AutomaticSize funcionar
         
         -- Espera um pouco para o texto se ajustar
-        task.wait(3.5 + (#msg > 60 and 1.5 or 0))  -- textos muito longos ficam mais tempo
-        
-        -- Animação de saída
-        local tweenOut = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0, main.AbsoluteSize.Y),
-            BackgroundTransparency = 1,
-            Position = UDim2.new(0.5, 0, 0.08, -20)  -- sobe um pouco ao sumir
-        })
-        tweenOut:Play()
+        task.wait(1.5 + (#msg > 60 and 1.5 or 0))  -- textos muito longos ficam mais tempo
+       
+	   local tweenOut = TS:Create(main, TweenInfo.new(0.55, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
+    Position = UDim2.new(0.5, 0, 0.08, -80),   -- sobe mais
+    BackgroundTransparency = 1,
+    Size = UDim2.new(0, main.AbsoluteSize.X * 0.9, 0, main.AbsoluteSize.Y * 0.85),
+})
+	    tweenOut:Play()
         
         tweenOut.Completed:Connect(function()
             gui:Destroy()
