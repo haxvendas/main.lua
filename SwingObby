@@ -47,7 +47,7 @@ local RARE_NAMES = {
     "tim cheese",
     "strawberry elephant",
     "evil six seven",
-    "meowll"
+    "Meowl"
 }
 local debounce = false
 local coletados = {}
