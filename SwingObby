@@ -1,0 +1,119 @@
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local function touch(part)
+    local char = player.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    firetouchinterest(hrp, part, 0)
+    firetouchinterest(hrp, part, 1)
+end
+
+-- AUTO FARM (MONEY + UPGRADE)
+task.spawn(function()
+    while true do
+        task.wait(0.3) -- mais rápido
+
+        local plots = Workspace:FindFirstChild("Plots")
+        if not plots then continue end
+
+        for _, plot in ipairs(plots:GetChildren()) do
+            local pods = plot:FindFirstChild("Pods")
+            if not pods then continue end
+
+            for _, pod in ipairs(pods:GetChildren()) do
+                local touchPart = pod:FindFirstChild("TouchPart")
+
+                if touchPart and touchPart:IsA("BasePart") then
+                    
+                    -- 🔥 isso aqui já faz TUDO
+                    touch(touchPart)
+
+                end
+            end
+        end
+    end
+end)
+local RARE_NAMES = {
+    "chicleteira bicicleteira",
+    "ta ta ta ta sahur",
+    "tung tung tung sahur",
+    "dragon cannelloni",
+    "tim cheese",
+    "strawberry elephant",
+    "evil six seven",
+    "meowll"
+}
+local debounce = false
+local coletados = {}
+
+local function isRare(name)
+    local lower = name:lower()
+    for _, r in ipairs(RARE_NAMES) do
+        if lower:find(r) then
+            return true, r
+        end
+    end
+    return false
+end
+
+local activeFolder = Workspace:WaitForChild("ActiveBrainrots", 15)
+if not activeFolder then return end
+
+RunService.Heartbeat:Connect(function()
+    if debounce then return end
+
+    local char = player.Character
+    if not char then return end
+
+    for _, brainModel in ipairs(activeFolder:GetChildren()) do
+        
+        if coletados[brainModel] then continue end
+
+        for _, child in ipairs(brainModel:GetChildren()) do
+            
+            local rare, foundName = isRare(child.Name)
+
+            if rare then
+                local targetPart = nil
+
+                if child:IsA("BasePart") then
+                    targetPart = child
+                elseif child:IsA("Model") then
+                    targetPart = child.PrimaryPart or child:FindFirstChildWhichIsA("BasePart")
+                end
+
+                if targetPart then
+                    debounce = true
+                    coletados[brainModel] = true
+
+                    local targetCFrame = targetPart.CFrame * CFrame.new(0, 5, 0)
+
+                    -- TP INSTA
+                    char:PivotTo(targetCFrame)
+
+                    print("🔥 TP + COLETA:", foundName)
+
+                    -- espera carregar proximity
+                    task.wait(0.3)
+
+                    -- AUTO COLETAR
+                    for _, v in ipairs(brainModel:GetDescendants()) do
+                        if v:IsA("ProximityPrompt") then
+                            fireproximityprompt(v)
+                        end
+                    end
+
+                    task.wait(1.5)
+                    debounce = false
+                    break
+                end
+            end
+        end
+    end
+end)
