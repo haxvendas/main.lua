@@ -45,13 +45,13 @@ local INPUT_PRIORITY = Enum.ContextActionPriority.High.Value
 local FREECAM_MACRO_KB = {Enum.KeyCode.P}
 
 local NAV_GAIN = Vector3.new(1, 1, 1)*32 -- Diminuído de 64 para 32 para mais controle
-local PAN_GAIN = Vector2.new(0.75, 1)*8
+local PAN_GAIN = Vector2.new(0.5, 0.5)*4
 local FOV_GAIN = 300
 
 local PITCH_LIMIT = rad(90)
 
-local VEL_STIFFNESS = 9.0 -- Aumentado de 1.5 para 4.0 (Para de mover mais rápido)
-local PAN_STIFFNESS = 0.35 -- Aumentado de 1.0 para 3.0 (Rotação mais firme)
+local VEL_STIFFNESS = 12 -- Aumentado de 1.5 para 4.0 (Para de mover mais rápido)
+local PAN_STIFFNESS = 10 -- Aumentado de 1.0 para 3.0 (Rotação mais firme)
 local FOV_STIFFNESS = 4.0
 
 ------------------------------------------------------------------------
@@ -306,8 +306,8 @@ end
 ------------------------------------------------------------------------
 
 local function StepFreecam(dt)
-	local vel = velSpring:Update(dt, Input.Vel(dt))
-	local pan = panSpring:Update(dt, Input.Pan(dt))
+	local vel = Input.Vel(dt)
+    local pan = Input.Pan(dt)
 	local fov = fovSpring:Update(dt, Input.Fov(dt))
 
 	local zoomFactor = sqrt(tan(rad(70/2))/tan(rad(cameraFov/2)))
