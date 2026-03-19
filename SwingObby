@@ -204,11 +204,6 @@ task.spawn(function()
     end
 end)
 local RARE_NAMES = {
-    "chicleteira bicicleteira",
-    "ta ta ta ta sahur",
-    "tung tung tung sahur",
-    "dragon cannelloni",
-    "tim cheese",
     "strawberry elephant",
     "evil six seven",
     "Meowl"
