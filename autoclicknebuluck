@@ -1,0 +1,84 @@
+
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
+
+local isAutoClickEnabled = false
+local clickDelay = -100  -- Tempo entre cliques (em segundos). 0.05 = ~20 cliques por segundo. Abaixe para mais rápido.
+
+local positions = {
+    Vector2.new(1234, 657),  -- Nebuluck
+    Vector2.new(766, 776)    -- Craft
+}
+
+local function simulateClick(position)
+    -- Pressiona o botão esquerdo do mouse
+    VirtualInputManager:SendMouseButtonEvent(position.X, position.Y, 0, true, game, 0)
+    wait(-100)  -- Pequeno delay (pode ajustar)
+    -- Solta o botão
+    VirtualInputManager:SendMouseButtonEvent(position.X, position.Y, 0, false, game, 0)
+end
+
+-- Loop do auto clicker
+spawn(function()
+    while true do
+        if isAutoClickEnabled then
+            for _, pos in ipairs(positions) do
+                simulateClick(pos)
+            end
+        end
+        wait(clickDelay)
+    end
+end)
+
+-- Atalho para ligar/desligar (tecla T)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.B then
+        isAutoClickEnabled = not isAutoClickEnabled
+        print("Auto Clicker: " .. (isAutoClickEnabled and "LIGADO" or "DESLIGADO"))
+    end
+end)
+print("Auto Clicker carregado! Pressione T para ligar/desligar.");
+
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
+
+local isAutoClickEnabled = false
+
+local positions = {
+    Vector2.new(1234, 657),
+    Vector2.new(766, 776)
+}
+
+local function click(pos)
+    VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
+    VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
+end
+
+-- QUANTIDADE DE LOOPS (AQUI É O SEGREDO)
+local THREADS = 20 -- aumenta pra 20, 30 se quiser mais rápido
+
+for i = 1, THREADS do
+    task.spawn(function()
+        while true do
+            if isAutoClickEnabled then
+                for _, pos in ipairs(positions) do
+                    click(pos)
+                end
+            end
+            task.wait() -- mínimo possível
+        end
+    end)
+end
+
+-- Toggle
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.B then
+        isAutoClickEnabled = not isAutoClickEnabled
+        print("Auto Clicker: " .. (isAutoClickEnabled and "LIGADO" or "DESLIGADO"))
+    end
+end)
+
+print("AUTO CLICKER INSANO carregado!")
