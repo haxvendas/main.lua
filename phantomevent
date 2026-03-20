@@ -6,6 +6,17 @@ end
 local Players     = game:GetService("Players") 
 local RunService  = game:GetService("RunService")
 local UIS         = game:GetService("UserInputService")
+UIS.JumpRequest:Connect(function()
+
+    if flying or vflyEnabled then
+        controls.Space = 1
+
+        task.delay(0.15,function()
+            controls.Space = 0
+        end)
+    end
+
+end)
 local Http        = game:GetService("HttpService")
 local TS          = game:GetService("TweenService")
 local Teleport    = game:GetService("TeleportService")
@@ -24,7 +35,6 @@ local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
 
 local smoothFastTP
 local smoothFastTP2
-local isAutoLooping = false
 
 local TeleportService = game:GetService("TeleportService")
 
@@ -157,7 +167,6 @@ local function updateFly()
         hrp.CFrame = hrp.CFrame + vel * flySpeed 
     end
 end
-
 local function toggleFly()
     if not scriptFullyLoaded then return end
     flying = not flying
@@ -562,7 +571,7 @@ function startVFly()
         if keys.A then dir -= cam.CFrame.RightVector end
         if keys.D then dir += cam.CFrame.RightVector end
 
-        bv.Velocity = dir * 600
+        bv.Velocity = dir * 500
         bg.CFrame = cam.CFrame
     end)
 end
@@ -754,22 +763,27 @@ end
 
 -- Função que executa o Loop
 local function startAutoLoop()
+
     while isAutoLooping do
+
         local nextIndex = (curIndex2 % #vipPos2) + 1
         smoothFastTP2(nextIndex)
 
         if activeTween2 then
             activeTween2.Completed:Wait()
         end
-        task.wait(0.1) -- Pausa entre pontos
-        
-        -- Segurança caso o char suma
-        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
-            isAutoLooping = false
-            break
+
+        -- tempo diferente para SEC 1
+        if nextIndex == 1 then
+            task.wait(0.39)
+        else
+            task.wait(0.1)
         end
+
     end
+
     updateStatus2()
+
 end
 
 -- =============================================
@@ -1046,8 +1060,25 @@ UserInputService.InputEnded:Connect(function(input)
     elseif key == Enum.KeyCode.LeftControl then controls.Ctrl = 0
     end
 end)
+-- =============================================
+-- MOBILE SUPPORT (JOYSTICK)
+-- =============================================
+RunService.RenderStepped:Connect(function()
 
+    if not scriptFullyLoaded then return end
+
+    local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+
+    local move = hum.MoveDirection
+
+    controls.W = move.Z < -0.1 and 1 or 0
+    controls.S = move.Z > 0.1 and 1 or 0
+    controls.A = move.X < -0.1 and 1 or 0
+    controls.D = move.X > 0.1 and 1 or 0
+
+end)
 -- =============================================
 -- Final
 -- =============================================
-notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0));
+notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0))
