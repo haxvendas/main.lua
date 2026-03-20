@@ -50,8 +50,8 @@ local FOV_GAIN = 300
 
 local PITCH_LIMIT = rad(90)
 
-local VEL_STIFFNESS = 12 -- Aumentado de 1.5 para 4.0 (Para de mover mais rápido)
-local PAN_STIFFNESS = 10 -- Aumentado de 1.0 para 3.0 (Rotação mais firme)
+local VEL_STIFFNESS = 8
+local PAN_STIFFNESS = 6
 local FOV_STIFFNESS = 4.0
 
 ------------------------------------------------------------------------
@@ -307,7 +307,7 @@ end
 
 local function StepFreecam(dt)
 	local vel = Input.Vel(dt)
-    local pan = Input.Pan(dt)
+    local pan = panSpring:Update(dt, Input.Pan(dt))
 	local fov = fovSpring:Update(dt, Input.Fov(dt))
 
 	local zoomFactor = sqrt(tan(rad(70/2))/tan(rad(cameraFov/2)))
