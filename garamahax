@@ -41,10 +41,6 @@ local TeleportService = game:GetService("TeleportService")
 
 local notifyBusy = false
 
-local currentBestGarama = nil
-local currentHighlight = nil
-local INTERVALO_BUSCA_GARAMA = 3.5
-
 local scriptFullyLoaded = false
 
 local TERMOS = { -- ← crie essa tabela com os termos que você quer
@@ -90,80 +86,117 @@ noclip() -- to toggle noclip() and clip()
 -- =============================================
 
 local function notify(msg, color)
+
     color = color or Color3.fromRGB(0, 170, 255)
-    
+
+   
+
     if notifyBusy then task.wait(0.4) end
+
     notifyBusy = true
-    
+
+   
+
     task.spawn(function()
+
         local gui = Instance.new("ScreenGui")
+
         gui.Name = "HaxNotify"
+
         gui.Parent = plr:WaitForChild("PlayerGui")
-        gui.ResetOnSpawn = false
-        
-        local main = Instance.new("Frame", gui)
-        main.Size = UDim2.new(0, 0, 0, 35)           -- começa pequeno
-        main.Position = UDim2.new(0.5, 0, 0.08, 0)
-        main.AnchorPoint = Vector2.new(0.5, 0.5)
-        main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-        main.BackgroundTransparency = 0.25
-        main.BorderSizePixel = 0
-        main.ClipsDescendants = true
-        main.AutomaticSize = Enum.AutomaticSize.Y    -- ← importante para crescer com o texto
-        
-        local corner = Instance.new("UICorner", main)
-        corner.CornerRadius = UDim.new(0, 8)         -- um pouco mais arredondado fica bonito
-        
-        local accent = Instance.new("Frame", main)
-        accent.Size = UDim2.new(0, 5, 1, 0)
-        accent.BackgroundColor3 = color
-        accent.BorderSizePixel = 0
-        
-        local txt = Instance.new("TextLabel", main)
-        txt.Size = UDim2.new(1, -40, 0, 0)           -- altura 0 + AutomaticSize
-        txt.Position = UDim2.new(0, 35, 0, 8)        -- mais espaço em cima e à esquerda
-        txt.BackgroundTransparency = 1
-        txt.Font = Enum.Font.GothamMedium
-        txt.Text = msg
-        txt.TextColor3 = Color3.new(1,1,1)
-        txt.TextSize = 15
-        txt.TextXAlignment = Enum.TextXAlignment.Left
-        txt.TextYAlignment = Enum.TextYAlignment.Top
-        txt.TextWrapped = true                       -- ← quebra linha automaticamente
-        txt.RichText = true
-        txt.AutomaticSize = Enum.AutomaticSize.Y     -- ← cresce com o texto
-        
-        -- Padding interno para não ficar colado nas bordas
-        local padding = Instance.new("UIPadding", main)
-        padding.PaddingLeft = UDim.new(0, 12)
-        padding.PaddingRight = UDim.new(0, 12)
-        padding.PaddingTop = UDim.new(0, 10)
-        padding.PaddingBottom = UDim.new(0, 10)
-        
-        -- Animação de entrada (largura + altura automática)
-        local targetWidth = math.clamp(#msg * 7 + 80, 280, 520)  -- largura dinâmica baseada no tamanho da msg
-        
-        TS:Create(main, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, targetWidth, 0, 0)   -- altura será automática
-        }):Play()
-        
-        task.wait(0.1)  -- pequena espera para o AutomaticSize funcionar
-        
-        -- Espera um pouco para o texto se ajustar
-        task.wait(1.5 + (#msg > 60 and 1.5 or 0))  -- textos muito longos ficam mais tempo
+
        
-	   local tweenOut = TS:Create(main, TweenInfo.new(0.55, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
-    Position = UDim2.new(0.5, 0, 0.08, -80),   -- sobe mais
-    BackgroundTransparency = 1,
-    Size = UDim2.new(0, main.AbsoluteSize.X * 0.9, 0, main.AbsoluteSize.Y * 0.85),
-})
-	    tweenOut:Play()
-        
+
+        local main = Instance.new("Frame", gui)
+
+        main.Size = UDim2.new(0, 0, 0, 35)
+
+        main.Position = UDim2.new(0.5, 0, 0.08, 0)
+
+        main.AnchorPoint = Vector2.new(0.5, 0.5)
+
+        main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+
+        main.BackgroundTransparency = 0.25
+
+        main.BorderSizePixel = 0
+
+        main.ClipsDescendants = true
+
+       
+
+        local corner = Instance.new("UICorner", main)
+
+        corner.CornerRadius = UDim.new(0, 6)
+
+       
+
+        local accent = Instance.new("Frame", main)
+
+        accent.Size = UDim2.new(0, 4, 1, 0)
+
+        accent.BackgroundColor3 = color
+
+        accent.BorderSizePixel = 0
+
+       
+
+        local txt = Instance.new("TextLabel", main)
+
+        txt.Size = UDim2.new(1, -30, 1, 0)
+
+        txt.Position = UDim2.new(0, 15, 0, 0)
+
+        txt.BackgroundTransparency = 1
+
+        txt.Font = Enum.Font.GothamMedium
+
+        txt.Text = msg
+
+        txt.TextColor3 = Color3.new(1,1,1)
+
+        txt.TextSize = 15
+
+        txt.TextXAlignment = Enum.TextXAlignment.Left
+
+        txt.RichText = true
+
+       
+
+        TS:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {
+
+            Size = UDim2.new(0, 280, 0, 40)
+
+        }):Play()
+
+       
+
+        task.wait(3.2)
+
+       
+
+        local tweenOut = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {
+
+            Size = UDim2.new(0, 0, 0, 40),
+
+            BackgroundTransparency = 1
+
+        })
+
+        tweenOut:Play()
+
+       
+
         tweenOut.Completed:Connect(function()
+
             gui:Destroy()
+
             notifyBusy = false
+
         end)
+
     end)
+
 end
 
 -- =============================================
@@ -237,188 +270,189 @@ end
 -- =============================================
 
 local function acharMelhorGaramaInfo()
+
     local char = plr.Character
+
     if not char or not char:FindFirstChild("HumanoidRootPart") then
+
         return nil
+
     end
-    
+
     local client = workspace:FindFirstChild("Client")
+
     local bases = client and client:FindFirstChild("Bases")
+
     if not bases then return nil end
-    
+
     local melhorValor = -1
+
     local melhorInfo = nil
-    
+
     for _, base in ipairs(bases:GetChildren()) do
-        -- Verificação: ignora se for a base do jogador local
-        local ehMinhaBase = false
-        
-        -- Possíveis caminhos comuns para detectar dono (adicione mais se necessário)
-        local owner = base:FindFirstChild("Owner") or base:FindFirstChild("Player") or base:FindFirstChild("OwnerId")
-        if owner then
-            if owner:IsA("ObjectValue") and owner.Value == plr then
-                ehMinhaBase = true
-            elseif owner:IsA("StringValue") and owner.Value == plr.Name then
-                ehMinhaBase = true
-            elseif owner:IsA("NumberValue") and owner.Value == plr.UserId then
-                ehMinhaBase = true
-            end
-        end
-        
-        -- Alternativa: se o nome da base contém o nome do jogador
-        if base.Name:lower():find(plr.Name:lower()) then
-            ehMinhaBase = true
-        end
-        
-        if ehMinhaBase then
-            continue  -- pula a base inteira se for a sua
-        end
-        
+
         local slots = base:FindFirstChild("Slots")
+
         if not slots then continue end
-        
+
         for _, slot in ipairs(slots:GetChildren()) do
-            -- Verificação extra no slot (alguns jogos colocam owner no slot também)
-            local slotOwner = slot:FindFirstChild("Owner") or slot:FindFirstChild("Player")
-            if slotOwner and slotOwner.Value == plr then
-                continue
-            end
-            
+
             local ui = slot:FindFirstChild("Brainrot_UI")
+
             local frame = ui and ui:FindFirstChild("Frame")
+
             if not frame then continue end
-            
+
             local title = frame:FindFirstChild("Title")
+
             if not title or not title:IsA("TextLabel") then continue end
-            
+
             local txt = title.Text:lower()
+
             local ehValido = false
+
             for _, termo in ipairs(TERMOS) do
-                if txt:find(termo, 1, true) then
+
+                if txt:find(termo, 1, true) then -- plain find (mais rápido)
+
                     ehValido = true
+
                     break
+
                 end
+
             end
+
             if not ehValido then continue end
-            
+
             local earnLabel = frame:FindFirstChild("Earn")
+
             if not earnLabel or not earnLabel:IsA("TextLabel") then continue end
-            
-            -- Parsing melhorado do valor (recomendado)
-            local function parseEarn(text)
-                if not text then return -1 end
-                text = text:lower():gsub("[^%d%.kmgt]", ""):gsub("/.*", "")
-                
-                local numStr = text:match("^[%d%.]+")
-                local num = tonumber(numStr)
-                if not num then return -1 end
-                
-                local suffix = text:match("[kmgt]$")
-                if suffix == "k" then return num * 1000
-                elseif suffix == "m" then return num * 1000000
-                elseif suffix == "b" then return num * 1000000000
-                elseif suffix == "t" then return num * 1000000000000
+
+            -- Tenta converter o texto de forma mais robusta
+
+            local texto = earnLabel.Text:gsub("[^%d%.]", "") -- mantém pontos (1.5k → 1.5)
+
+            local valorNumerico = tonumber(texto)
+
+            -- Se falhar (ex: "1.2K", "950/s"), aqui você pode adicionar parsing extra
+
+            if not valorNumerico then
+
+                -- Exemplo básico de suporte a "k" / "K"
+
+                local num, letra = texto:match("([%d%.]+)([Kk]?)")
+
+                if num then
+
+                    valorNumerico = tonumber(num)
+
+                    if letra:lower() == "k" then valorNumerico = valorNumerico * 1000 end
+
                 end
-                return num
+
             end
-            
-            local valorNumerico = parseEarn(earnLabel.Text)
-            if valorNumerico <= melhorValor then continue end
-            
-            -- Novo melhor encontrado (e não é seu)
+
+            if not valorNumerico or valorNumerico <= melhorValor then continue end
+
+            -- Novo melhor encontrado
+
             melhorValor = valorNumerico
-            
+
             local promptReal = nil
+
             for _, obj in ipairs(slot:GetDescendants()) do
-                if obj:IsA("ProximityPrompt") then 
-                    promptReal = obj 
-                    break 
-                end
+
+                if obj:IsA("ProximityPrompt") then promptReal = obj break end
+
             end
+
             if not promptReal then
+
                 for _, obj in ipairs(base:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") then 
-                        promptReal = obj 
-                        break 
-                    end
+
+                    if obj:IsA("ProximityPrompt") then promptReal = obj break end
+
                 end
+
             end
-            
+
             melhorInfo = {
+
                 slot = slot,
+
                 base = base,
+
                 title = title,
+
                 texto = title.Text,
+
                 valor = valorNumerico,
+
                 valorTexto = earnLabel.Text,
+
                 promptReal = promptReal,
+
             }
+
         end
+
     end
-    
+
     return melhorInfo
+
 end
+
 -- =============================================
--- LOOP ETERNO - Sempre buscando o melhor Garama
+
+-- EXECUÇÃO PRINCIPAL (depois que tudo foi definido)
+
 -- =============================================
-task.spawn(function()
-    while true do
-        task.wait(INTERVALO_BUSCA_GARAMA)  -- está definido como 1 segundo
 
-        local melhor = acharMelhorGaramaInfo()
+task.spawn(function() -- roda em thread separada para não travar
 
-        if melhor then
-            local eraNil = not currentBestGarama
-            local ehMelhor = eraNil or (melhor.valor > currentBestGarama.valor)
+    task.wait(1.5) -- dá tempo pro jogo carregar as bases/UI
 
-            -- Atualiza sempre o "melhor atual"
-            currentBestGarama = melhor
+    local char = plr.Character or plr.CharacterAdded:Wait()
 
-            -- Notificação diferenciada
-            if ehMelhor then
-                notify("Novo MELHOR Garama: " .. melhor.valorTexto, Color3.fromRGB(100, 255, 100))
-                print("Novo melhor → Base:", melhor.base.Name, "Slot:", melhor.slot.Name)
-                print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
-            else
-                notify("Garama detectado (mas não melhor): " .. melhor.valorTexto, Color3.fromRGB(255, 200, 80))
-            end
+    if not char then return end
 
-            -- Atualiza o highlight apenas quando for melhor ou primeira vez
-            if ehMelhor then
-                if currentHighlight then
-                    currentHighlight:Destroy()
-                    currentHighlight = nil
-                end
+    local melhor = acharMelhorGaramaInfo()
 
-                currentHighlight = Instance.new("Highlight")
-                currentHighlight.Adornee = melhor.slot
-                currentHighlight.FillColor = Color3.fromRGB(255, 60, 80)
-                currentHighlight.OutlineColor = Color3.fromRGB(255, 240, 60)
-                currentHighlight.FillTransparency = 0.4
-                currentHighlight.OutlineTransparency = 0.1
-                currentHighlight.Parent = melhor.slot
-            end
+    if melhor then
 
-            -- Força o prompt no melhor encontrado (sempre que existir)
-            if melhor.promptReal then
-                forcarPromptDeLonge(melhor.promptReal)
-            end
+        notify("Garama encontrado: " .. melhor.valorTexto, Color3.fromRGB(0, 255, 120))
+
+        print("Base:", melhor.base.Name)
+
+        print("Slot:", melhor.slot.Name)
+
+        print("Nome:", melhor.texto)
+
+        print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
+
+        if melhor.promptReal then
+
+            forcarPromptDeLonge(melhor.promptReal)
+
+            -- Opcional: teleportar ou disparar o prompt aqui
+
+            -- fireprompt(melhor.promptReal) ← se tiver exploit com essa função
 
         else
-            -- Não encontrou nenhum Garama válido
-            if currentBestGarama then
-                notify("Garama sumiu / ninguém tem mais", Color3.fromRGB(255, 140, 60))
-            end
 
-            currentBestGarama = nil
+            notify("Prompt não encontrado no melhor slot", Color3.fromRGB(255, 80, 80))
 
-            if currentHighlight then
-                currentHighlight:Destroy()
-                currentHighlight = nil
-            end
         end
+
+    else
+
+        notify("Nenhum Garama válido encontrado", Color3.fromRGB(255, 140, 0))
+
     end
+
 end)
+
 
 -- =============================================
 -- Inicialização (ORIGINAL)
