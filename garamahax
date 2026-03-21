@@ -41,15 +41,15 @@ local TeleportService = game:GetService("TeleportService")
 
 local notifyBusy = false
 
-local currentBestSmurfCat = nil
+local currentBestGarama = nil
 local currentHighlight = nil
-local INTERVALO_BUSCA_SmurfCat = 3.5
+local INTERVALO_BUSCA_GARAMA = 3.5
 
 local scriptFullyLoaded = false
 
 local TERMOS = { -- ← crie essa tabela com os termos que você quer
 
-    "SmurfCat", "SmurfCat v", "SmurfCat x", "brainrot", -- exemplos — ajuste conforme o jogo
+    "garama", "garama v", "garama x", "brainrot", -- exemplos — ajuste conforme o jogo
 
     -- adicione mais aqui
 
@@ -236,7 +236,7 @@ end
 
 -- =============================================
 
-local function acharMelhorSmurfCatInfo()
+local function acharMelhorGaramaInfo()
     local char = plr.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then
         return nil
@@ -359,28 +359,28 @@ local function acharMelhorSmurfCatInfo()
     return melhorInfo
 end
 -- =============================================
--- LOOP ETERNO - Sempre buscando o melhor SmurfCat
+-- LOOP ETERNO - Sempre buscando o melhor Garama
 -- =============================================
 task.spawn(function()
     while true do
-        task.wait(INTERVALO_BUSCA_SmurfCat)  -- está definido como 1 segundo
+        task.wait(INTERVALO_BUSCA_GARAMA)  -- está definido como 1 segundo
 
-        local melhor = acharMelhorSmurfCatInfo()
+        local melhor = acharMelhorGaramaInfo()
 
         if melhor then
-            local eraNil = not currentBestSmurfCat
-            local ehMelhor = eraNil or (melhor.valor > currentBestSmurfCat.valor)
+            local eraNil = not currentBestGarama
+            local ehMelhor = eraNil or (melhor.valor > currentBestGarama.valor)
 
             -- Atualiza sempre o "melhor atual"
-            currentBestSmurfCat = melhor
+            currentBestGarama = melhor
 
             -- Notificação diferenciada
             if ehMelhor then
-                notify("Novo MELHOR SmurfCat: " .. melhor.valorTexto, Color3.fromRGB(100, 255, 100))
+                notify("Novo MELHOR Garama: " .. melhor.valorTexto, Color3.fromRGB(100, 255, 100))
                 print("Novo melhor → Base:", melhor.base.Name, "Slot:", melhor.slot.Name)
                 print("Valor:", melhor.valorTexto, "(" .. melhor.valor .. ")")
             else
-                notify("SmurfCat detectado (mas não melhor): " .. melhor.valorTexto, Color3.fromRGB(255, 200, 80))
+                notify("Garama detectado (mas não melhor): " .. melhor.valorTexto, Color3.fromRGB(255, 200, 80))
             end
 
             -- Atualiza o highlight apenas quando for melhor ou primeira vez
@@ -405,12 +405,12 @@ task.spawn(function()
             end
 
         else
-            -- Não encontrou nenhum SmurfCat válido
-            if currentBestSmurfCat then
-                notify("SmurfCat sumiu / ninguém tem mais", Color3.fromRGB(255, 140, 60))
+            -- Não encontrou nenhum Garama válido
+            if currentBestGarama then
+                notify("Garama sumiu / ninguém tem mais", Color3.fromRGB(255, 140, 60))
             end
 
-            currentBestSmurfCat = nil
+            currentBestGarama = nil
 
             if currentHighlight then
                 currentHighlight:Destroy()
@@ -703,12 +703,12 @@ UIS.InputEnded:Connect(function(input)
 end)
 
 -- =============================================
--- LOOP DO SCANNER SmurfCat (IMPLEMENTADO)
+-- LOOP DO SCANNER GARAMA (IMPLEMENTADO)
 -- =============================================
 task.spawn(function()
     while true do
-        task.wait(INTERVALO_SmurfCat)
-        local info = acharSmurfCatInfo()
+        task.wait(INTERVALO_GARAMA)
+        local info = acharGaramaInfo()
         if info then
             if currentHighlight then currentHighlight:Destroy() end
             currentHighlight = Instance.new("Highlight")
