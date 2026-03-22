@@ -204,9 +204,13 @@ task.spawn(function()
     end
 end)
 local RARE_NAMES = {
-    "strawberry elephant",
     "evil six seven",
-    "Meowl"
+    "meowl",
+    "bisonte giuppitere",
+    "job job job sahur",
+    "nooooo my hotspot",
+    "hydra cannenoli",
+    "tralelero hydrala"
 }
 local debounce = false
 local coletados = {}
