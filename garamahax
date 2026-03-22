@@ -348,23 +348,22 @@ local function acharMelhorGaramaInfo()
 
             -- Tenta converter o texto de forma mais robusta
 
-           local texto = earnLabel.Text
-local num, letra = texto:match("([%d%.]+)%s*([KkMm]?)")
+          local texto = earnLabel.Text
+local num, letra = texto:match("([%d%.]+)%s*([KkMmBbTt]?)")
 
 local valorNumerico = tonumber(num)
+
 if valorNumerico then
     if letra == "K" or letra == "k" then
-        valorNumerico *= 1000
+        valorNumerico *= 1e3
     elseif letra == "M" or letra == "m" then
-        valorNumerico *= 1000000
-  elseif letra == "B" or letra == "b" then
-        valorNumerico *= 1000000000
-elseif letra == "T" or letra == "t" then
-        valorNumerico *= 1000000000000
+        valorNumerico *= 1e6
+    elseif letra == "B" or letra == "b" then
+        valorNumerico *= 1e9
+    elseif letra == "T" or letra == "t" then
+        valorNumerico *= 1e12
     end
 end
-
-
             -- Se falhar (ex: "1.2K", "950/s"), aqui você pode adicionar parsing extra
 
             if not valorNumerico then
