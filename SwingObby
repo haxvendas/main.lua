@@ -404,98 +404,118 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -- =============================================
--- 😈 EVENT PANEL (VOID / DIVINE / GODLY FIXED)
+-- 😈 EVENT HUD (CLEAN / COMPACT)
 -- =============================================
 
 local plr = game.Players.LocalPlayer
-local RunService = game:GetService("RunService")
 
-local old = plr.PlayerGui:FindFirstChild("CustomEventPanel")
+-- Remove antigo
+local old = plr.PlayerGui:FindFirstChild("EventHUD")
 if old then old:Destroy() end
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "CustomEventPanel"
+-- GUI
+local gui = Instance.new("ScreenGui", plr.PlayerGui)
+gui.Name = "EventHUD"
 gui.ResetOnSpawn = false
-gui.Parent = plr.PlayerGui
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 0)
-frame.AutomaticSize = Enum.AutomaticSize.Y
-frame.Position = UDim2.new(1, -320, 1, -120)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,25)
-frame.BackgroundTransparency = 0.1
-frame.Parent = gui
-
+-- Frame
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 260, 0, 220)
+frame.Position = UDim2.new(1, -270, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
+frame.BackgroundTransparency = 0.2
+frame.BorderSizePixel = 0
 Instance.new("UICorner", frame)
 
-local stroke = Instance.new("UIStroke", frame)
-stroke.Color = Color3.fromRGB(255,215,0)
-stroke.Thickness = 2
+-- Título
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,25)
+title.BackgroundTransparency = 1
+title.Text = "⚡ EVENTS"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.TextColor3 = Color3.fromRGB(180,180,180)
 
-local text = Instance.new("TextLabel")
-text.Size = UDim2.new(1, -20, 0, 0)
-text.AutomaticSize = Enum.AutomaticSize.Y
-text.Position = UDim2.new(0, 10, 0, 10)
-text.BackgroundTransparency = 1
-text.TextWrapped = true
-text.TextSize = 22
-text.Font = Enum.Font.GothamBold
-text.RichText = true
-text.TextColor3 = Color3.new(1,1,1)
-text.Text = "CARREGANDO..."
-text.Parent = frame
+-- Scroll
+local scroll = Instance.new("ScrollingFrame", frame)
+scroll.Size = UDim2.new(1, -6, 1, -30)
+scroll.Position = UDim2.new(0,3,0,27)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 3
+scroll.CanvasSize = UDim2.new(0,0,0,0)
 
--- 🔥 PEGAR TEMPO FLEX
-local function extractTime(txt)
-    return txt:match("IN:%s*(.+)") or "..."
+-- Layout
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0,4)
+
+-- Cores por raridade
+local colors = {
+    Void = Color3.fromRGB(170,0,255),
+    Divine = Color3.fromRGB(0,170,255),
+    Godly = Color3.fromRGB(255,215,0),
+    Mythical = Color3.fromRGB(255,85,255),
+    Secret = Color3.fromRGB(255,0,0),
+    Ancient = Color3.fromRGB(0,255,170),
+    AncientAwakened = Color3.fromRGB(255,140,0),
+    Rainbow = Color3.fromRGB(255,255,255)
+}
+
+local rarities = {
+    "Void","Divine","Godly","Mythical",
+    "Secret","Ancient","AncientAwakened","Rainbow"
+}
+
+-- Função limpar texto
+local function cleanText(txt)
+    txt = txt:gsub("GUARANTEED ","")
+    txt = txt:gsub(" IN:", "")
+    txt = txt:gsub("INSANE!!!", "INSANE")
+    return txt
 end
 
-local function getEvents()
-    local eventos = {
-        void = "...",
-        divine = "...",
-        godly = "..."
-    }
-
-    local eventSign = workspace:FindFirstChild("EventSign")
-    if not eventSign then return eventos end
-
-    local folder = eventSign:GetChildren()[7]
-    if not folder then return eventos end
-
-    local gui = folder:FindFirstChild("SurfaceGui")
-    if not gui then return eventos end
-
-    -- VOID
-    local void = gui:FindFirstChild("Void")
-    if void and void:FindFirstChild("TextLabel") then
-        eventos.void = extractTime(void.TextLabel.Text)
+-- Atualizar
+local function update()
+    -- limpa só os textos
+    for _, v in ipairs(scroll:GetChildren()) do
+        if v:IsA("TextLabel") then
+            v:Destroy()
+        end
     end
 
-    -- DIVINE
-    local divine = gui:FindFirstChild("Divine")
-    if divine and divine:FindFirstChild("TextLabel") then
-        eventos.divine = extractTime(divine.TextLabel.Text)
+    local base = game:GetService("Workspace")
+        :WaitForChild("EventSign")
+        :WaitForChild("MainScreen")
+        :WaitForChild("SurfaceGui")
+
+    for _, name in ipairs(rarities) do
+        local folder = base:FindFirstChild(name)
+        if folder and folder:FindFirstChild("TextLabel") then
+            local txt = folder.TextLabel.Text
+
+            if txt and txt ~= "" then
+                local label = Instance.new("TextLabel")
+                label.Size = UDim2.new(1,0,0,22)
+                label.BackgroundTransparency = 1
+                label.Font = Enum.Font.Gotham
+                label.TextSize = 12
+                label.TextXAlignment = Enum.TextXAlignment.Left
+                label.TextColor3 = colors[name] or Color3.new(1,1,1)
+
+                label.Text = name.." • "..cleanText(txt)
+                label.Parent = scroll
+            end
+        end
     end
 
-    -- GODLY
-    local godly = gui:FindFirstChild("Godly")
-    if godly and godly:FindFirstChild("TextLabel") then
-        eventos.godly = extractTime(godly.TextLabel.Text)
-    end
-
-    return eventos
+    task.wait()
+    scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 5)
 end
 
-RunService.RenderStepped:Connect(function()
-    local ev = getEvents()
-
-    text.Text =
-        "<font color='#8A2BE2'>VOID</font>: "..ev.void.."\n" ..
-        "<font color='#FFA500'>GODLY</font>: "..ev.godly.."\n" ..
-        "<font color='#FFD700'>DIVINE</font>: "..ev.divine
-end)
-
+-- Loop
+while true do
+    update()
+    task.wait(1)
+end
 -- =============================================
 -- VFLY (BODYGYRO / BODYVELOCITY) - TECLA V
 -- =============================================
