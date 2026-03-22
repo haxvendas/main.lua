@@ -357,8 +357,13 @@ if valorNumerico then
         valorNumerico *= 1000
     elseif letra == "M" or letra == "m" then
         valorNumerico *= 1000000
+  elseif letra == "B" or letra == "b" then
+        valorNumerico *= 1000000000
+elseif letra == "T" or letra == "t" then
+        valorNumerico *= 1000000000000
     end
 end
+
 
             -- Se falhar (ex: "1.2K", "950/s"), aqui você pode adicionar parsing extra
 
