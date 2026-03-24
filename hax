@@ -549,8 +549,6 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/re
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/freecam"))();
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/Branch/GUIS/Emotes.lua"))();
-
 loadstring(game:HttpGet("https://raw.githubusercontent.com/haxvendas/main.lua/refs/heads/main/hax%20hub"))();
 
 
