@@ -1,356 +1,586 @@
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
 
-if not game:IsLoaded() then game.Loaded:Wait() end
+local Player = game.Players.LocalPlayer 
+local PlayerGui = Player:WaitForChild("PlayerGui") 
+local UserInputService = game:GetService("UserInputService") 
+local RunService = game:GetService("RunService") 
+local ReplicatedStorage = game:GetService("ReplicatedStorage") 
+local VirtualUser = game:GetService("VirtualUser") 
+local TeleportService = game:GetService("TeleportService") 
+local HttpService = game:GetService("HttpService") 
+local Mouse = Player:GetMouse() 
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
 
---// ══════════ SERVICES ══════════
-local Players            = game:GetService("Players")
-local UIS                = game:GetService("UserInputService")
-local RunService         = game:GetService("RunService")
-local RS                 = game:GetService("ReplicatedStorage")
-local TweenService       = game:GetService("TweenService")
-local TeleportService    = game:GetService("TeleportService")
-local HttpService        = game:GetService("HttpService")
-local Lighting           = game:GetService("Lighting")
-local VirtualUser        = game:GetService("VirtualUser")
-
-local Player    = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
-local Mouse     = Player:GetMouse()
-
---// ══════════ THEME ══════════
-local T = {
-    Bg         = Color3.fromRGB(8, 8, 12),
-    Panel      = Color3.fromRGB(14, 14, 20),
-    Panel2     = Color3.fromRGB(20, 20, 28),
-    Card       = Color3.fromRGB(18, 22, 18),
-    Sidebar    = Color3.fromRGB(12, 12, 16),
-    Topbar     = Color3.fromRGB(10, 10, 14),
-    Stroke     = Color3.fromRGB(0, 255, 100),
-    StrokeDim  = Color3.fromRGB(30, 60, 35),
-    Accent     = Color3.fromRGB(0, 255, 100),
-    AccentDark = Color3.fromRGB(0, 180, 70),
-    AccentDim  = Color3.fromRGB(0, 80, 35),
-    Text       = Color3.fromRGB(230, 255, 235),
-    Muted      = Color3.fromRGB(120, 140, 125),
-    Danger     = Color3.fromRGB(255, 60, 60),
-    Success    = Color3.fromRGB(0, 220, 90),
-    Off        = Color3.fromRGB(35, 35, 40),
-    On         = Color3.fromRGB(0, 200, 80),
-    Circle     = Color3.fromRGB(220, 255, 225),
-    Shadow     = Color3.fromRGB(0, 0, 0),
-    Font       = Enum.Font.GothamBold,
-    FontMed    = Enum.Font.GothamMedium,
-    FontReg    = Enum.Font.Gotham,
-}
-
---// ══════════ SETTINGS SAVE/LOAD ══════════
-local fileName = "PhantomHub_" .. tostring(Player.UserId) .. ".json"
-local savedSettings = {}
+local fileName = "PhantomHub_" .. tostring(Player.UserId) .. ".json" 
+local savedSettings = {} 
 
 if type(isfile) == "function" and isfile(fileName) then
-    local ok, data = pcall(function()
-        return HttpService:JSONDecode(readfile(fileName))
-    end)
-    if ok and type(data) == "table" then
+    local success, data = pcall(function() return HttpService:JSONDecode(readfile(fileName)) end)
+    if success and type(data) == "table" then
         savedSettings = data
     end
 end
 
-local function saveSettings()
+local function saveSettings() 
     if type(writefile) == "function" then
-        pcall(function()
-            writefile(fileName, HttpService:JSONEncode(savedSettings))
-        end)
+        pcall(function() writefile(fileName, HttpService:JSONEncode(savedSettings)) end)
     end
 end
+--// ═══ TEMA PREMIUM ═══
+local Theme = {
+    Bg = Color3.fromRGB(8, 10, 12),
+    Panel = Color3.fromRGB(15, 18, 20),
+    Panel2 = Color3.fromRGB(20, 24, 28),
+    Topbar = Color3.fromRGB(10, 12, 14),
+    Sidebar = Color3.fromRGB(12, 14, 16),
+    Card = Color3.fromRGB(18, 22, 25),
+    Accent = Color3.fromRGB(0, 255, 100),      -- Verde Neon
+    AccentDim = Color3.fromRGB(0, 180, 70),
+    Stroke = Color3.fromRGB(0, 255, 100),
+    StrokeDim = Color3.fromRGB(30, 60, 40),
+    Text = Color3.fromRGB(230, 255, 240),
+    Muted = Color3.fromRGB(120, 150, 130),
+    On = Color3.fromRGB(0, 200, 80),
+    Off = Color3.fromRGB(30, 35, 38),
+    Circle = Color3.fromRGB(220, 255, 230),
+    Danger = Color3.fromRGB(255, 60, 60),
+    Success = Color3.fromRGB(0, 220, 90),
+}
 
-local optionStates = {}
+local optionStates = {} 
 
-local function createOptionState(name, initial)
+local function createOptionState(name, initialValue) 
     if savedSettings[name] ~= nil then
         optionStates[name] = savedSettings[name]
     else
-        optionStates[name] = initial
+        optionStates[name] = initialValue
     end
     return function() return optionStates[name] end
 end
 
-local function setOptionState(name, value)
-    optionStates[name] = value
-    savedSettings[name] = value
+local function setOptionState(name, value) 
+    optionStates[name] = value 
+    savedSettings[name] = value 
     saveSettings()
 end
 
---// ══════════ DEBOUNCE ══════════
-local inputDebounce = {}
-local function debounce(key, dur)
-    if inputDebounce[key] then return false end
-    inputDebounce[key] = true
-    task.delay(dur or 0.08, function() inputDebounce[key] = nil end)
-    return true
-end
+local sellBrainrots = { "Noobini Pizzanini", "LiriliLarila", "Fluri Flura", "Cacto Hipopotamo", "Pipi Potato", "Tric Trac Barabum", "Burbaloni Loliloli", "Boneca Ambalabu", "Trippi Troppi", "Svinina Bombardino", "Bambini Crostini", "Avocadini Guffo", "Bandito Bobrito", "Tatatata Sahur", "Gangster Footera", "Tung Tung Sahur", "Cappuccino Assassino", "Pipi Kiwi", "Orangutini Ananassini", "Talpa Di Fero", "Espresso Signora", "Brr Brr Patapim", "Rhino Toasterino", "Brr Bicus Dicus", "Strawberrelli Flamingelli", "Bananito Delfinito", "Balerina Capucina", "Glorbo Fruttodrillo", "Blueberrinni Octopusini", "Chimpanzini Bananini", "Bombardiro Crocodilo", "Elefanto Cocofanto", "Bommunini Gusini", "Pandaccini Bananini", "Chef Crabracadabra", "Gorillo Watermelondrillo", "Frigo Camelo", "Girafa Celestre", "Ganganzelli Trulala", "Tigroligre Frutonni", "Matteo", "Cavallo Virtuoso", "La Vacca Saturno Saturnita", "Esok Sekolah", "Tralaledon", "Tralalero Tralala", "Chicleteira Bicicleteira", "Torrtuginni Dragonfrutini", "Nuclearo Dinosauro", "Quesadilla Crocodila", "Graipussi Medussi", "Caramelini Brasilini", "Garama and Madundung", "Meowl", "Smurf Cat", "Capitano Clash Warnini", "Strawberry Elephant" } 
 
---// ══════════ SELL BRAINROTS DATA ══════════
-local sellBrainrots = {
-    "Noobini Pizzanini","LiriliLarila","Fluri Flura","Cacto Hipopotamo",
-    "Pipi Potato","Tric Trac Barabum","Burbaloni Loliloli","Boneca Ambalabu",
-    "Trippi Troppi","Svinina Bombardino","Bambini Crostini","Avocadini Guffo",
-    "Bandito Bobrito","Tatatata Sahur","Gangster Footera","Tung Tung Sahur",
-    "Cappuccino Assassino","Pipi Kiwi","Orangutini Ananassini","Talpa Di Fero",
-    "Espresso Signora","Brr Brr Patapim","Rhino Toasterino","Brr Bicus Dicus",
-    "Strawberrelli Flamingelli","Bananito Delfinito","Balerina Capucina",
-    "Glorbo Fruttodrillo","Blueberrinni Octopusini","Chimpanzini Bananini",
-    "Bombardiro Crocodilo","Elefanto Cocofanto","Bommunini Gusini",
-    "Pandaccini Bananini","Chef Crabracadabra","Gorillo Watermelondrillo",
-    "Frigo Camelo","Girafa Celestre","Ganganzelli Trulala","Tigroligre Frutonni",
-    "Matteo","Cavallo Virtuoso","La Vacca Saturno Saturnita","Esok Sekolah",
-    "Tralaledon","Tralalero Tralala","Chicleteira Bicicleteira",
-    "Torrtuginni Dragonfrutini","Nuclearo Dinosauro","Quesadilla Crocodila",
-    "Graipussi Medussi","Caramelini Brasilini","Garama and Madundung",
-    "Meowl","Smurf Cat","Capitano Clash Warnini","Strawberry Elephant"
-}
-
-local sellTargets = {}
-local savedSell = savedSettings["SellTargets"] or {}
-local defaultMuts = {Normal=true, Gold=true, Diamond=true, Rainbow=true, Lava=true}
+local sellTargets = {} 
+local savedSell = savedSettings["SellTargets"] or {} 
 
 for _, brName in ipairs(sellBrainrots) do
     if savedSell[brName] then
-        sellTargets[brName] = savedSell[brName]
-        if not sellTargets[brName].Muts then sellTargets[brName].Muts = {} end
-        for k, v in pairs(defaultMuts) do
-            if sellTargets[brName].Muts[k] == nil then
-                sellTargets[brName].Muts[k] = v
-            end
+        sellTargets[brName] = savedSell[brName] 
+        if not sellTargets[brName].Muts then
+            sellTargets[brName].Muts = {}
+        end
+        if sellTargets[brName].Muts.Normal == nil then
+            sellTargets[brName].Muts.Normal = true
+        end
+        if sellTargets[brName].Muts.Gold == nil then
+            sellTargets[brName].Muts.Gold = true
+        end
+        if sellTargets[brName].Muts.Diamond == nil then
+            sellTargets[brName].Muts.Diamond = true
+        end
+        if sellTargets[brName].Muts.Rainbow == nil then
+            sellTargets[brName].Muts.Rainbow = true
+        end
+        if sellTargets[brName].Muts.Lava == nil then
+            sellTargets[brName].Muts.Lava = true
         end
     else
-        sellTargets[brName] = {Active = false, Muts = {Normal=true, Gold=true, Diamond=true, Rainbow=true, Lava=true}}
+        sellTargets[brName] = { Active = false, Muts = {Normal=true, Gold=true, Diamond=true, Rainbow=true, Lava=true} }
     end
 end
 
---// ══════════ UTILITY ══════════
-local hitboxSizeVal = 15
-local hitboxesExpanded = false
+local hitboxSizeVal = 15 
+local hitboxesExpanded = false 
+local inputDebounce = {} 
 
-local function parseEarnValue(text)
-    if not text then return 0 end
-    local clean = text:gsub("[%$%/s%, ]", "")
-    local suffix = clean:sub(-1):upper()
-    local number = tonumber(clean:sub(1, -2)) or tonumber(clean)
-    if not number then return 0 end
-    local multipliers = {K=1e3, M=1e6, B=1e9, T=1e12}
-    return number * (multipliers[suffix] or 1)
-end
-
-local function formatValue(val)
-    if val >= 1e12 then return string.format("%.1fT", val/1e12)
-    elseif val >= 1e9 then return string.format("%.1fB", val/1e9)
-    elseif val >= 1e6 then return string.format("%.1fM", val/1e6)
-    elseif val >= 1e3 then return string.format("%.1fK", val/1e3)
+local function createDebounce(key, duration) 
+    if inputDebounce[key] then
+        return false
     end
-    return tostring(val)
+    inputDebounce[key] = true 
+    local adjustedDuration = duration or 0.05 
+    task.delay(adjustedDuration, function() 
+        inputDebounce[key] = nil
+    end)
+    return true
 end
 
---// ══════════════════════════════════════════════════════════
---//                    UI CONSTRUCTION
---// ══════════════════════════════════════════════════════════
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "HaxHub_Premium"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = PlayerGui
-
---// BLUR
+--// ═══ BLUR PREMIUM ═══
 local blurEffect = Instance.new("BlurEffect")
 blurEffect.Size = 0
 blurEffect.Name = "HaxHubBlur"
 blurEffect.Parent = Lighting
 
---// ═══ FLOATING BUTTON ═══
-local FloatingButton = Instance.new("ImageButton")
-FloatingButton.Size = UDim2.new(0, 48, 0, 48)
-FloatingButton.Position = UDim2.new(0, 20, 0.5, 100)
-FloatingButton.BackgroundColor3 = T.Panel
-FloatingButton.Image = ""
-FloatingButton.AutoButtonColor = false
-FloatingButton.Parent = ScreenGui
+local ScreenGui = Instance.new("ScreenGui") 
+ScreenGui.Name = "PhantomHub_V1" 
+ScreenGui.ResetOnSpawn = false 
+ScreenGui.Parent = PlayerGui 
 
-local fbCorner = Instance.new("UICorner", FloatingButton)
-fbCorner.CornerRadius = UDim.new(0, 14)
+local FloatingButton = Instance.new("TextButton") 
+FloatingButton.Size = UDim2.new(0, 54, 0, 54) 
+FloatingButton.Position = UDim2.new(0, 50, 0.5, 200) 
+FloatingButton.BackgroundColor3 = Theme.Panel
+FloatingButton.Text = "" 
+FloatingButton.Parent = ScreenGui 
+FloatingButton.AutoButtonColor = false 
 
-local fbStroke = Instance.new("UIStroke", FloatingButton)
-fbStroke.Color = T.Accent
-fbStroke.Thickness = 2
-fbStroke.Transparency = 0.3
+local UICornerBtn = Instance.new("UICorner") 
+UICornerBtn.CornerRadius = UDim.new(0, 12) 
+UICornerBtn.Parent = FloatingButton 
 
-local fbGlow = Instance.new("UIStroke", FloatingButton)
-fbGlow.Color = T.Accent
-fbGlow.Thickness = 4
-fbGlow.Transparency = 0.7
-fbGlow.Name = "Glow"
+local btnStroke = Instance.new("UIStroke")
+btnStroke.Color = Theme.Accent
+btnStroke.Thickness = 2
+btnStroke.Transparency = 0.3
+btnStroke.Parent = FloatingButton
 
-local fbLabel = Instance.new("TextLabel")
-fbLabel.Size = UDim2.new(1,0,1,0)
-fbLabel.BackgroundTransparency = 1
-fbLabel.Text = "H"
-fbLabel.TextColor3 = T.Accent
-fbLabel.TextSize = 22
-fbLabel.Font = T.Font
-fbLabel.Parent = FloatingButton
+local InnerBtn = Instance.new("Frame") 
+InnerBtn.Size = UDim2.new(0, 48, 0, 48) 
+InnerBtn.Position = UDim2.new(0.5, -24, 0.5, -24) 
+InnerBtn.BackgroundColor3 = Theme.Bg
+InnerBtn.Parent = FloatingButton 
 
--- Pulse animation on button
+local UICornerInner = Instance.new("UICorner") 
+UICornerInner.CornerRadius = UDim.new(0, 10) 
+UICornerInner.Parent = InnerBtn 
+
+local BtnLabel = Instance.new("TextLabel") 
+BtnLabel.Size = UDim2.new(1, 0, 1, 0) 
+BtnLabel.BackgroundTransparency = 1 
+BtnLabel.Text = "H" 
+BtnLabel.TextColor3 = Theme.Accent
+BtnLabel.TextSize = 24 
+BtnLabel.Font = Enum.Font.GothamBold
+BtnLabel.Parent = InnerBtn 
+
+--// ANIMAÇÃO PULSE NO BOTÃO
 task.spawn(function()
     while true do
-        local g = FloatingButton:FindFirstChild("Glow")
-        if g then
-            TweenService:Create(g, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.4}):Play()
-            task.wait(1)
-            TweenService:Create(g, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.85}):Play()
-            task.wait(1)
-        else
-            task.wait(1)
-        end
+        TweenService:Create(btnStroke, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.6}):Play()
+        task.wait(1)
+        TweenService:Create(btnStroke, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.2}):Play()
+        task.wait(1)
     end
 end)
 
---// ═══ MAIN FRAME ═══
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 480, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -155)
-MainFrame.BackgroundColor3 = T.Bg
-MainFrame.Visible = false
-MainFrame.ClipsDescendants = true
-MainFrame.Parent = ScreenGui
+local MainFrame = Instance.new("Frame") 
+MainFrame.Size = UDim2.new(0, 550, 0, 320) 
+MainFrame.Position = UDim2.new(0.5, -275, 0.5, -160) 
+MainFrame.BackgroundColor3 = Theme.Bg
+MainFrame.Visible = false 
+MainFrame.Parent = ScreenGui 
 
-local mfCorner = Instance.new("UICorner", MainFrame)
-mfCorner.CornerRadius = UDim.new(0, 10)
+local UICornerFrame = Instance.new("UICorner") 
+UICornerFrame.CornerRadius = UDim.new(0, 12) 
+UICornerFrame.Parent = MainFrame 
 
-local mfStroke = Instance.new("UIStroke", MainFrame)
-mfStroke.Color = T.Accent
-mfStroke.Thickness = 1.5
-mfStroke.Transparency = 0.3
+local frameStroke = Instance.new("UIStroke")
+frameStroke.Color = Theme.Stroke
+frameStroke.Thickness = 1.5
+frameStroke.Transparency = 0.4
+frameStroke.Parent = MainFrame
 
-local mfScale = Instance.new("UIScale", MainFrame)
-mfScale.Scale = 0.92
+local frameScale = Instance.new("UIScale")
+frameScale.Scale = 0.92
+frameScale.Parent = MainFrame
 
---// TOPBAR
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 36)
-TopBar.BackgroundColor3 = T.Topbar
-TopBar.BorderSizePixel = 0
-TopBar.Parent = MainFrame
+local InnerFrame = Instance.new("Frame") 
+InnerFrame.Size = UDim2.new(1, -6, 1, -6) 
+InnerFrame.Position = UDim2.new(0, 3, 0, 3) 
+InnerFrame.BackgroundColor3 = Theme.Bg
+InnerFrame.Parent = MainFrame 
 
-local topCorner = Instance.new("UICorner", TopBar)
-topCorner.CornerRadius = UDim.new(0, 10)
+local UICornerInnerF = Instance.new("UICorner") 
+UICornerInnerF.CornerRadius = UDim.new(0, 10) 
+UICornerInnerF.Parent = InnerFrame 
 
--- bottom cover for topbar corners
-local topCover = Instance.new("Frame")
-topCover.Size = UDim2.new(1, 0, 0, 12)
-topCover.Position = UDim2.new(0, 0, 1, -12)
-topCover.BackgroundColor3 = T.Topbar
-topCover.BorderSizePixel = 0
-topCover.Parent = TopBar
+local TopBar = Instance.new("Frame") 
+TopBar.Size = UDim2.new(1, 0, 0, 45) 
+TopBar.BackgroundColor3 = Theme.Topbar
+TopBar.Parent = InnerFrame 
 
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0, 200, 1, 0)
-titleLabel.Position = UDim2.new(0, 12, 0, 0)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "⚡ HAX HUB"
-titleLabel.TextColor3 = T.Accent
-titleLabel.Font = T.Font
-titleLabel.TextSize = 16
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = TopBar
+local TopCorner = Instance.new("UICorner") 
+TopCorner.CornerRadius = UDim.new(0, 10) 
+TopCorner.Parent = TopBar 
 
-local titleStroke = Instance.new("UIStroke", titleLabel)
-titleStroke.Color = Color3.fromRGB(0, 80, 30)
-titleStroke.Thickness = 1
+local ScriptTitle = Instance.new("TextLabel") 
+ScriptTitle.Size = UDim2.new(0, 150, 1, 0) 
+ScriptTitle.Position = UDim2.new(0, 10, 0, 0) 
+ScriptTitle.Text = "⚡ HAX Hub" 
+ScriptTitle.TextColor3 = Theme.Accent
+ScriptTitle.Font = Enum.Font.GothamBold
+ScriptTitle.TextSize = 22 
+ScriptTitle.TextXAlignment = Enum.TextXAlignment.Left 
+ScriptTitle.BackgroundTransparency = 1 
+ScriptTitle.Parent = TopBar 
 
-local versionLabel = Instance.new("TextLabel")
-versionLabel.Size = UDim2.new(0, 60, 1, 0)
-versionLabel.Position = UDim2.new(0, 120, 0, 0)
-versionLabel.BackgroundTransparency = 1
-versionLabel.Text = "v2.0"
-versionLabel.TextColor3 = T.Muted
-versionLabel.Font = T.FontReg
-versionLabel.TextSize = 11
-versionLabel.TextXAlignment = Enum.TextXAlignment.Left
-versionLabel.Parent = TopBar
+local TitleStroke = Instance.new("UIStroke") 
+TitleStroke.Color = Theme.StrokeDim
+TitleStroke.Thickness = 2 
+TitleStroke.Parent = ScriptTitle 
 
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 28, 0, 28)
-CloseBtn.Position = UDim2.new(1, -34, 0.5, -14)
-CloseBtn.BackgroundColor3 = T.Panel2
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = T.Danger
-CloseBtn.Font = T.Font
-CloseBtn.TextSize = 14
-CloseBtn.AutoButtonColor = false
-CloseBtn.Parent = TopBar
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+local CloseBtn = Instance.new("TextButton") 
+CloseBtn.Size = UDim2.new(0, 32, 0, 32) 
+CloseBtn.Position = UDim2.new(1, -42, 0.5, -16) 
+CloseBtn.BackgroundColor3 = Theme.Panel2
+CloseBtn.Text = "✕" 
+CloseBtn.TextColor3 = Theme.Danger
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 18 
+CloseBtn.Parent = TopBar 
+CloseBtn.AutoButtonColor = false 
 
---// SIDEBAR
-local SideBar = Instance.new("Frame")
-SideBar.Size = UDim2.new(0, 100, 1, -36)
-SideBar.Position = UDim2.new(0, 0, 0, 36)
-SideBar.BackgroundColor3 = T.Sidebar
-SideBar.BorderSizePixel = 0
-SideBar.Parent = MainFrame
+local UICornerClose = Instance.new("UICorner") 
+UICornerClose.CornerRadius = UDim.new(0, 8) 
+UICornerClose.Parent = CloseBtn 
 
-local sideList = Instance.new("UIListLayout", SideBar)
-sideList.SortOrder = Enum.SortOrder.LayoutOrder
-sideList.Padding = UDim.new(0, 2)
-sideList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+local CloseStroke = Instance.new("UIStroke") 
+CloseStroke.Color = Theme.StrokeDim
+CloseStroke.Thickness = 2 
+CloseStroke.Parent = CloseBtn 
 
-local sidePad = Instance.new("UIPadding", SideBar)
-sidePad.PaddingTop = UDim.new(0, 8)
+local SideBar = Instance.new("Frame") 
+SideBar.Size = UDim2.new(0, 140, 1, -45) 
+SideBar.Position = UDim2.new(0, 0, 0, 45) 
+SideBar.BackgroundTransparency = 1 
+SideBar.Parent = InnerFrame 
 
---// CONTENT
-local MainContent = Instance.new("ScrollingFrame")
-MainContent.Size = UDim2.new(1, -105, 1, -42)
-MainContent.Position = UDim2.new(0, 103, 0, 39)
-MainContent.BackgroundTransparency = 1
-MainContent.ScrollBarThickness = 2
-MainContent.ScrollBarImageColor3 = T.Accent
-MainContent.CanvasSize = UDim2.new(0, 0, 0, 2000)
-MainContent.BorderSizePixel = 0
-MainContent.Parent = MainFrame
+local MainContent = Instance.new("ScrollingFrame") 
+MainContent.Size = UDim2.new(1, -145, 1, -55) 
+MainContent.Position = UDim2.new(0, 145, 0, 50) 
+MainContent.BackgroundTransparency = 1 
+MainContent.ScrollBarThickness = 2 
+MainContent.ScrollBarImageColor3 = Theme.Accent
+MainContent.CanvasSize = UDim2.new(0, 0, 0, 2000) 
+MainContent.Parent = InnerFrame 
 
---// ══════════ ANIMATION FUNCTIONS ══════════
+local options = {Main = {}, Buy = {}, Farm = {}, Config = {}, Credits = {}} 
+local activeTab = "Main" 
+
+local function createTabBtn(name, posIdx) 
+    local Btn = Instance.new("TextButton") 
+    Btn.Size = UDim2.new(0.85, 0, 0, 40) 
+    Btn.Position = UDim2.new(0.075, 0, 0, 20 + (posIdx * 50)) 
+    Btn.BackgroundColor3 = Theme.Panel2
+    Btn.TextColor3 = Theme.Muted
+    Btn.Text = name 
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 18 
+    Btn.Parent = SideBar 
+    Btn.AutoButtonColor = false 
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8) 
+    local BtnStroke = Instance.new("UIStroke") 
+    BtnStroke.Color = Theme.StrokeDim
+    BtnStroke.Thickness = 2 
+    BtnStroke.Transparency = 0.5
+    BtnStroke.Parent = Btn 
+    return Btn
+end
+
+local TabMain = createTabBtn("Main", 0) 
+local TabBuy = createTabBtn("Buy ALL", 1) 
+local TabFarm = createTabBtn("Farm", 2) 
+local TabConfig = createTabBtn("Config", 3) 
+local TabCredits = createTabBtn("Credits", 4) 
+
+local tabButtons = {TabMain, TabBuy, TabFarm, TabConfig, TabCredits}
+
+local function repositionElements(tab) 
+    local yPos = 0 
+    for _, elem in ipairs(options[tab]) do
+        if elem.Visible then
+            elem.Position = UDim2.new(0, 0, 0, yPos) 
+            yPos = yPos + elem.Size.Y.Offset + 10
+        end
+    end
+    MainContent.CanvasSize = UDim2.new(0, 0, 0, yPos + 50)
+end
+
+local function connectButtonInput(button, callback) 
+    local function execute() 
+        if createDebounce(button.Name or tostring(button), 0.05) then
+            callback()
+        end
+    end
+    button.Activated:Connect(execute) 
+    button.MouseButton1Click:Connect(execute)
+end
+
+local function createOption(name, startActive, tab, callback) 
+    createOptionState(name, startActive) 
+    local currentActive = optionStates[name] 
+    local Container = Instance.new("Frame") 
+    Container.Size = UDim2.new(0.95, 0, 0, 50) 
+    Container.BackgroundColor3 = Theme.Card
+    Container.Visible = (tab == activeTab) 
+    Container.Parent = MainContent 
+    Container.Name = name 
+    Instance.new("UICorner", Container).CornerRadius = UDim.new(0, 10) 
+    local ContainerStroke = Instance.new("UIStroke") 
+    ContainerStroke.Color = currentActive and Theme.Accent or Theme.StrokeDim
+    ContainerStroke.Thickness = 2 
+    ContainerStroke.Transparency = currentActive and 0.3 or 0.5
+    ContainerStroke.Parent = Container 
+    local Label = Instance.new("TextLabel") 
+    Label.Size = UDim2.new(0.6, 0, 1, 0) 
+    Label.Position = UDim2.new(0.05, 0, 0, 0) 
+    Label.Text = name 
+    Label.TextColor3 = Theme.Text
+    Label.BackgroundTransparency = 1 
+    Label.TextXAlignment = Enum.TextXAlignment.Left 
+    Label.Font = Enum.Font.GothamMedium
+    Label.TextSize = 16 
+    Label.Parent = Container 
+    local SwitchBG = Instance.new("TextButton") 
+    SwitchBG.Size = UDim2.new(0, 45, 0, 24) 
+    SwitchBG.Position = UDim2.new(1, -55, 0.5, -12) 
+    SwitchBG.BackgroundColor3 = currentActive and Theme.On or Theme.Off
+    SwitchBG.Text = "" 
+    SwitchBG.Parent = Container 
+    SwitchBG.AutoButtonColor = false 
+    Instance.new("UICorner", SwitchBG).CornerRadius = UDim.new(1, 0) 
+    local Circle = Instance.new("Frame") 
+    Circle.Size = UDim2.new(0, 18, 0, 18) 
+    Circle.Position = currentActive and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9) 
+    Circle.BackgroundColor3 = Theme.Circle
+    Circle.Parent = SwitchBG 
+    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0) 
+    local function toggleSwitch() 
+        if createDebounce(name, 0.05) then
+            optionStates[name] = not optionStates[name] 
+            setOptionState(name, optionStates[name]) 
+            TweenService:Create(Circle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+                Position = optionStates[name] and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+            }):Play()
+            TweenService:Create(SwitchBG, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+                BackgroundColor3 = optionStates[name] and Theme.On or Theme.Off
+            }):Play()
+            TweenService:Create(ContainerStroke, TweenInfo.new(0.2), {
+                Color = optionStates[name] and Theme.Accent or Theme.StrokeDim,
+                Transparency = optionStates[name] and 0.3 or 0.5
+            }):Play()
+            if callback then
+                task.wait(0.05) 
+                task.spawn(function() callback(optionStates[name]) end)
+            end
+        end
+    end
+    SwitchBG.Activated:Connect(toggleSwitch) 
+    SwitchBG.MouseButton1Click:Connect(toggleSwitch) 
+    if currentActive and callback then
+        task.spawn(function() callback(currentActive) end)
+    end
+    table.insert(options[tab], Container) 
+    return function() return optionStates[name] end, Container, SwitchBG
+end
+
+local function createSlider(name, min, max, default, tab, callback) 
+    createOptionState(name, default) 
+    local currentVal = optionStates[name] 
+    local Container = Instance.new("Frame") 
+    Container.Size = UDim2.new(0.95, 0, 0, 60) 
+    Container.BackgroundColor3 = Theme.Card
+    Container.Visible = (tab == activeTab) 
+    Container.Parent = MainContent 
+    Instance.new("UICorner", Container).CornerRadius = UDim.new(0, 10) 
+    local SliderStroke = Instance.new("UIStroke") 
+    SliderStroke.Color = Theme.StrokeDim
+    SliderStroke.Thickness = 2 
+    SliderStroke.Transparency = 0.5
+    SliderStroke.Parent = Container 
+    local Label = Instance.new("TextLabel") 
+    Label.Size = UDim2.new(0.9, 0, 0.4, 0) 
+    Label.Position = UDim2.new(0.05, 0, 0, 5) 
+    Label.Text = name .. ": " .. tostring(currentVal) 
+    Label.TextColor3 = Theme.Text
+    Label.BackgroundTransparency = 1 
+    Label.TextXAlignment = Enum.TextXAlignment.Left 
+    Label.Font = Enum.Font.GothamMedium
+    Label.TextSize = 16 
+    Label.Parent = Container 
+    local SliderBG = Instance.new("TextButton") 
+    SliderBG.Size = UDim2.new(0.9, 0, 0, 6) 
+    SliderBG.Position = UDim2.new(0.05, 0, 0.65, 0) 
+    SliderBG.BackgroundColor3 = Theme.Off
+    SliderBG.Text = "" 
+    SliderBG.Parent = Container 
+    SliderBG.AutoButtonColor = false 
+    Instance.new("UICorner", SliderBG).CornerRadius = UDim.new(1, 0) 
+    local SliderFill = Instance.new("Frame") 
+    local startScale = (currentVal - min) / (max - min) 
+    SliderFill.Size = UDim2.new(startScale, 0, 1, 0) 
+    SliderFill.BackgroundColor3 = Theme.Accent
+    SliderFill.Parent = SliderBG 
+    Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0) 
+    local Circle = Instance.new("Frame") 
+    Circle.Size = UDim2.new(0, 14, 0, 14) 
+    Circle.Position = UDim2.new(1, -7, 0.5, -7) 
+    Circle.BackgroundColor3 = Theme.Circle
+    Circle.Parent = SliderFill 
+    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0) 
+    
+    local circleGlow = Instance.new("UIStroke")
+    circleGlow.Color = Theme.Accent
+    circleGlow.Thickness = 2
+    circleGlow.Transparency = 0.5
+    circleGlow.Parent = Circle
+    
+    if callback then
+        task.spawn(function() callback(currentVal) end)
+    end
+    local dragging = false 
+    local function updateSlider(input) 
+        local relativeX = math.clamp(input.Position.X - SliderBG.AbsolutePosition.X, 0, SliderBG.AbsoluteSize.X) 
+        local scale = relativeX / SliderBG.AbsoluteSize.X 
+        SliderFill.Size = UDim2.new(scale, 0, 1, 0) 
+        local value = math.floor(min + ((max - min) * scale)) 
+        Label.Text = name .. ": " .. tostring(value) 
+        optionStates[name] = value 
+        setOptionState(name, value) 
+        if callback then
+            callback(value)
+        end
+    end
+    SliderBG.MouseButton1Down:Connect(function() 
+        dragging = true 
+        updateSlider(Mouse)
+    end)
+    Mouse.Move:Connect(function() 
+        if dragging then
+            updateSlider(Mouse)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input) 
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    table.insert(options[tab], Container)
+end
+
+local function createInfoBox(title, desc, tab, isButton, linkToCopy) 
+    local Container = Instance.new("Frame") 
+    Container.Size = UDim2.new(0.95, 0, 0, 50) 
+    Container.BackgroundColor3 = Theme.Card
+    Container.Visible = (tab == activeTab) 
+    Container.Parent = MainContent 
+    Instance.new("UICorner", Container).CornerRadius = UDim.new(0, 10) 
+    local InfoStroke = Instance.new("UIStroke") 
+    InfoStroke.Color = Theme.StrokeDim
+    InfoStroke.Thickness = 2 
+    InfoStroke.Transparency = 0.5
+    InfoStroke.Parent = Container 
+    local TitleLabel = Instance.new("TextLabel") 
+    TitleLabel.Size = UDim2.new(0.9, 0, 0.5, 0) 
+    TitleLabel.Position = UDim2.new(0.05, 0, 0, 5) 
+    TitleLabel.Text = title 
+    TitleLabel.TextColor3 = Theme.Accent
+    TitleLabel.BackgroundTransparency = 1 
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left 
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextSize = 16 
+    TitleLabel.Parent = Container 
+    local DescLabel = Instance.new("TextLabel") 
+    DescLabel.Size = UDim2.new(0.9, 0, 0.5, 0) 
+    DescLabel.Position = UDim2.new(0.05, 0, 0.5, -2) 
+    DescLabel.Text = desc 
+    DescLabel.TextColor3 = Theme.Muted
+    DescLabel.BackgroundTransparency = 1 
+    DescLabel.TextXAlignment = Enum.TextXAlignment.Left 
+    DescLabel.Font = Enum.Font.Gotham
+    DescLabel.TextSize = 14 
+    DescLabel.Parent = Container 
+    if isButton then
+        local ClickBtn = Instance.new("TextButton") 
+        ClickBtn.Size = UDim2.new(1, 0, 1, 0) 
+        ClickBtn.BackgroundTransparency = 1 
+        ClickBtn.Text = "" 
+        ClickBtn.Parent = Container 
+        ClickBtn.Activated:Connect(function() 
+            if type(setclipboard) == "function" then
+                pcall(function() setclipboard(linkToCopy) end)
+            end
+        end)
+        ClickBtn.MouseButton1Click:Connect(function() 
+            if type(setclipboard) == "function" then
+                pcall(function() setclipboard(linkToCopy) end)
+            end
+        end)
+    end
+    table.insert(options[tab], Container)
+end
+
+local function createActionButton(name, tab, callback) 
+    local Container = Instance.new("Frame") 
+    Container.Size = UDim2.new(0.95, 0, 0, 50) 
+    Container.BackgroundColor3 = Theme.AccentDim
+    Container.Visible = (tab == activeTab) 
+    Container.Parent = MainContent 
+    Container.Name = name 
+    Instance.new("UICorner", Container).CornerRadius = UDim.new(0, 10) 
+    local ContainerStroke = Instance.new("UIStroke") 
+    ContainerStroke.Color = Theme.Accent
+    ContainerStroke.Thickness = 2 
+    ContainerStroke.Transparency = 0.3
+    ContainerStroke.Parent = Container 
+    local Label = Instance.new("TextLabel") 
+    Label.Size = UDim2.new(1, 0, 1, 0) 
+    Label.Text = name 
+    Label.TextColor3 = Theme.Accent
+    Label.BackgroundTransparency = 1 
+    Label.TextXAlignment = Enum.TextXAlignment.Center 
+    Label.TextYAlignment = Enum.TextYAlignment.Center 
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 16 
+    Label.Parent = Container 
+    local ClickBtn = Instance.new("TextButton") 
+    ClickBtn.Size = UDim2.new(1, 0, 1, 0) 
+    ClickBtn.BackgroundTransparency = 1 
+    ClickBtn.Text = "" 
+    ClickBtn.Parent = Container 
+    ClickBtn.AutoButtonColor = false 
+    local function execute() 
+        if createDebounce(name, 0.05) then
+            callback()
+        end
+    end
+    ClickBtn.Activated:Connect(execute) 
+    ClickBtn.MouseButton1Click:Connect(execute) 
+    table.insert(options[tab], Container)
+end
+
+--// ═══ ANIMAÇÃO ABRIR/FECHAR COM BLUR ═══
 local hubOpen = false
 
 local function openHub()
     if hubOpen then return end
     hubOpen = true
     MainFrame.Visible = true
-    mfScale.Scale = 0.92
+    frameScale.Scale = 0.92
     MainFrame.BackgroundTransparency = 0.3
-
-    TweenService:Create(mfScale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Scale = 1
-    }):Play()
-    TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-        BackgroundTransparency = 0
-    }):Play()
-    TweenService:Create(blurEffect, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
-        Size = 12
-    }):Play()
+    
+    TweenService:Create(frameScale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
+    TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(blurEffect, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {Size = 12}):Play()
 end
 
 local function closeHub()
     if not hubOpen then return end
     hubOpen = false
-
-    TweenService:Create(mfScale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-        Scale = 0.92
-    }):Play()
-    TweenService:Create(MainFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {
-        BackgroundTransparency = 0.5
-    }):Play()
-    TweenService:Create(blurEffect, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-        Size = 0
-    }):Play()
-
+    
+    TweenService:Create(frameScale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Scale = 0.92}):Play()
+    TweenService:Create(MainFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {BackgroundTransparency = 0.5}):Play()
+    TweenService:Create(blurEffect, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = 0}):Play()
+    
     task.delay(0.16, function()
         if not hubOpen then MainFrame.Visible = false end
     end)
@@ -360,408 +590,86 @@ local function toggleHub()
     if hubOpen then closeHub() else openHub() end
 end
 
---// ══════════ TAB SYSTEM ══════════
-local options = {Main={}, Buy={}, Farm={}, Config={}, Credits={}}
-local activeTab = "Main"
-local tabButtons = {}
+--// KEYBIND H
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.H then
+        toggleHub()
+    end
+end)
 
-local tabNames = {"Main", "Buy", "Farm", "Config", "Credits"}
-local tabIcons = {Main="⚙", Buy="🛒", Farm="🌾", Config="🔧", Credits="★"}
+--// ═══ TODO O RESTO DO CÓDIGO ORIGINAL (SEM MUDANÇAS) ═══
 
-local function createTabBtn(name)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 32)
-    btn.BackgroundColor3 = T.Panel2
-    btn.Text = (tabIcons[name] or "") .. " " .. name
-    btn.TextColor3 = T.Muted
-    btn.Font = T.FontMed
-    btn.TextSize = 12
-    btn.AutoButtonColor = false
-    btn.Parent = SideBar
-    btn.Name = "Tab_" .. name
+local isAutoRebirth = createOption("Auto Rebirth", false, "Main") 
+local isAutoBuyBrainrot = createOption("Auto Buy Brainrots", false, "Main") 
+local isAutoCollect = createOption("Auto Collect Money", false, "Main") 
+local isPlayerESP = createOption("Player ESP (Red Aura)", false, "Main") 
 
-    local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 6)
+local originalSettings = {} 
+local lowModeConn = nil 
 
-    local s = Instance.new("UIStroke", btn)
-    s.Color = T.StrokeDim
-    s.Thickness = 1
-    s.Transparency = 0.5
-    s.Name = "TabStroke"
-
-    tabButtons[name] = btn
-    return btn
-end
-
-for _, name in ipairs(tabNames) do
-    createTabBtn(name)
-end
-
-local function repositionElements(tab)
-    local yPos = 0
-    for _, elem in ipairs(options[tab]) do
-        if elem.Visible then
-            elem.Position = UDim2.new(0, 5, 0, yPos)
-            yPos = yPos + elem.Size.Y.Offset + 6
+local function applyAgressiveLow(v) 
+    if v:IsA("BasePart") then
+        if not originalSettings[v] then
+            originalSettings[v] = {v.Material, v.Reflectance, v.CastShadow}
         end
-    end
-    MainContent.CanvasSize = UDim2.new(0, 0, 0, yPos + 30)
-end
-
-local function showTab(tabName)
-    activeTab = tabName
-    for t, list in pairs(options) do
-        for _, v in pairs(list) do
-            v.Visible = (t == tabName)
+        v.Material = Enum.Material.SmoothPlastic 
+        v.Reflectance = 0 
+        v.CastShadow = false 
+    elseif v:IsA("Decal") or v:IsA("Texture") then
+        if not originalSettings[v] then
+            originalSettings[v] = v.Transparency
         end
-    end
-
-    for name, btn in pairs(tabButtons) do
-        if name == tabName then
-            btn.BackgroundColor3 = T.AccentDim
-            btn.TextColor3 = T.Accent
-            local s = btn:FindFirstChild("TabStroke")
-            if s then s.Color = T.Accent; s.Transparency = 0.2 end
-        else
-            btn.BackgroundColor3 = T.Panel2
-            btn.TextColor3 = T.Muted
-            local s = btn:FindFirstChild("TabStroke")
-            if s then s.Color = T.StrokeDim; s.Transparency = 0.5 end
+        v.Transparency = 1 
+    elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+        if not originalSettings[v] then
+            originalSettings[v] = v.Enabled
         end
+        v.Enabled = false 
+    elseif v:IsA("PostEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("Atmosphere") then
+        if not originalSettings[v] then
+            originalSettings[v] = v.Enabled
+        end
+        v.Enabled = false
     end
-
-    repositionElements(tabName)
 end
 
-for name, btn in pairs(tabButtons) do
-    btn.Activated:Connect(function() showTab(name) end)
-    btn.MouseButton1Click:Connect(function() showTab(name) end)
-end
-
---// ══════════ UI ELEMENT CREATORS ══════════
-
-local function connectInput(button, callback)
-    local function exec()
-        if debounce(button.Name or tostring(button), 0.08) then callback() end
-    end
-    button.Activated:Connect(exec)
-    button.MouseButton1Click:Connect(exec)
-end
-
-local function createOption(name, startActive, tab, callback)
-    createOptionState(name, startActive)
-    local active = optionStates[name]
-
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(0.97, 0, 0, 38)
-    container.BackgroundColor3 = T.Card
-    container.Visible = (tab == activeTab)
-    container.Parent = MainContent
-    container.Name = name
-    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 7)
-    local cs = Instance.new("UIStroke", container)
-    cs.Color = T.StrokeDim
-    cs.Thickness = 1
-    cs.Transparency = 0.4
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.7, 0, 1, 0)
-    label.Position = UDim2.new(0.04, 0, 0, 0)
-    label.Text = name
-    label.TextColor3 = T.Text
-    label.BackgroundTransparency = 1
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Font = T.FontMed
-    label.TextSize = 13
-    label.Parent = container
-
-    local switchBg = Instance.new("TextButton")
-    switchBg.Size = UDim2.new(0, 40, 0, 20)
-    switchBg.Position = UDim2.new(1, -50, 0.5, -10)
-    switchBg.BackgroundColor3 = active and T.On or T.Off
-    switchBg.Text = ""
-    switchBg.AutoButtonColor = false
-    switchBg.Parent = container
-    Instance.new("UICorner", switchBg).CornerRadius = UDim.new(1, 0)
-
-    local circle = Instance.new("Frame")
-    circle.Size = UDim2.new(0, 16, 0, 16)
-    circle.Position = active and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-    circle.BackgroundColor3 = T.Circle
-    circle.Parent = switchBg
-    Instance.new("UICorner", circle).CornerRadius = UDim.new(1, 0)
-
-    local function toggle()
-        if debounce(name, 0.08) then
-            optionStates[name] = not optionStates[name]
-            setOptionState(name, optionStates[name])
-
-            TweenService:Create(circle, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
-                Position = optionStates[name] and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-            }):Play()
-            TweenService:Create(switchBg, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
-                BackgroundColor3 = optionStates[name] and T.On or T.Off
-            }):Play()
-
-            -- glow stroke on active
-            TweenService:Create(cs, TweenInfo.new(0.2), {
-                Color = optionStates[name] and T.Accent or T.StrokeDim,
-                Transparency = optionStates[name] and 0.3 or 0.4
-            }):Play()
-
-            if callback then
-                task.wait(0.05)
-                task.spawn(function() callback(optionStates[name]) end)
+local isLowMode = createOption("Low Mode", false, "Main", function(active) 
+    if active then
+        originalSettings["Lighting"] = {game.Lighting.GlobalShadows, game.Lighting.FogEnd, game.Lighting.Brightness} 
+        game.Lighting.GlobalShadows = false 
+        game.Lighting.Brightness = 2 
+        game.Lighting.FogEnd = 100000 
+        for _, v in pairs(workspace:GetDescendants()) do
+            applyAgressiveLow(v)
+        end
+        for _, v in pairs(game.Lighting:GetChildren()) do
+            if v ~= blurEffect then
+                applyAgressiveLow(v)
             end
         end
-    end
-
-    switchBg.Activated:Connect(toggle)
-    switchBg.MouseButton1Click:Connect(toggle)
-
-    if active and callback then
-        task.spawn(function() callback(active) end)
-    end
-
-    -- initial stroke
-    if active then
-        cs.Color = T.Accent
-        cs.Transparency = 0.3
-    end
-
-    table.insert(options[tab], container)
-    return function() return optionStates[name] end, container, switchBg
-end
-
-local function createSlider(name, min, max, default, tab, callback)
-    createOptionState(name, default)
-    local val = optionStates[name]
-
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(0.97, 0, 0, 48)
-    container.BackgroundColor3 = T.Card
-    container.Visible = (tab == activeTab)
-    container.Parent = MainContent
-    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 7)
-    local cs = Instance.new("UIStroke", container)
-    cs.Color = T.StrokeDim; cs.Thickness = 1; cs.Transparency = 0.4
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.9, 0, 0.45, 0)
-    label.Position = UDim2.new(0.04, 0, 0, 3)
-    label.Text = name .. ": " .. tostring(val)
-    label.TextColor3 = T.Text
-    label.BackgroundTransparency = 1
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Font = T.FontMed
-    label.TextSize = 12
-    label.Parent = container
-
-    local sliderBg = Instance.new("TextButton")
-    sliderBg.Size = UDim2.new(0.88, 0, 0, 5)
-    sliderBg.Position = UDim2.new(0.06, 0, 0.7, 0)
-    sliderBg.BackgroundColor3 = T.Off
-    sliderBg.Text = ""
-    sliderBg.AutoButtonColor = false
-    sliderBg.Parent = container
-    Instance.new("UICorner", sliderBg).CornerRadius = UDim.new(1, 0)
-
-    local fill = Instance.new("Frame")
-    local scale = (val - min) / (max - min)
-    fill.Size = UDim2.new(scale, 0, 1, 0)
-    fill.BackgroundColor3 = T.Accent
-    fill.Parent = sliderBg
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 12, 0, 12)
-    knob.Position = UDim2.new(1, -6, 0.5, -6)
-    knob.BackgroundColor3 = T.Circle
-    knob.Parent = fill
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
-
-    -- glow on knob
-    local knobGlow = Instance.new("UIStroke", knob)
-    knobGlow.Color = T.Accent
-    knobGlow.Thickness = 2
-    knobGlow.Transparency = 0.5
-
-    if callback then task.spawn(function() callback(val) end) end
-
-    local dragging = false
-
-    local function update(input)
-        local rx = math.clamp(input.Position.X - sliderBg.AbsolutePosition.X, 0, sliderBg.AbsoluteSize.X)
-        local s = rx / sliderBg.AbsoluteSize.X
-        fill.Size = UDim2.new(s, 0, 1, 0)
-        local v = math.floor(min + ((max - min) * s))
-        label.Text = name .. ": " .. tostring(v)
-        optionStates[name] = v
-        setOptionState(name, v)
-        if callback then callback(v) end
-    end
-
-    sliderBg.MouseButton1Down:Connect(function() dragging = true; update(Mouse) end)
-    sliderBg.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; update(input)
-        end
-    end)
-
-    Mouse.Move:Connect(function() if dragging then update(Mouse) end end)
-
-    UIS.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.Touch then
-            update(input)
-        end
-    end)
-
-    UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-
-    table.insert(options[tab], container)
-end
-
-local function createInfoBox(title, desc, tab, isButton, link)
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(0.97, 0, 0, 42)
-    container.BackgroundColor3 = T.Card
-    container.Visible = (tab == activeTab)
-    container.Parent = MainContent
-    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 7)
-    local cs = Instance.new("UIStroke", container)
-    cs.Color = T.StrokeDim; cs.Thickness = 1; cs.Transparency = 0.4
-
-    local tl = Instance.new("TextLabel")
-    tl.Size = UDim2.new(0.9, 0, 0.5, 0)
-    tl.Position = UDim2.new(0.04, 0, 0, 3)
-    tl.Text = title
-    tl.TextColor3 = T.Accent
-    tl.BackgroundTransparency = 1
-    tl.TextXAlignment = Enum.TextXAlignment.Left
-    tl.Font = T.Font
-    tl.TextSize = 13
-    tl.Parent = container
-
-    local dl = Instance.new("TextLabel")
-    dl.Size = UDim2.new(0.9, 0, 0.5, 0)
-    dl.Position = UDim2.new(0.04, 0, 0.5, -2)
-    dl.Text = desc
-    dl.TextColor3 = T.Muted
-    dl.BackgroundTransparency = 1
-    dl.TextXAlignment = Enum.TextXAlignment.Left
-    dl.Font = T.FontReg
-    dl.TextSize = 11
-    dl.Parent = container
-
-    if isButton then
-        local cb = Instance.new("TextButton")
-        cb.Size = UDim2.new(1, 0, 1, 0)
-        cb.BackgroundTransparency = 1
-        cb.Text = ""
-        cb.Parent = container
-        cb.Activated:Connect(function()
-            if type(setclipboard) == "function" then pcall(function() setclipboard(link) end) end
-        end)
-    end
-
-    table.insert(options[tab], container)
-end
-
-local function createActionButton(name, tab, callback)
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(0.97, 0, 0, 36)
-    container.BackgroundColor3 = T.AccentDim
-    container.Visible = (tab == activeTab)
-    container.Parent = MainContent
-    container.Name = name
-    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 7)
-    local cs = Instance.new("UIStroke", container)
-    cs.Color = T.Accent; cs.Thickness = 1; cs.Transparency = 0.3
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.Text = "▶ " .. name
-    label.TextColor3 = T.Accent
-    label.BackgroundTransparency = 1
-    label.Font = T.Font
-    label.TextSize = 13
-    label.Parent = container
-
-    local cb = Instance.new("TextButton")
-    cb.Size = UDim2.new(1, 0, 1, 0)
-    cb.BackgroundTransparency = 1
-    cb.Text = ""
-    cb.AutoButtonColor = false
-    cb.Parent = container
-
-    connectInput(cb, function()
-        if debounce(name, 0.08) then callback() end
-    end)
-
-    table.insert(options[tab], container)
-end
-
---// ══════════════════════════════════════════════════════════
---//              CREATE ALL OPTIONS (TABS)
---// ══════════════════════════════════════════════════════════
-
---// ═══ MAIN TAB ═══
-local isAutoRebirth     = createOption("Auto Rebirth", false, "Main")
-local isAutoBuyBrainrot = createOption("Auto Buy Brainrots", false, "Main")
-local isAutoCollect     = createOption("Auto Collect Money", false, "Main")
-local isPlayerESP       = createOption("Player ESP", false, "Main")
-
--- Low Mode
-local originalSettings = {}
-local lowModeConn = nil
-
-local function applyLow(v)
-    if v:IsA("BasePart") then
-        if not originalSettings[v] then originalSettings[v] = {v.Material, v.Reflectance, v.CastShadow} end
-        v.Material = Enum.Material.SmoothPlastic; v.Reflectance = 0; v.CastShadow = false
-    elseif v:IsA("Decal") or v:IsA("Texture") then
-        if not originalSettings[v] then originalSettings[v] = v.Transparency end
-        v.Transparency = 1
-    elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
-        if not originalSettings[v] then originalSettings[v] = v.Enabled end
-        v.Enabled = false
-    elseif v:IsA("PostEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("Atmosphere") then
-        if not originalSettings[v] then originalSettings[v] = v.Enabled end
-        v.Enabled = false
-    end
-end
-
-local isLowMode = createOption("Low Mode", false, "Main", function(active)
-    if active then
-        originalSettings["Lighting"] = {Lighting.GlobalShadows, Lighting.FogEnd, Lighting.Brightness}
-        Lighting.GlobalShadows = false
-        Lighting.Brightness = 2
-        Lighting.FogEnd = 100000
-        for _, v in pairs(workspace:GetDescendants()) do applyLow(v) end
-        for _, v in pairs(Lighting:GetChildren()) do
-            if v ~= blurEffect then applyLow(v) end
-        end
-        lowModeConn = workspace.DescendantAdded:Connect(function(child)
-            task.wait(); applyLow(child)
+        lowModeConn = workspace.DescendantAdded:Connect(function(child) 
+            task.wait() 
+            applyAgressiveLow(child)
         end)
     else
-        if lowModeConn then lowModeConn:Disconnect(); lowModeConn = nil end
+        if lowModeConn then
+            lowModeConn:Disconnect() 
+            lowModeConn = nil
+        end
         if originalSettings["Lighting"] then
-            Lighting.GlobalShadows = originalSettings["Lighting"][1]
-            Lighting.FogEnd = originalSettings["Lighting"][2]
-            Lighting.Brightness = originalSettings["Lighting"][3]
+            game.Lighting.GlobalShadows = originalSettings["Lighting"][1] 
+            game.Lighting.FogEnd = originalSettings["Lighting"][2] 
+            game.Lighting.Brightness = originalSettings["Lighting"][3]
         end
         for obj, data in pairs(originalSettings) do
             if typeof(obj) == "Instance" and obj.Parent then
                 if obj:IsA("BasePart") then
-                    obj.Material = data[1]; obj.Reflectance = data[2]; obj.CastShadow = data[3]
+                    obj.Material = data[1] 
+                    obj.Reflectance = data[2] 
+                    obj.CastShadow = data[3] 
                 elseif obj:IsA("Decal") or obj:IsA("Texture") then
-                    obj.Transparency = data
+                    obj.Transparency = data 
                 elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("PostEffect") or obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("SunRaysEffect") or obj:IsA("ColorCorrectionEffect") or obj:IsA("Atmosphere") then
                     obj.Enabled = data
                 end
@@ -771,945 +679,1162 @@ local isLowMode = createOption("Low Mode", false, "Main", function(active)
     end
 end)
 
--- Safe Lucky Block AFK
-local safeLBGb, safeLBVb = nil, nil
-local isSafeLuckyBlock = createOption("Safe Lucky Block AFK", false, "Main", function(active)
-    local char = Player.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not root or not hum then return end
-
-    local myBaseName, telePart = nil, nil
-    local serverBases = workspace:FindFirstChild("Server") and workspace.Server:FindFirstChild("Bases")
+local safeLBGb = nil 
+local safeLBVb = nil 
+local isSafeLuckyBlock = createOption("Safe Lucky Block AFK", false, "Main", function(active) 
+    local char = Player.Character 
+    if not char then
+        return
+    end
+    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso") 
+    local hum = char:FindFirstChildOfClass("Humanoid") 
+    if not root or not hum then
+        return
+    end
+    local myBaseName = nil 
+    local telePart = nil 
+    local serverBases = workspace:FindFirstChild("Server") and workspace.Server:FindFirstChild("Bases") 
     if serverBases then
-        for _, base in pairs(serverBases:GetChildren()) do
-            local owner = base:FindFirstChild("OwnerId")
+        for _, baseModel in pairs(serverBases:GetChildren()) do
+            local owner = baseModel:FindFirstChild("OwnerId") 
             if owner and tostring(owner.Value) == tostring(Player.UserId) then
-                myBaseName = base.Name
-                telePart = base:FindFirstChild("Teleport")
+                myBaseName = baseModel.Name 
+                telePart = baseModel:FindFirstChild("Teleport") 
                 break
             end
         end
     end
-    if not myBaseName or not telePart then return end
-
+    if not myBaseName or not telePart then
+        return
+    end
     if active then
-        local num = tonumber(string.match(myBaseName, "%d+")) or 1
-        local offsetZ = (num <= 4) and 1500 or -1500
-        local targetCFrame = telePart.CFrame * CFrame.new(0, 0, offsetZ)
-        root.CFrame = targetCFrame
+        local num = tonumber(string.match(myBaseName, "%d+")) or 1 
+        local offsetZ = (num <= 4) and 1500 or -1500 
+        local targetCFrame = telePart.CFrame * CFrame.new(0, 0, offsetZ) 
+        root.CFrame = targetCFrame 
         if not safeLBGb then
-            safeLBGb = Instance.new("BodyGyro")
-            safeLBGb.P = 9e4; safeLBGb.maxTorque = Vector3.new(9e9,9e9,9e9)
-            safeLBGb.cframe = targetCFrame; safeLBGb.Parent = root
+            safeLBGb = Instance.new("BodyGyro") 
+            safeLBGb.P = 9e4 
+            safeLBGb.maxTorque = Vector3.new(9e9, 9e9, 9e9) 
+            safeLBGb.cframe = targetCFrame 
+            safeLBGb.Parent = root
         end
         if not safeLBVb then
-            safeLBVb = Instance.new("BodyVelocity")
-            safeLBVb.velocity = Vector3.zero; safeLBVb.maxForce = Vector3.new(9e9,9e9,9e9)
+            safeLBVb = Instance.new("BodyVelocity") 
+            safeLBVb.velocity = Vector3.new(0, 0, 0) 
+            safeLBVb.maxForce = Vector3.new(9e9, 9e9, 9e9) 
             safeLBVb.Parent = root
         end
         hum.PlatformStand = true
     else
-        if safeLBGb then safeLBGb:Destroy(); safeLBGb = nil end
-        if safeLBVb then safeLBVb:Destroy(); safeLBVb = nil end
-        hum.PlatformStand = false
+        if safeLBGb then
+            safeLBGb:Destroy() 
+            safeLBGb = nil
+        end
+        if safeLBVb then
+            safeLBVb:Destroy() 
+            safeLBVb = nil
+        end
+        hum.PlatformStand = false 
         root.CFrame = telePart.CFrame
     end
 end)
 
-local isInstantBrainrot = createOption("Instant Collect Brainrots", false, "Main")
+local isInstantBrainrot = createOption("Instant Collect Brainrots", false, "Main") 
 
---// ═══ AUTO SELL WITH LIST ═══
-local minEarnValue = savedSettings["MinEarnSell"] or 0
-local tempValue = 0
+local function parseEarnValue(text) 
+    if not text then
+        return 0
+    end
+    local clean = text:gsub("[%$%/s%, ]", "") 
+    local suffix = clean:sub(-1):upper() 
+    local number = tonumber(clean:sub(1, -2)) or tonumber(clean) 
+    if not number then
+        return 0
+    end
+    if suffix == "K" then
+        return number * 1000 
+    elseif suffix == "M" then
+        return number * 1000000 
+    elseif suffix == "B" then
+        return number * 1000000000 
+    elseif suffix == "T" then
+        return number * 1000000000000
+    end
+    return tonumber(clean) or 0
+end
 
-local isAutoSell, SellContainer, SellSwitch = createOption("Auto Sell [Click]", false, "Main")
+local function formatValue(val) 
+    if val >= 1e12 then
+        return string.format("%.1fT", val/1e12) 
+    elseif val >= 1e9 then
+        return string.format("%.1fB", val/1e9) 
+    elseif val >= 1e6 then
+        return string.format("%.1fM", val/1e6) 
+    elseif val >= 1e3 then
+        return string.format("%.1fK", val/1e3)
+    end
+    return tostring(val)
+end
 
--- Sell List Container
-local SellListContainer = Instance.new("Frame")
-SellListContainer.Size = UDim2.new(0.97, 0, 0, 400)
-SellListContainer.BackgroundColor3 = T.Panel2
-SellListContainer.Visible = false
-SellListContainer.Parent = MainContent
-Instance.new("UICorner", SellListContainer).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", SellListContainer).Color = T.StrokeDim
+local minEarnValue = savedSettings["MinEarnSell"] or 0 
+local tempValue = 0 
+local isAutoSell, SellContainer, SellSwitch = createOption("Auto Sell Brainrots [Click]", false, "Main") 
 
--- Search bar for min earn
-local searchBar = Instance.new("TextBox")
-searchBar.Size = UDim2.new(0.9, 0, 0, 26)
-searchBar.Position = UDim2.new(0.05, 0, 0, 8)
-searchBar.BackgroundColor3 = T.Off
-searchBar.TextColor3 = T.Text
-searchBar.PlaceholderText = "Min Earn (Ex: 1M, 500K)"
-searchBar.PlaceholderColor3 = T.Muted
-searchBar.Text = minEarnValue > 0 and formatValue(minEarnValue) or ""
-searchBar.Font = T.FontReg
-searchBar.TextSize = 12
-searchBar.Parent = SellListContainer
-Instance.new("UICorner", searchBar).CornerRadius = UDim.new(0, 5)
+local SellListContainer = Instance.new("Frame") 
+SellListContainer.Size = UDim2.new(0.95, 0, 0, 450) 
+SellListContainer.BackgroundColor3 = Theme.Panel2
+SellListContainer.Visible = false 
+SellListContainer.Parent = MainContent 
+Instance.new("UICorner", SellListContainer).CornerRadius = UDim.new(0, 10) 
 
-local sellScroll = Instance.new("ScrollingFrame")
-sellScroll.Size = UDim2.new(1, 0, 1, -42)
-sellScroll.Position = UDim2.new(0, 0, 0, 42)
-sellScroll.BackgroundTransparency = 1
-sellScroll.ScrollBarThickness = 2
-sellScroll.ScrollBarImageColor3 = T.Accent
-sellScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-sellScroll.Parent = SellListContainer
+local SellStroke = Instance.new("UIStroke") 
+SellStroke.Color = Theme.StrokeDim
+SellStroke.Thickness = 2 
+SellStroke.Transparency = 0.5
+SellStroke.Parent = SellListContainer 
 
-local sellLayout = Instance.new("UIListLayout", sellScroll)
-sellLayout.SortOrder = Enum.SortOrder.LayoutOrder
+local searchBar = Instance.new("TextBox") 
+searchBar.Size = UDim2.new(0.9, 0, 0, 30) 
+searchBar.Position = UDim2.new(0.05, 0, 0, 10) 
+searchBar.BackgroundColor3 = Theme.Off
+searchBar.TextColor3 = Theme.Text
+searchBar.PlaceholderText = "Min Earn to Sell (Ex: 1M, 500K, 10B)" 
+searchBar.Text = minEarnValue > 0 and formatValue(minEarnValue) or "" 
+searchBar.Font = Enum.Font.Gotham
+searchBar.TextSize = 16 
+searchBar.Parent = SellListContainer 
+Instance.new("UICorner", searchBar).CornerRadius = UDim.new(0, 6) 
 
--- Confirm popup
-local ConfirmFrame = Instance.new("Frame")
-ConfirmFrame.Size = UDim2.new(0.75, 0, 0, 130)
-ConfirmFrame.Position = UDim2.new(0.125, 0, 0.3, 0)
-ConfirmFrame.BackgroundColor3 = T.Panel
-ConfirmFrame.Visible = false
-ConfirmFrame.ZIndex = 10
-ConfirmFrame.Parent = MainFrame
-Instance.new("UICorner", ConfirmFrame).CornerRadius = UDim.new(0, 8)
-local cfStroke = Instance.new("UIStroke", ConfirmFrame)
-cfStroke.Color = T.Accent; cfStroke.Thickness = 1.5
+local sellScroll = Instance.new("ScrollingFrame") 
+sellScroll.Size = UDim2.new(1, 0, 1, -50) 
+sellScroll.Position = UDim2.new(0, 0, 0, 50) 
+sellScroll.BackgroundTransparency = 1 
+sellScroll.ScrollBarThickness = 2 
+sellScroll.ScrollBarImageColor3 = Theme.Accent
+sellScroll.CanvasSize = UDim2.new(0, 0, 0, 0) 
+sellScroll.Parent = SellListContainer 
 
-local cfText = Instance.new("TextLabel")
-cfText.Size = UDim2.new(0.9, 0, 0.4, 0)
-cfText.Position = UDim2.new(0.05, 0, 0.08, 0)
-cfText.BackgroundTransparency = 1
-cfText.Text = "Confirm min earn value?"
-cfText.TextColor3 = T.Text
-cfText.Font = T.FontMed
-cfText.TextSize = 13
-cfText.TextWrapped = true
-cfText.ZIndex = 11
-cfText.Parent = ConfirmFrame
+local sellLayout = Instance.new("UIListLayout") 
+sellLayout.SortOrder = Enum.SortOrder.LayoutOrder 
+sellLayout.Parent = sellScroll 
 
-local InnerFrame = MainFrame -- reference for visibility toggle
+local ConfirmFrame = Instance.new("Frame") 
+ConfirmFrame.Size = UDim2.new(0.8, 0, 0, 150) 
+ConfirmFrame.Position = UDim2.new(0.1, 0, 0.3, 0) 
+ConfirmFrame.BackgroundColor3 = Theme.Panel
+ConfirmFrame.Visible = false 
+ConfirmFrame.ZIndex = 10 
+ConfirmFrame.Parent = MainFrame 
 
-local confirmBtn = Instance.new("TextButton")
-confirmBtn.Size = UDim2.new(0.4, 0, 0, 30)
-confirmBtn.Position = UDim2.new(0.05, 0, 0.6, 0)
-confirmBtn.BackgroundColor3 = T.Success
-confirmBtn.Text = "✓ Confirm"
-confirmBtn.TextColor3 = Color3.new(1,1,1)
-confirmBtn.Font = T.Font
-confirmBtn.TextSize = 12
-confirmBtn.ZIndex = 11
-confirmBtn.AutoButtonColor = false
-confirmBtn.Parent = ConfirmFrame
-Instance.new("UICorner", confirmBtn)
+local CFCorner = Instance.new("UICorner", ConfirmFrame) 
+local CFStroke = Instance.new("UIStroke", ConfirmFrame) 
+CFStroke.Color = Theme.Accent
+CFStroke.Thickness = 2 
 
-local cancelBtn = Instance.new("TextButton")
-cancelBtn.Size = UDim2.new(0.4, 0, 0, 30)
-cancelBtn.Position = UDim2.new(0.55, 0, 0.6, 0)
-cancelBtn.BackgroundColor3 = T.Danger
-cancelBtn.Text = "✕ Cancel"
-cancelBtn.TextColor3 = Color3.new(1,1,1)
-cancelBtn.Font = T.Font
-cancelBtn.TextSize = 12
-cancelBtn.ZIndex = 11
-cancelBtn.AutoButtonColor = false
-cancelBtn.Parent = ConfirmFrame
-Instance.new("UICorner", cancelBtn)
+local CFText = Instance.new("TextLabel") 
+CFText.Size = UDim2.new(0.9, 0, 0.4, 0) 
+CFText.Position = UDim2.new(0.05, 0, 0.1, 0) 
+CFText.BackgroundTransparency = 1 
+CFText.Text = "Are you sure you want to redefine the amount of money per second?" 
+CFText.TextColor3 = Theme.Text
+CFText.Font = Enum.Font.GothamBold
+CFText.TextSize = 16 
+CFText.TextWrapped = true 
+CFText.ZIndex = 11 
+CFText.Parent = ConfirmFrame 
 
-searchBar.FocusLost:Connect(function(enter)
-    if enter then
-        tempValue = parseEarnValue(searchBar.Text)
+local ConfirmBtn = Instance.new("TextButton") 
+ConfirmBtn.Size = UDim2.new(0.4, 0, 0, 35) 
+ConfirmBtn.Position = UDim2.new(0.05, 0, 0.65, 0) 
+ConfirmBtn.BackgroundColor3 = Theme.Success
+ConfirmBtn.Text = "Confirm" 
+ConfirmBtn.TextColor3 = Color3.fromRGB(255, 255, 255) 
+ConfirmBtn.Font = Enum.Font.GothamBold
+ConfirmBtn.ZIndex = 11 
+ConfirmBtn.Parent = ConfirmFrame 
+ConfirmBtn.AutoButtonColor = false 
+Instance.new("UICorner", ConfirmBtn) 
+
+local CancelBtn = Instance.new("TextButton") 
+CancelBtn.Size = UDim2.new(0.4, 0, 0, 35) 
+CancelBtn.Position = UDim2.new(0.55, 0, 0.65, 0) 
+CancelBtn.BackgroundColor3 = Theme.Danger
+CancelBtn.Text = "Cancel" 
+CancelBtn.TextColor3 = Color3.fromRGB(255, 255, 255) 
+CancelBtn.Font = Enum.Font.GothamBold
+CancelBtn.ZIndex = 11 
+CancelBtn.Parent = ConfirmFrame 
+CancelBtn.AutoButtonColor = false 
+Instance.new("UICorner", CancelBtn) 
+
+searchBar.FocusLost:Connect(function(enterPressed) 
+    if enterPressed then
+        tempValue = parseEarnValue(searchBar.Text) 
+        InnerFrame.Visible = false 
         ConfirmFrame.Visible = true
     end
 end)
 
-confirmBtn.Activated:Connect(function()
-    minEarnValue = tempValue
-    setOptionState("MinEarnSell", minEarnValue)
-    searchBar.Text = formatValue(minEarnValue)
-    ConfirmFrame.Visible = false
+ConfirmBtn.Activated:Connect(function() 
+    minEarnValue = tempValue 
+    optionStates["MinEarnSell"] = minEarnValue 
+    setOptionState("MinEarnSell", minEarnValue) 
+    searchBar.Text = formatValue(minEarnValue) 
+    ConfirmFrame.Visible = false 
+    InnerFrame.Visible = true
 end)
 
-cancelBtn.Activated:Connect(function()
-    searchBar.Text = minEarnValue > 0 and formatValue(minEarnValue) or ""
-    ConfirmFrame.Visible = false
+ConfirmBtn.MouseButton1Click:Connect(function() 
+    minEarnValue = tempValue 
+    optionStates["MinEarnSell"] = minEarnValue 
+    setOptionState("MinEarnSell", minEarnValue) 
+    searchBar.Text = formatValue(minEarnValue) 
+    ConfirmFrame.Visible = false 
+    InnerFrame.Visible = true
 end)
 
--- Click area on sell option to expand list
-local sellClickArea = Instance.new("TextButton")
-sellClickArea.Size = UDim2.new(0.6, 0, 1, 0)
-sellClickArea.BackgroundTransparency = 1
-sellClickArea.Text = ""
-sellClickArea.AutoButtonColor = false
-sellClickArea.Parent = SellContainer
+CancelBtn.Activated:Connect(function() 
+    searchBar.Text = minEarnValue > 0 and formatValue(minEarnValue) or "" 
+    ConfirmFrame.Visible = false 
+    InnerFrame.Visible = true
+end)
 
-connectInput(sellClickArea, function()
-    SellListContainer.Visible = not SellListContainer.Visible
+CancelBtn.MouseButton1Click:Connect(function() 
+    searchBar.Text = minEarnValue > 0 and formatValue(minEarnValue) or "" 
+    ConfirmFrame.Visible = false 
+    InnerFrame.Visible = true
+end)
+
+local sellClickArea = Instance.new("TextButton") 
+sellClickArea.Size = UDim2.new(0.6, 0, 1, 0) 
+sellClickArea.BackgroundTransparency = 1 
+sellClickArea.Text = "" 
+sellClickArea.Parent = SellContainer 
+sellClickArea.AutoButtonColor = false 
+sellClickArea.Name = "SellClickArea" 
+
+connectButtonInput(sellClickArea, function() 
+    SellListContainer.Visible = not SellListContainer.Visible 
     repositionElements("Main")
 end)
 
-table.insert(options["Main"], SellListContainer)
+table.insert(options["Main"], SellListContainer) 
 
--- Build sell list items
-local ySellSize = 0
+local ySellSize = 0 
 for _, brName in ipairs(sellBrainrots) do
-    local itemFrame = Instance.new("Frame")
-    itemFrame.Size = UDim2.new(1, 0, 0, 30)
-    itemFrame.BackgroundTransparency = 1
-    itemFrame.Parent = sellScroll
-    ySellSize = ySellSize + 30
-
-    local nameBtn = Instance.new("TextButton")
-    nameBtn.Size = UDim2.new(0.7, 0, 1, 0)
-    nameBtn.Position = UDim2.new(0.03, 0, 0, 0)
-    nameBtn.BackgroundTransparency = 1
-    nameBtn.Text = brName
-    nameBtn.TextColor3 = T.Text
-    nameBtn.TextXAlignment = Enum.TextXAlignment.Left
-    nameBtn.Font = T.FontReg
-    nameBtn.TextSize = 11
-    nameBtn.AutoButtonColor = false
-    nameBtn.Parent = itemFrame
-
-    local checkBtn = Instance.new("TextButton")
-    checkBtn.Size = UDim2.new(0, 18, 0, 18)
-    checkBtn.Position = UDim2.new(0.85, 0, 0.5, -9)
-    checkBtn.BackgroundColor3 = sellTargets[brName].Active and T.Accent or T.Off
-    checkBtn.Text = ""
-    checkBtn.AutoButtonColor = false
-    checkBtn.Parent = itemFrame
-    Instance.new("UICorner", checkBtn).CornerRadius = UDim.new(0, 4)
-
-    local mutsFrame = Instance.new("Frame")
-    mutsFrame.Size = UDim2.new(1, 0, 0, 30)
-    mutsFrame.BackgroundTransparency = 1
-    mutsFrame.Visible = false
-    mutsFrame.Parent = sellScroll
-
-    local smLayout = Instance.new("UIGridLayout", mutsFrame)
-    smLayout.CellSize = UDim2.new(0, 50, 0, 22)
-
-    for _, m in ipairs({"Normal","Gold","Diamond","Rainbow","Lava"}) do
-        local mBtn = Instance.new("TextButton")
-        mBtn.BackgroundColor3 = sellTargets[brName].Muts[m] and T.AccentDim or T.Off
-        mBtn.Text = m:sub(1,3)
-        mBtn.TextColor3 = T.Text
-        mBtn.TextSize = 10
-        mBtn.Font = T.FontMed
-        mBtn.AutoButtonColor = false
-        mBtn.Parent = mutsFrame
-        Instance.new("UICorner", mBtn).CornerRadius = UDim.new(0, 4)
-
-        connectInput(mBtn, function()
-            sellTargets[brName].Muts[m] = not sellTargets[brName].Muts[m]
-            mBtn.BackgroundColor3 = sellTargets[brName].Muts[m] and T.AccentDim or T.Off
-            savedSettings["SellTargets"] = sellTargets; saveSettings()
-        end)
+    local itemFrame = Instance.new("Frame") 
+    itemFrame.Size = UDim2.new(1, 0, 0, 35) 
+    itemFrame.BackgroundTransparency = 1 
+    itemFrame.Parent = sellScroll 
+    ySellSize = ySellSize + 35 
+    
+    local nameBtn = Instance.new("TextButton") 
+    nameBtn.Size = UDim2.new(0.7, 0, 1, 0) 
+    nameBtn.Position = UDim2.new(0.05, 0, 0, 0) 
+    nameBtn.BackgroundTransparency = 1 
+    nameBtn.Text = brName 
+    nameBtn.TextColor3 = Theme.Text
+    nameBtn.TextXAlignment = Enum.TextXAlignment.Left 
+    nameBtn.Font = Enum.Font.Gotham
+    nameBtn.TextSize = 14 
+    nameBtn.Parent = itemFrame 
+    nameBtn.AutoButtonColor = false 
+    nameBtn.Name = "NameBtn_" .. brName 
+    
+    local checkBtn = Instance.new("TextButton") 
+    checkBtn.Size = UDim2.new(0, 20, 0, 20) 
+    checkBtn.Position = UDim2.new(0.85, 0, 0.5, -10) 
+    checkBtn.BackgroundColor3 = sellTargets[brName].Active and Theme.Accent or Theme.Off
+    checkBtn.Text = "" 
+    checkBtn.Parent = itemFrame 
+    checkBtn.AutoButtonColor = false 
+    checkBtn.Name = "CheckBtn_" .. brName 
+    Instance.new("UICorner", checkBtn).CornerRadius = UDim.new(0, 4) 
+    
+    local mutsFrame = Instance.new("Frame") 
+    mutsFrame.Size = UDim2.new(1, 0, 0, 35) 
+    mutsFrame.BackgroundTransparency = 1 
+    mutsFrame.Visible = false 
+    mutsFrame.Parent = sellScroll 
+    
+    local smLayout = Instance.new("UIGridLayout") 
+    smLayout.CellSize = UDim2.new(0, 55, 0, 25) 
+    smLayout.Parent = mutsFrame 
+    
+    for _, m in ipairs({"Normal", "Gold", "Diamond", "Rainbow", "Lava"}) do
+        local mBtn = Instance.new("TextButton") 
+        local mutState = sellTargets[brName].Muts[m] 
+        if mutState == nil then
+            mutState = true
+        end
+        mBtn.BackgroundColor3 = mutState and Theme.AccentDim or Theme.Off
+        mBtn.Text = m:sub(1,3) 
+        mBtn.TextColor3 = Theme.Text
+        mBtn.TextSize = 11 
+        mBtn.Parent = mutsFrame 
+        mBtn.AutoButtonColor = false 
+        mBtn.Name = "MutBtn_" .. brName .. "_" .. m 
+        Instance.new("UICorner", mBtn) 
+        
+        if sellTargets[brName].Muts[m] == nil then
+            sellTargets[brName].Muts[m] = true
+        end
+        
+        local function toggleMut() 
+            if createDebounce("MutBtn_" .. brName .. "_" .. m, 0.05) then
+                sellTargets[brName].Muts[m] = not sellTargets[brName].Muts[m] 
+                TweenService:Create(mBtn, TweenInfo.new(0.15), {
+                    BackgroundColor3 = sellTargets[brName].Muts[m] and Theme.AccentDim or Theme.Off
+                }):Play()
+                savedSettings["SellTargets"] = sellTargets 
+                saveSettings()
+            end
+        end
+        mBtn.Activated:Connect(toggleMut) 
+        mBtn.MouseButton1Click:Connect(toggleMut)
     end
-
-    connectInput(nameBtn, function()
-        mutsFrame.Visible = not mutsFrame.Visible
-        ySellSize = ySellSize + (mutsFrame.Visible and 30 or -30)
-        sellScroll.CanvasSize = UDim2.new(0, 0, 0, ySellSize)
-    end)
-
-    connectInput(checkBtn, function()
-        sellTargets[brName].Active = not sellTargets[brName].Active
-        TweenService:Create(checkBtn, TweenInfo.new(0.15), {
-            BackgroundColor3 = sellTargets[brName].Active and T.Accent or T.Off
-        }):Play()
-        savedSettings["SellTargets"] = sellTargets; saveSettings()
-    end)
+    
+    local function toggleMutsFrame() 
+        if createDebounce("NameBtn_" .. brName, 0.05) then
+            mutsFrame.Visible = not mutsFrame.Visible 
+            local addY = mutsFrame.Visible and 35 or -35 
+            ySellSize = ySellSize + addY 
+            sellScroll.CanvasSize = UDim2.new(0, 0, 0, ySellSize)
+        end
+    end
+    nameBtn.Activated:Connect(toggleMutsFrame) 
+    nameBtn.MouseButton1Click:Connect(toggleMutsFrame) 
+    
+    local function toggleCheckBtn() 
+        if createDebounce("CheckBtn_" .. brName, 0.05) then
+            sellTargets[brName].Active = not sellTargets[brName].Active 
+            TweenService:Create(checkBtn, TweenInfo.new(0.15), {
+                BackgroundColor3 = sellTargets[brName].Active and Theme.Accent or Theme.Off
+            }):Play()
+            savedSettings["SellTargets"] = sellTargets 
+            saveSettings()
+        end
+    end
+    checkBtn.Activated:Connect(toggleCheckBtn) 
+    checkBtn.MouseButton1Click:Connect(toggleCheckBtn)
 end
-sellScroll.CanvasSize = UDim2.new(0, 0, 0, ySellSize)
 
-local isGodRagdoll = createOption("Anti Ragdoll", true, "Main")
+sellScroll.CanvasSize = UDim2.new(0, 0, 0, ySellSize) 
 
---// ═══ BUY TAB ═══
-local buyIce     = createOption("Auto Ice Emblem", false, "Buy")
-local buyVic     = createOption("Auto Victrola", false, "Buy")
-local buyStar    = createOption("Auto Star", false, "Buy")
-local buyFlow    = createOption("Auto Flower", false, "Buy")
-local buyPhon    = createOption("Auto Phone", false, "Buy")
-local buyTaco    = createOption("Auto Taco", false, "Buy")
-local buyLighter = createOption("Auto Lighter", false, "Buy")
-local isAutoSpin = createOption("Auto Spin", false, "Buy")
+local isGodRagdoll = createOption("Anti Ragdoll", true, "Main") 
 
---// ═══ CONFIG TAB ═══
-createActionButton("⟳ Auto Rejoin", "Config", function()
+local buyIce = createOption("Auto Ice Emblem", false, "Buy") 
+local buyVic = createOption("Auto Victrola", false, "Buy") 
+local buyStar = createOption("Auto Star", false, "Buy") 
+local buyFlow = createOption("Auto Flower", false, "Buy") 
+local buyPhon = createOption("Auto Phone", false, "Buy") 
+local buyTaco = createOption("Auto Taco", false, "Buy") 
+local buyLighter = createOption("Auto Lighter", false, "Buy") 
+local isAutoSpin = createOption("Auto Spin", false, "Buy") 
+
+createActionButton("Auto Rejoin", "Config", function() 
     TeleportService:Teleport(game.PlaceId)
 end)
 
-local isAutoBat       = createOption("Auto Bat", false, "Config")
-local isInfiniteJump  = createOption("Infinite Jump", false, "Config")
+local isAutoBat = createOption("Auto Bat", false, "Config") 
+local isInfiniteJump = createOption("Infinite Jump", false, "Config") 
 
-local infiniteJumpPressed = false
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.Space then
-        if isInfiniteJump() then infiniteJumpPressed = true end
+local infiniteJumpPressed = false 
+UserInputService.InputBegan:Connect(function(input, gameProcessed) 
+    if gameProcessed then
+        return
     end
-end)
-UIS.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Space then infiniteJumpPressed = false end
-end)
-RunService.Heartbeat:Connect(function()
-    if infiniteJumpPressed and isInfiniteJump() then
-        local c = Player.Character
-        if c then
-            local h = c:FindFirstChildOfClass("Humanoid")
-            if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
+    if input.KeyCode == Enum.KeyCode.Space then
+        if isInfiniteJump() then
+            infiniteJumpPressed = true
         end
     end
 end)
 
-local isAntiAFK       = createOption("Anti AFK", false, "Config")
-local isAntiCheat     = createOption("Anti Cheat", false, "Config")
-local isStaffDetector = createOption("Staff Detector", false, "Config")
-local isHitboxEnabled = createOption("Hitbox Expander", false, "Config")
+UserInputService.InputEnded:Connect(function(input) 
+    if input.KeyCode == Enum.KeyCode.Space then
+        infiniteJumpPressed = false
+    end
+end)
 
-createSlider("Hitbox Size", 1, 100, 15, "Config", function(v) hitboxSizeVal = v end)
+RunService.Heartbeat:Connect(function() 
+    if infiniteJumpPressed and isInfiniteJump() then
+        local character = Player.Character 
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid") 
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+end)
 
-local isSpeedEnabled = createOption("Enable Speed", false, "Config")
-local customSpeedVal = 32
-createSlider("Speed", 1, 500, 32, "Config", function(v) customSpeedVal = v end)
+local isAntiAFK = createOption("Anti AFK", false, "Config") 
+local isAntiCheat = createOption("Anti Cheat", false, "Config") 
+local isStaffDetector = createOption("Staff Detector", false, "Config") 
+local isHitboxEnabled = createOption("Hitbox Expander", false, "Config") 
 
--- Fly
-local isFlyActive = false
-local flySpeed = 32
-local bg, bv
+createSlider("Hitbox Size", 1, 100, 15, "Config", function(val) 
+    hitboxSizeVal = val
+end)
 
-local isFly = createOption("Fly", false, "Config", function(active)
-    isFlyActive = active
+local isSpeedEnabled = createOption("Enable Speed", false, "Config") 
+local customSpeedVal = 32 
+
+createSlider("Speed", 1, 500, 32, "Config", function(val) 
+    customSpeedVal = val
+end)
+
+local isFlyActive = false 
+local flySpeed = 32 
+local bg, bv 
+
+local isFly = createOption("Fly", false, "Config", function(active) 
+    isFlyActive = active 
     if active then
-        local c = Player.Character
-        if c and c:FindFirstChild("HumanoidRootPart") then
-            local root = c.HumanoidRootPart
+        local char = Player.Character 
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local root = char.HumanoidRootPart 
             if not root:FindFirstChild("FlyVel") then
-                bv = Instance.new("BodyVelocity")
-                bv.Name = "FlyVel"; bv.Velocity = Vector3.zero
-                bv.MaxForce = Vector3.new(9e9,9e9,9e9); bv.Parent = root
+                bv = Instance.new("BodyVelocity") 
+                bv.Name = "FlyVel" 
+                bv.Velocity = Vector3.new(0, 0, 0) 
+                bv.MaxForce = Vector3.new(9e9, 9e9, 9e9) 
+                bv.Parent = root
             end
             if not root:FindFirstChild("FlyGyro") then
-                bg = Instance.new("BodyGyro")
-                bg.Name = "FlyGyro"; bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
-                bg.CFrame = root.CFrame; bg.Parent = root
+                bg = Instance.new("BodyGyro") 
+                bg.Name = "FlyGyro" 
+                bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9) 
+                bg.CFrame = root.CFrame 
+                bg.Parent = root
             end
         end
     else
-        local c = Player.Character
-        if c and c:FindFirstChild("HumanoidRootPart") then
-            local root = c.HumanoidRootPart
-            local v = root:FindFirstChild("FlyVel")
-            local g = root:FindFirstChild("FlyGyro")
-            if v then v:Destroy() end
-            if g then g:Destroy() end
-            bv = nil; bg = nil
+        local char = Player.Character 
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local root = char.HumanoidRootPart 
+            local vel = root:FindFirstChild("FlyVel") 
+            local gyro = root:FindFirstChild("FlyGyro") 
+            if vel then
+                vel:Destroy()
+            end
+            if gyro then
+                gyro:Destroy()
+            end
+            bv = nil 
+            bg = nil
         end
     end
 end)
 
-createSlider("Fly Speed", 1, 500, 32, "Config", function(v) flySpeed = v end)
+createSlider("Fly Speed", 1, 500, 32, "Config", function(val) 
+    flySpeed = val
+end)
 
--- Noclip
-local noclipEnabled = false
-local noclipParts = {}
+local noclipEnabled = false 
+local noclipParts = {} 
 
-local isNoclip = createOption("Noclip", false, "Config", function(active)
-    noclipEnabled = active
+local isNoclip = createOption("Noclip", false, "Config", function(active) 
+    noclipEnabled = active 
     if active then
-        local c = Player.Character
-        if c then
-            for _, p in pairs(c:GetDescendants()) do
-                if p:IsA("BasePart") then
-                    noclipParts[p] = p.CanCollide
-                    p.CanCollide = false
+        local char = Player.Character 
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    noclipParts[part] = part.CanCollide 
+                    part.CanCollide = false
                 end
             end
         end
     else
-        for p, cc in pairs(noclipParts) do
-            if p and p.Parent then p.CanCollide = cc end
+        for part, canCollide in pairs(noclipParts) do
+            if part and part.Parent then
+                part.CanCollide = canCollide
+            end
         end
         noclipParts = {}
     end
 end)
 
--- Shift Lock
-local shiftLockSystemEnabled = false
-local shiftLockActive = false
-local shiftLockGui, shiftLockBtn, shiftLockConnection = nil, nil, nil
+local shiftLockSystemEnabled = false 
+local shiftLockActive = false 
+local shiftLockGui = nil 
+local shiftLockBtn = nil 
+local shiftLockConnection = nil 
 
-local function getCharSL()
-    local c = Player.Character or Player.CharacterAdded:Wait()
-    return c, c:WaitForChild("Humanoid"), c:WaitForChild("HumanoidRootPart")
+local function getCharacterForShiftLock() 
+    local character = Player.Character or Player.CharacterAdded:Wait() 
+    local humanoid = character:WaitForChild("Humanoid") 
+    local root = character:WaitForChild("HumanoidRootPart") 
+    return character, humanoid, root
 end
 
-local function enableSL()
-    local c, h, r = getCharSL()
-    shiftLockActive = true
-    if shiftLockBtn then shiftLockBtn.Image = "rbxassetid://139211296111194" end
-    workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-    h.AutoRotate = false
-    if shiftLockConnection then shiftLockConnection:Disconnect() end
-    shiftLockConnection = RunService.RenderStepped:Connect(function()
+local function enableShiftLockSystem() 
+    local character, humanoid, root = getCharacterForShiftLock() 
+    shiftLockActive = true 
+    if shiftLockBtn then
+        shiftLockBtn.Image = "rbxassetid://139211296111194"
+    end
+    workspace.CurrentCamera.CameraType = Enum.CameraType.Custom 
+    humanoid.AutoRotate = false 
+    if shiftLockConnection then
+        shiftLockConnection:Disconnect()
+    end
+    shiftLockConnection = RunService.RenderStepped:Connect(function() 
         if shiftLockActive and shiftLockSystemEnabled then
-            local lv = workspace.CurrentCamera.CFrame.LookVector
-            local fl = Vector3.new(lv.X, 0, lv.Z)
-            if fl.Magnitude > 0.001 then
-                r.CFrame = CFrame.lookAt(r.Position, r.Position + fl.Unit)
+            local camera = workspace.CurrentCamera 
+            local lookVector = camera.CFrame.LookVector 
+            local flatLook = Vector3.new(lookVector.X, 0, lookVector.Z) 
+            if flatLook.Magnitude > 0.001 then
+                flatLook = flatLook.Unit 
+                root.CFrame = CFrame.lookAt(root.Position, root.Position + flatLook)
             end
         end
     end)
 end
 
-local function disableSL()
-    local c, h, r = getCharSL()
-    shiftLockActive = false
-    if shiftLockBtn then shiftLockBtn.Image = "rbxassetid://105987953182009" end
-    workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-    h.AutoRotate = true
-    if shiftLockConnection then shiftLockConnection:Disconnect(); shiftLockConnection = nil end
+local function disableShiftLockSystem() 
+    local character, humanoid, root = getCharacterForShiftLock() 
+    shiftLockActive = false 
+    if shiftLockBtn then
+        shiftLockBtn.Image = "rbxassetid://105987953182009"
+    end
+    workspace.CurrentCamera.CameraType = Enum.CameraType.Custom 
+    humanoid.AutoRotate = true 
+    if shiftLockConnection then
+        shiftLockConnection:Disconnect() 
+        shiftLockConnection = nil
+    end
 end
 
-local isShiftLock = createOption("Shift Lock", false, "Config", function(active)
+local isShiftLock = createOption("Enable Shift Lock", false, "Config", function(active) 
     if active then
-        shiftLockSystemEnabled = true
+        shiftLockSystemEnabled = true 
         if not shiftLockGui then
-            shiftLockGui = Instance.new("ScreenGui")
-            shiftLockGui.Name = "SLGui"; shiftLockGui.ResetOnSpawn = false
-            shiftLockGui.Parent = PlayerGui
-            shiftLockBtn = Instance.new("ImageButton")
-            shiftLockBtn.Size = UDim2.new(0, 44, 0, 44)
-            shiftLockBtn.Position = UDim2.new(0.5, -22, 0.78, 0)
-            shiftLockBtn.BackgroundTransparency = 1
-            shiftLockBtn.Image = "rbxassetid://139211296111194"
-            shiftLockBtn.Parent = shiftLockGui
-            shiftLockBtn.Activated:Connect(function()
-                if shiftLockActive then disableSL() else enableSL() end
+            shiftLockGui = Instance.new("ScreenGui") 
+            shiftLockGui.Name = "ShiftLockGUI" 
+            shiftLockGui.ResetOnSpawn = false 
+            shiftLockGui.Parent = PlayerGui 
+            shiftLockBtn = Instance.new("ImageButton") 
+            shiftLockBtn.Size = UDim2.new(0, 50, 0, 50) 
+            shiftLockBtn.Position = UDim2.new(0.5, -25, 0.76, 0) 
+            shiftLockBtn.BackgroundTransparency = 1 
+            shiftLockBtn.Image = "rbxassetid://139211296111194" 
+            shiftLockBtn.Parent = shiftLockGui 
+            shiftLockBtn.Activated:Connect(function() 
+                if shiftLockActive then
+                    disableShiftLockSystem()
+                else
+                    enableShiftLockSystem()
+                end
+            end)
+            shiftLockBtn.MouseButton1Click:Connect(function() 
+                if shiftLockActive then
+                    disableShiftLockSystem()
+                else
+                    enableShiftLockSystem()
+                end
             end)
         end
-        enableSL()
+        enableShiftLockSystem()
     else
-        shiftLockSystemEnabled = false
-        if shiftLockConnection then shiftLockConnection:Disconnect(); shiftLockConnection = nil end
-        if shiftLockGui then shiftLockGui:Destroy(); shiftLockGui = nil; shiftLockBtn = nil end
-        local c = Player.Character
-        if c then
-            local h = c:FindFirstChildOfClass("Humanoid")
-            if h then h.AutoRotate = true end
+        shiftLockSystemEnabled = false 
+        if shiftLockConnection then
+            shiftLockConnection:Disconnect() 
+            shiftLockConnection = nil
+        end
+        if shiftLockGui then
+            shiftLockGui:Destroy() 
+            shiftLockGui = nil 
+            shiftLockBtn = nil
+        end
+        local character = Player.Character 
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid") 
+            if humanoid then
+                humanoid.AutoRotate = true
+            end
         end
         shiftLockActive = false
     end
 end)
 
-Player.CharacterAdded:Connect(function()
-    task.wait(1)
-    if shiftLockActive and shiftLockSystemEnabled then enableSL() end
-end)
-
---// ═══ CREDITS TAB ═══
-createInfoBox("⚡ By: Thiago HAX", "Premium Hub Edition", "Credits", false)
-createInfoBox("📋 Discord", "Click to copy", "Credits", true, "")
-
---// ═══ FARM TAB ═══
-local isSmartTeleport = createOption("Smart Teleport", false, "Farm")
-local isAutoEpic      = createOption("Auto Epic", false, "Farm")
-local isAutoLegendary = createOption("Auto Legendary", false, "Farm")
-local isAutoMystic    = createOption("Auto Mystic", false, "Farm")
-
-local isAutoSecretLuckyBlocks = createOptionState("AutoSecretLuckyBlocks", true)
-local isAutoSecret = createOption("Auto Secret [Click]", false, "Farm")
-
--- Secret config sub-container
-local autoSecretConfigContainer = Instance.new("Frame")
-autoSecretConfigContainer.Size = UDim2.new(0.97, 0, 0, 36)
-autoSecretConfigContainer.BackgroundColor3 = T.Panel2
-autoSecretConfigContainer.Visible = false
-autoSecretConfigContainer.Parent = MainContent
-Instance.new("UICorner", autoSecretConfigContainer).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", autoSecretConfigContainer).Color = T.StrokeDim
-
-local aslLabel = Instance.new("TextLabel")
-aslLabel.Size = UDim2.new(0.6, 0, 1, 0)
-aslLabel.Position = UDim2.new(0.04, 0, 0, 0)
-aslLabel.Text = "Include Lucky Blocks?"
-aslLabel.TextColor3 = T.Text
-aslLabel.BackgroundTransparency = 1
-aslLabel.TextXAlignment = Enum.TextXAlignment.Left
-aslLabel.Font = T.FontReg
-aslLabel.TextSize = 12
-aslLabel.Parent = autoSecretConfigContainer
-
-local aslCheck = Instance.new("TextButton")
-aslCheck.Size = UDim2.new(0, 16, 0, 16)
-aslCheck.Position = UDim2.new(0.88, 0, 0.5, -8)
-aslCheck.BackgroundColor3 = optionStates["AutoSecretLuckyBlocks"] and T.Accent or T.Off
-aslCheck.Text = ""; aslCheck.AutoButtonColor = false
-aslCheck.Parent = autoSecretConfigContainer
-Instance.new("UICorner", aslCheck).CornerRadius = UDim.new(0, 3)
-
-connectInput(aslCheck, function()
-    optionStates["AutoSecretLuckyBlocks"] = not optionStates["AutoSecretLuckyBlocks"]
-    setOptionState("AutoSecretLuckyBlocks", optionStates["AutoSecretLuckyBlocks"])
-    TweenService:Create(aslCheck, TweenInfo.new(0.15), {
-        BackgroundColor3 = optionStates["AutoSecretLuckyBlocks"] and T.Accent or T.Off
-    }):Play()
-end)
-
--- click area on auto secret to toggle config
-local autoSecretConfigVisible = false
-
-local function getSecretContainer()
-    for _, e in ipairs(options["Farm"]) do
-        if e.Name == "Auto Secret [Click]" then return e end
+Player.CharacterAdded:Connect(function() 
+    task.wait(1) 
+    if shiftLockActive and shiftLockSystemEnabled then
+        enableShiftLockSystem()
     end
+end)
+
+createInfoBox("By: Thiago HAX", "Script created by this user.", "Credits", false) 
+createInfoBox("Discord", "My Discord server.", "Credits", true, "") 
+
+local isSmartTeleport = createOption("Smart Teleport Mode", false, "Farm") 
+local isAutoEpic = createOption("Auto Epic", false, "Farm") 
+local isAutoLegendary = createOption("Auto Legendary", false, "Farm") 
+local isAutoMystic = createOption("Auto Mystic", false, "Farm") 
+
+local isAutoSecretLuckyBlocks = createOptionState("AutoSecretLuckyBlocks", true) 
+local isAutoSecret = createOption("Auto Secret", false, "Farm") 
+
+local autoSecretClickArea = Instance.new("TextButton") 
+autoSecretClickArea.Size = UDim2.new(0.6, 0, 1, 0) 
+autoSecretClickArea.BackgroundTransparency = 1 
+autoSecretClickArea.Text = "" 
+autoSecretClickArea.AutoButtonColor = false 
+autoSecretClickArea.Name = "AutoSecretClickArea" 
+
+local autoSecretConfigVisible = false 
+local autoSecretConfigContainer = nil 
+
+local function getAutoSecretOptionContainer() 
+    for _, elem in ipairs(options["Farm"]) do
+        if elem.Name == "Auto Secret" then
+            return elem
+        end
+    end
+    return nil
 end
 
-task.wait(0.1)
-local secCont = getSecretContainer()
-if secCont then
-    local secClick = Instance.new("TextButton")
-    secClick.Size = UDim2.new(0.6, 0, 1, 0)
-    secClick.BackgroundTransparency = 1
-    secClick.Text = ""; secClick.AutoButtonColor = false
-    secClick.Parent = secCont
-    connectInput(secClick, function()
-        autoSecretConfigVisible = not autoSecretConfigVisible
+connectButtonInput(autoSecretClickArea, function() 
+    autoSecretConfigVisible = not autoSecretConfigVisible 
+    if autoSecretConfigContainer then
         autoSecretConfigContainer.Visible = autoSecretConfigVisible
-        repositionElements("Farm")
-    end)
-end
-
-table.insert(options["Farm"], autoSecretConfigContainer)
-
-local isAutoStellar = createOption("Auto Stellar", false, "Farm")
-local isAutoDig     = createOption("Auto Dig [Shovel]", false, "Farm")
-
--- Rebirth dropdown
-local isRebirthAutoActive = false
-local currentRebirthSelect = 0
-
-local RebirthContainer = Instance.new("Frame")
-RebirthContainer.Size = UDim2.new(0.97, 0, 0, 38)
-RebirthContainer.BackgroundColor3 = T.Card
-RebirthContainer.Visible = false
-RebirthContainer.Parent = MainContent
-Instance.new("UICorner", RebirthContainer).CornerRadius = UDim.new(0, 7)
-Instance.new("UIStroke", RebirthContainer).Color = T.StrokeDim
-
-local rbLabelBtn = Instance.new("TextButton")
-rbLabelBtn.Size = UDim2.new(0.6, 0, 1, 0)
-rbLabelBtn.Position = UDim2.new(0.04, 0, 0, 0)
-rbLabelBtn.Text = "Rebirth Auto [Click]: Select"
-rbLabelBtn.TextColor3 = T.Text
-rbLabelBtn.BackgroundTransparency = 1
-rbLabelBtn.TextXAlignment = Enum.TextXAlignment.Left
-rbLabelBtn.Font = T.FontMed
-rbLabelBtn.TextSize = 12
-rbLabelBtn.AutoButtonColor = false
-rbLabelBtn.Parent = RebirthContainer
-
-local rbSwitch = Instance.new("TextButton")
-rbSwitch.Size = UDim2.new(0, 40, 0, 20)
-rbSwitch.Position = UDim2.new(1, -50, 0.5, -10)
-rbSwitch.BackgroundColor3 = T.Off
-rbSwitch.Text = ""; rbSwitch.AutoButtonColor = false
-rbSwitch.Parent = RebirthContainer
-Instance.new("UICorner", rbSwitch).CornerRadius = UDim.new(1, 0)
-
-local rbCircle = Instance.new("Frame")
-rbCircle.Size = UDim2.new(0, 16, 0, 16)
-rbCircle.Position = UDim2.new(0, 2, 0.5, -8)
-rbCircle.BackgroundColor3 = T.Circle
-rbCircle.Parent = rbSwitch
-Instance.new("UICorner", rbCircle).CornerRadius = UDim.new(1, 0)
-
-connectInput(rbSwitch, function()
-    if currentRebirthSelect > 0 then
-        isRebirthAutoActive = not isRebirthAutoActive
-        TweenService:Create(rbCircle, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
-            Position = isRebirthAutoActive and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-        }):Play()
-        TweenService:Create(rbSwitch, TweenInfo.new(0.18), {
-            BackgroundColor3 = isRebirthAutoActive and T.On or T.Off
-        }):Play()
     end
+    repositionElements("Farm")
 end)
 
-local DropdownFrame = Instance.new("ScrollingFrame")
-DropdownFrame.Size = UDim2.new(0.97, 0, 0, 130)
-DropdownFrame.BackgroundColor3 = T.Panel2
-DropdownFrame.Visible = false
-DropdownFrame.ScrollBarThickness = 2
-DropdownFrame.ScrollBarImageColor3 = T.Accent
-DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 11 * 28)
-DropdownFrame.Parent = MainContent
-Instance.new("UICorner", DropdownFrame).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", DropdownFrame).Color = T.StrokeDim
+task.wait(0.1) 
+local autoSecretContainer = getAutoSecretOptionContainer() 
+if autoSecretContainer then
+    autoSecretClickArea.Parent = autoSecretContainer
+end
 
-local ddList = Instance.new("UIListLayout", DropdownFrame)
-ddList.SortOrder = Enum.SortOrder.LayoutOrder
-ddList.Padding = UDim.new(0, 1)
+autoSecretConfigContainer = Instance.new("Frame") 
+autoSecretConfigContainer.Size = UDim2.new(0.95, 0, 0, 45) 
+autoSecretConfigContainer.BackgroundColor3 = Theme.Panel2
+autoSecretConfigContainer.Visible = false 
+autoSecretConfigContainer.Parent = MainContent 
+Instance.new("UICorner", autoSecretConfigContainer).CornerRadius = UDim.new(0, 8) 
+
+local autoSecretConfigStroke = Instance.new("UIStroke") 
+autoSecretConfigStroke.Color = Theme.StrokeDim
+autoSecretConfigStroke.Thickness = 2 
+autoSecretConfigStroke.Transparency = 0.5
+autoSecretConfigStroke.Parent = autoSecretConfigContainer 
+
+local autoSecretConfigLabel = Instance.new("TextLabel") 
+autoSecretConfigLabel.Size = UDim2.new(0.6, 0, 1, 0) 
+autoSecretConfigLabel.Position = UDim2.new(0.05, 0, 0, 0) 
+autoSecretConfigLabel.Text = "Select Lucky Blocks?" 
+autoSecretConfigLabel.TextColor3 = Theme.Text
+autoSecretConfigLabel.BackgroundTransparency = 1 
+autoSecretConfigLabel.TextXAlignment = Enum.TextXAlignment.Left 
+autoSecretConfigLabel.Font = Enum.Font.Gotham
+autoSecretConfigLabel.TextSize = 16 
+autoSecretConfigLabel.Parent = autoSecretConfigContainer 
+
+local autoSecretConfigCheckBtn = Instance.new("TextButton") 
+autoSecretConfigCheckBtn.Size = UDim2.new(0, 16, 0, 16) 
+autoSecretConfigCheckBtn.Position = UDim2.new(0.88, 0, 0.5, -8) 
+autoSecretConfigCheckBtn.BackgroundColor3 = optionStates["AutoSecretLuckyBlocks"] and Theme.Accent or Theme.Off
+autoSecretConfigCheckBtn.Text = "" 
+autoSecretConfigCheckBtn.Parent = autoSecretConfigContainer 
+autoSecretConfigCheckBtn.AutoButtonColor = false 
+Instance.new("UICorner", autoSecretConfigCheckBtn).CornerRadius = UDim.new(0, 3) 
+
+local function toggleAutoSecretLuckyBlocks() 
+    if createDebounce("AutoSecretLuckyBlockCheck", 0.05) then
+        optionStates["AutoSecretLuckyBlocks"] = not optionStates["AutoSecretLuckyBlocks"] 
+        setOptionState("AutoSecretLuckyBlocks", optionStates["AutoSecretLuckyBlocks"]) 
+        TweenService:Create(autoSecretConfigCheckBtn, TweenInfo.new(0.15), {
+            BackgroundColor3 = optionStates["AutoSecretLuckyBlocks"] and Theme.Accent or Theme.Off
+        }):Play()
+    end
+end
+
+autoSecretConfigCheckBtn.Activated:Connect(toggleAutoSecretLuckyBlocks) 
+autoSecretConfigCheckBtn.MouseButton1Click:Connect(toggleAutoSecretLuckyBlocks) 
+
+table.insert(options["Farm"], autoSecretConfigContainer) 
+
+local isAutoStellar = createOption("Auto Stellar", false, "Farm") 
+local isAutoDig = createOption("Auto Dig [Shovel]", false, "Farm") 
+
+local isRebirthAutoActive = false 
+local currentRebirthSelect = 0 
+
+local RebirthContainer = Instance.new("Frame") 
+RebirthContainer.Size = UDim2.new(0.95, 0, 0, 50) 
+RebirthContainer.BackgroundColor3 = Theme.Card
+RebirthContainer.Visible = false 
+RebirthContainer.Parent = MainContent 
+Instance.new("UICorner", RebirthContainer).CornerRadius = UDim.new(0, 10) 
+
+local RebirthStroke = Instance.new("UIStroke") 
+RebirthStroke.Color = Theme.StrokeDim
+RebirthStroke.Thickness = 2 
+RebirthStroke.Transparency = 0.5
+RebirthStroke.Parent = RebirthContainer 
+
+local RebirthLabelBtn = Instance.new("TextButton") 
+RebirthLabelBtn.Size = UDim2.new(0.6, 0, 1, 0) 
+RebirthLabelBtn.Position = UDim2.new(0.05, 0, 0, 0) 
+RebirthLabelBtn.Text = "Rebirth Auto Brainrots [Click]: Select" 
+RebirthLabelBtn.TextColor3 = Theme.Text
+RebirthLabelBtn.BackgroundTransparency = 1 
+RebirthLabelBtn.TextXAlignment = Enum.TextXAlignment.Left 
+RebirthLabelBtn.Font = Enum.Font.GothamMedium
+RebirthLabelBtn.TextSize = 16 
+RebirthLabelBtn.Parent = RebirthContainer 
+RebirthLabelBtn.AutoButtonColor = false 
+RebirthLabelBtn.Name = "RebirthLabelBtn" 
+
+local RebirthSwitchBG = Instance.new("TextButton") 
+RebirthSwitchBG.Size = UDim2.new(0, 45, 0, 24) 
+RebirthSwitchBG.Position = UDim2.new(1, -55, 0.5, -12) 
+RebirthSwitchBG.BackgroundColor3 = Theme.Off
+RebirthSwitchBG.Text = "" 
+RebirthSwitchBG.Parent = RebirthContainer 
+RebirthSwitchBG.AutoButtonColor = false 
+RebirthSwitchBG.Name = "RebirthSwitchBG" 
+Instance.new("UICorner", RebirthSwitchBG).CornerRadius = UDim.new(1, 0) 
+
+local RebirthCircle = Instance.new("Frame") 
+RebirthCircle.Size = UDim2.new(0, 18, 0, 18) 
+RebirthCircle.Position = UDim2.new(0, 3, 0.5, -9) 
+RebirthCircle.BackgroundColor3 = Theme.Circle
+RebirthCircle.Parent = RebirthSwitchBG 
+Instance.new("UICorner", RebirthCircle).CornerRadius = UDim.new(1, 0) 
+
+local function toggleRebirthSwitch() 
+    if createDebounce("RebirthSwitchBG", 0.05) then
+        if currentRebirthSelect > 0 then
+            isRebirthAutoActive = not isRebirthAutoActive 
+            TweenService:Create(RebirthCircle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+                Position = isRebirthAutoActive and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+            }):Play()
+            TweenService:Create(RebirthSwitchBG, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+                BackgroundColor3 = isRebirthAutoActive and Theme.On or Theme.Off
+            }):Play()
+        end
+    end
+end
+
+RebirthSwitchBG.Activated:Connect(toggleRebirthSwitch) 
+RebirthSwitchBG.MouseButton1Click:Connect(toggleRebirthSwitch) 
+
+local DropdownFrame = Instance.new("ScrollingFrame") 
+DropdownFrame.Size = UDim2.new(0.95, 0, 0, 150) 
+DropdownFrame.BackgroundColor3 = Theme.Panel2
+DropdownFrame.Visible = false 
+DropdownFrame.Parent = MainContent 
+DropdownFrame.ScrollBarThickness = 4 
+DropdownFrame.ScrollBarImageColor3 = Theme.Accent
+DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 300) 
+Instance.new("UICorner", DropdownFrame).CornerRadius = UDim.new(0, 8) 
+
+local DropdownStroke = Instance.new("UIStroke") 
+DropdownStroke.Color = Theme.StrokeDim
+DropdownStroke.Thickness = 2 
+DropdownStroke.Transparency = 0.5
+DropdownStroke.Parent = DropdownFrame 
+
+local DropdownList = Instance.new("UIListLayout") 
+DropdownList.Parent = DropdownFrame 
+DropdownList.SortOrder = Enum.SortOrder.LayoutOrder 
+DropdownList.Padding = UDim.new(0, 2) 
 
 for i = 1, 11 do
-    local db = Instance.new("TextButton")
-    db.Size = UDim2.new(1, 0, 0, 26)
-    db.BackgroundColor3 = T.Panel2
-    db.Text = "  Rebirth " .. i
-    db.TextColor3 = T.Text
-    db.TextXAlignment = Enum.TextXAlignment.Left
-    db.Font = T.FontMed
-    db.TextSize = 12
-    db.AutoButtonColor = false
-    db.Parent = DropdownFrame
+    local dropBtn = Instance.new("TextButton") 
+    dropBtn.Size = UDim2.new(1, 0, 0, 30) 
+    dropBtn.BackgroundColor3 = Theme.Panel
+    dropBtn.BorderSizePixel = 0 
+    dropBtn.Text = "Rebirth " .. i 
+    dropBtn.TextColor3 = Theme.Text
+    dropBtn.Font = Enum.Font.GothamBold
+    dropBtn.TextSize = 14 
+    dropBtn.Parent = DropdownFrame 
+    dropBtn.AutoButtonColor = false 
+    dropBtn.Name = "DropBtn_" .. i 
+    
+    local function selectRebirth() 
+        if createDebounce("DropBtn_" .. i, 0.05) then
+            currentRebirthSelect = i 
+            RebirthLabelBtn.Text = "Rebirth Auto Brainrots [Click]: " .. i 
+            DropdownFrame.Visible = false 
+            repositionElements("Farm")
+        end
+    end
+    dropBtn.Activated:Connect(selectRebirth) 
+    dropBtn.MouseButton1Click:Connect(selectRebirth)
+end
 
-    connectInput(db, function()
-        currentRebirthSelect = i
-        rbLabelBtn.Text = "Rebirth Auto [Click]: " .. i
-        DropdownFrame.Visible = false
+local function toggleDropdownFrame() 
+    if createDebounce("RebirthLabelBtn", 0.05) then
+        DropdownFrame.Visible = not DropdownFrame.Visible 
         repositionElements("Farm")
-    end)
+    end
 end
 
-connectInput(rbLabelBtn, function()
-    DropdownFrame.Visible = not DropdownFrame.Visible
-    repositionElements("Farm")
-end)
+RebirthLabelBtn.Activated:Connect(toggleDropdownFrame) 
+RebirthLabelBtn.MouseButton1Click:Connect(toggleDropdownFrame) 
 
-table.insert(options["Farm"], RebirthContainer)
-table.insert(options["Farm"], DropdownFrame)
+table.insert(options["Farm"], RebirthContainer) 
+table.insert(options["Farm"], DropdownFrame) 
 
--- Auto Index Missing
-local isAutoIndex, IdxContainer, IdxSwitch = createOption("Auto Index [Click]", false, "Farm")
+local isAutoIndex, IdxContainer, IdxSwitch = createOption("Auto Index Missing [Click]", false, "Farm") 
 
-local IndexMutContainer = Instance.new("Frame")
-IndexMutContainer.Size = UDim2.new(0.97, 0, 0, 180)
-IndexMutContainer.BackgroundColor3 = T.Panel2
-IndexMutContainer.Visible = false
-IndexMutContainer.Parent = MainContent
-Instance.new("UICorner", IndexMutContainer).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", IndexMutContainer).Color = T.StrokeDim
+local IndexMutContainer = Instance.new("Frame") 
+IndexMutContainer.Size = UDim2.new(0.95, 0, 0, 210) 
+IndexMutContainer.BackgroundColor3 = Theme.Panel2
+IndexMutContainer.Visible = false 
+IndexMutContainer.Parent = MainContent 
+Instance.new("UICorner", IndexMutContainer).CornerRadius = UDim.new(0, 10) 
 
-local idxLayout = Instance.new("UIListLayout", IndexMutContainer)
-idxLayout.SortOrder = Enum.SortOrder.LayoutOrder
-idxLayout.Padding = UDim.new(0, 4)
-idxLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-Instance.new("UIPadding", IndexMutContainer).PaddingTop = UDim.new(0, 5)
+local IndexStroke = Instance.new("UIStroke") 
+IndexStroke.Color = Theme.StrokeDim
+IndexStroke.Thickness = 2 
+IndexStroke.Transparency = 0.5
+IndexStroke.Parent = IndexMutContainer 
 
-local mutSelected = {Normal=true, Gold=true, Diamond=true, Rainbow=true, Lava=true}
-for _, m in ipairs({"Normal","Gold","Diamond","Rainbow","Lava"}) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.85, 0, 0, 26)
-    btn.BackgroundColor3 = mutSelected[m] and T.AccentDim or T.Off
-    btn.Text = m
-    btn.TextColor3 = T.Text
-    btn.Font = T.FontMed
-    btn.TextSize = 12
-    btn.AutoButtonColor = false
-    btn.Parent = IndexMutContainer
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+local mutLayout = Instance.new("UIListLayout") 
+mutLayout.SortOrder = Enum.SortOrder.LayoutOrder 
+mutLayout.Padding = UDim.new(0, 5) 
+mutLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center 
+mutLayout.Parent = IndexMutContainer 
 
-    connectInput(btn, function()
-        mutSelected[m] = not mutSelected[m]
-        TweenService:Create(btn, TweenInfo.new(0.15), {
-            BackgroundColor3 = mutSelected[m] and T.AccentDim or T.Off
-        }):Play()
-    end)
+local mutPadding = Instance.new("UIPadding") 
+mutPadding.PaddingTop = UDim.new(0, 5) 
+mutPadding.Parent = IndexMutContainer 
+
+local mutSelected = {Normal = true, Gold = true, Diamond = true, Rainbow = true, Lava = true} 
+
+for _, m in ipairs({"Normal", "Gold", "Diamond", "Rainbow", "Lava"}) do
+    local btn = Instance.new("TextButton") 
+    btn.Size = UDim2.new(0.9, 0, 0, 28) 
+    btn.BackgroundColor3 = mutSelected[m] and Theme.AccentDim or Theme.Off
+    btn.Text = m 
+    btn.TextColor3 = Theme.Text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14 
+    btn.TextXAlignment = Enum.TextXAlignment.Center 
+    btn.Parent = IndexMutContainer 
+    btn.AutoButtonColor = false 
+    btn.Name = "IdxMut_" .. m 
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6) 
+    
+    local function toggleIdxMut() 
+        if createDebounce("IdxMut_" .. m, 0.05) then
+            mutSelected[m] = not mutSelected[m] 
+            TweenService:Create(btn, TweenInfo.new(0.15), {
+                BackgroundColor3 = mutSelected[m] and Theme.AccentDim or Theme.Off
+            }):Play()
+        end
+    end
+    btn.Activated:Connect(toggleIdxMut) 
+    btn.MouseButton1Click:Connect(toggleIdxMut)
 end
 
-table.insert(options["Farm"], IndexMutContainer)
+table.insert(options["Farm"], IndexMutContainer) 
 
-local idxClickArea = Instance.new("TextButton")
-idxClickArea.Size = UDim2.new(0.6, 0, 1, 0)
-idxClickArea.BackgroundTransparency = 1
-idxClickArea.Text = ""; idxClickArea.AutoButtonColor = false
-idxClickArea.Parent = IdxContainer
+local idxLabelBtn = IdxContainer:FindFirstChildOfClass("TextLabel") 
+local indexClickArea = Instance.new("TextButton") 
+indexClickArea.Size = UDim2.new(0.6, 0, 1, 0) 
+indexClickArea.BackgroundTransparency = 1 
+indexClickArea.Text = "" 
+indexClickArea.Parent = IdxContainer 
+indexClickArea.AutoButtonColor = false 
+indexClickArea.Name = "IndexClickArea" 
 
-connectInput(idxClickArea, function()
-    IndexMutContainer.Visible = not IndexMutContainer.Visible
+connectButtonInput(indexClickArea, function() 
+    IndexMutContainer.Visible = not IndexMutContainer.Visible 
     repositionElements("Farm")
 end)
 
--- Auto Specific Brainrot
-local isAutoSpecific, SpecContainer, SpecSwitch = createOption("Auto Specific [Click]", false, "Farm")
+local isAutoSpecific, SpecContainer, SpecSwitch = createOption("Auto Specific Brainrot [Click]", false, "Farm") 
 
-local SpecificListContainer = Instance.new("Frame")
-SpecificListContainer.Size = UDim2.new(0.97, 0, 0, 350)
-SpecificListContainer.BackgroundColor3 = T.Panel2
-SpecificListContainer.Visible = false
-SpecificListContainer.Parent = MainContent
-Instance.new("UICorner", SpecificListContainer).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", SpecificListContainer).Color = T.StrokeDim
+local SpecificListContainer = Instance.new("Frame") 
+SpecificListContainer.Size = UDim2.new(0.95, 0, 0, 400) 
+SpecificListContainer.BackgroundColor3 = Theme.Panel2
+SpecificListContainer.Visible = false 
+SpecificListContainer.Parent = MainContent 
+Instance.new("UICorner", SpecificListContainer).CornerRadius = UDim.new(0, 10) 
 
-local specScroll = Instance.new("ScrollingFrame")
-specScroll.Size = UDim2.new(1, 0, 1, 0)
-specScroll.BackgroundTransparency = 1
-specScroll.ScrollBarThickness = 2
-specScroll.ScrollBarImageColor3 = T.Accent
-specScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-specScroll.Parent = SpecificListContainer
-Instance.new("UIListLayout", specScroll).SortOrder = Enum.SortOrder.LayoutOrder
+local SpecStroke = Instance.new("UIStroke") 
+SpecStroke.Color = Theme.StrokeDim
+SpecStroke.Thickness = 2 
+SpecStroke.Transparency = 0.5
+SpecStroke.Parent = SpecificListContainer 
 
-local specClickArea = Instance.new("TextButton")
-specClickArea.Size = UDim2.new(0.6, 0, 1, 0)
-specClickArea.BackgroundTransparency = 1
-specClickArea.Text = ""; specClickArea.AutoButtonColor = false
-specClickArea.Parent = SpecContainer
+local specScroll = Instance.new("ScrollingFrame") 
+specScroll.Size = UDim2.new(1, 0, 1, 0) 
+specScroll.BackgroundTransparency = 1 
+specScroll.ScrollBarThickness = 2 
+specScroll.ScrollBarImageColor3 = Theme.Accent
+specScroll.CanvasSize = UDim2.new(0, 0, 0, 0) 
+specScroll.Parent = SpecificListContainer 
 
-connectInput(specClickArea, function()
-    SpecificListContainer.Visible = not SpecificListContainer.Visible
+local specLayout = Instance.new("UIListLayout") 
+specLayout.SortOrder = Enum.SortOrder.LayoutOrder 
+specLayout.Parent = specScroll 
+
+local specClickArea = Instance.new("TextButton") 
+specClickArea.Size = UDim2.new(0.6, 0, 1, 0) 
+specClickArea.BackgroundTransparency = 1 
+specClickArea.Text = "" 
+specClickArea.Parent = SpecContainer 
+specClickArea.AutoButtonColor = false 
+specClickArea.Name = "SpecClickArea" 
+
+connectButtonInput(specClickArea, function() 
+    SpecificListContainer.Visible = not SpecificListContainer.Visible 
     repositionElements("Farm")
 end)
 
-table.insert(options["Farm"], SpecificListContainer)
+table.insert(options["Farm"], SpecificListContainer) 
 
-local allBrainrots = {
-    "Noobini Pizzanini","LiriliLarila","Fluri Flura","Cacto Hipopotamo",
-    "Pipi Potato","Tric Trac Barabum","Burbaloni Loliloli","Boneca Ambalabu",
-    "Trippi Troppi","Svinina Bombardino","Bambini Crostini","Avocadini Guffo",
-    "Bandito Bobrito","Tatatata Sahur","Gangster Footera","Tung Tung Sahur",
-    "Cappuccino Assassino","Pipi Kiwi","Orangutini Ananassini","Talpa Di Fero",
-    "Espresso Signora","Brr Brr Patapim","Rhino Toasterino","Brr Bicus Dicus",
-    "Strawberrelli Flamingelli","Bananito Delfinito","Balerina Capucina",
-    "Glorbo Fruttodrillo","Blueberrinni Octopusini","Chimpanzini Bananini",
-    "Bombardiro Crocodilo","Elefanto Cocofanto","Bommunini Gusini",
-    "Pandaccini Bananini","Chef Crabracadabra","Gorillo Watermelondrillo",
-    "Frigo Camelo","Girafa Celestre","Ganganzelli Trulala","Tigroligre Frutonni",
-    "Matteo","Cavallo Virtuoso","La Vacca Saturno Saturnita","Esok Sekolah",
-    "Tralaledon","Tralalero Tralala","Chicleteira Bicicleteira",
-    "Torrtuginni Dragonfrutini","Nuclearo Dinosauro","Quesadilla Crocodila",
-    "Graipussi Medussi","Lucky Block","Caramelini Brasilini",
-    "Garama and Madundung","Meowl","Smurf Cat","Capitano Clash Warnini",
-    "Strawberry Elephant"
-}
+local allBrainrots = { "Noobini Pizzanini", "LiriliLarila", "Fluri Flura", "Cacto Hipopotamo", "Pipi Potato", "Tric Trac Barabum", "Burbaloni Loliloli", "Boneca Ambalabu", "Trippi Troppi", "Svinina Bombardino", "Bambini Crostini", "Avocadini Guffo", "Bandito Bobrito", "Tatatata Sahur", "Gangster Footera", "Tung Tung Sahur", "Cappuccino Assassino", "Pipi Kiwi", "Orangutini Ananassini", "Talpa Di Fero", "Espresso Signora", "Brr Brr Patapim", "Rhino Toasterino", "Brr Bicus Dicus", "Strawberrelli Flamingelli", "Bananito Delfinito", "Balerina Capucina", "Glorbo Fruttodrillo", "Blueberrinni Octopusini", "Chimpanzini Bananini", "Bombardiro Crocodilo", "Elefanto Cocofanto", "Bommunini Gusini", "Pandaccini Bananini", "Chef Crabracadabra", "Gorillo Watermelondrillo", "Frigo Camelo", "Girafa Celestre", "Ganganzelli Trulala", "Tigroligre Frutonni", "Matteo", "Cavallo Virtuoso", "La Vacca Saturno Saturnita", "Esok Sekolah", "Tralaledon", "Tralalero Tralala", "Chicleteira Bicicleteira", "Torrtuginni Dragonfrutini", "Nuclearo Dinosauro", "Quesadilla Crocodila", "Graipussi Medussi", "Lucky Block", "Caramelini Brasilini", "Garama and Madundung", "Meowl", "Smurf Cat", "Capitano Clash Warnini", "Strawberry Elephant" } 
 
-local specificTargets = {}
-local savedSpecific = savedSettings["SpecificTargets"] or {}
-local ySpecSize = 0
+local specificTargets = {} 
+local savedSpecific = savedSettings["SpecificTargets"] or {} 
+local ySpecSize = 0 
 
 for _, brName in ipairs(allBrainrots) do
     if savedSpecific[brName] then
-        specificTargets[brName] = savedSpecific[brName]
-        if not specificTargets[brName].Muts then specificTargets[brName].Muts = {} end
-        for k, v in pairs(defaultMuts) do
-            if specificTargets[brName].Muts[k] == nil then specificTargets[brName].Muts[k] = v end
+        specificTargets[brName] = savedSpecific[brName] 
+        if not specificTargets[brName].Muts then
+            specificTargets[brName].Muts = {}
+        end
+        if specificTargets[brName].Muts.Normal == nil then
+            specificTargets[brName].Muts.Normal = true
+        end
+        if specificTargets[brName].Muts.Gold == nil then
+            specificTargets[brName].Muts.Gold = true
+        end
+        if specificTargets[brName].Muts.Diamond == nil then
+            specificTargets[brName].Muts.Diamond = true
+        end
+        if specificTargets[brName].Muts.Rainbow == nil then
+            specificTargets[brName].Muts.Rainbow = true
+        end
+        if specificTargets[brName].Muts.Lava == nil then
+            specificTargets[brName].Muts.Lava = true
         end
     else
-        specificTargets[brName] = {Active=false, Muts={Normal=true,Gold=true,Diamond=true,Rainbow=true,Lava=true}}
+        specificTargets[brName] = {Active = false, Muts = {Normal=true, Gold=true, Diamond=true, Rainbow=true, Lava=true}}
     end
-
-    local itemFrame = Instance.new("Frame")
-    itemFrame.Size = UDim2.new(1, 0, 0, 28)
-    itemFrame.BackgroundTransparency = 1
-    itemFrame.Parent = specScroll
-    ySpecSize = ySpecSize + 28
-
-    local nameBtn = Instance.new("TextButton")
-    nameBtn.Size = UDim2.new(0.7, 0, 1, 0)
-    nameBtn.Position = UDim2.new(0.03, 0, 0, 0)
-    nameBtn.BackgroundTransparency = 1
-    nameBtn.Text = brName
-    nameBtn.TextColor3 = T.Text
-    nameBtn.TextXAlignment = Enum.TextXAlignment.Left
-    nameBtn.Font = T.FontReg
-    nameBtn.TextSize = 11
-    nameBtn.AutoButtonColor = false
-    nameBtn.Parent = itemFrame
-
-    local checkBtn = Instance.new("TextButton")
-    checkBtn.Size = UDim2.new(0, 18, 0, 18)
-    checkBtn.Position = UDim2.new(0.85, 0, 0.5, -9)
-    checkBtn.BackgroundColor3 = specificTargets[brName].Active and T.Accent or T.Off
-    checkBtn.Text = ""; checkBtn.AutoButtonColor = false
-    checkBtn.Parent = itemFrame
-    Instance.new("UICorner", checkBtn).CornerRadius = UDim.new(0, 4)
-
-    local mutsFrame = Instance.new("Frame")
-    mutsFrame.Size = UDim2.new(1, 0, 0, 28)
-    mutsFrame.BackgroundTransparency = 1
-    mutsFrame.Visible = false
-    mutsFrame.Parent = specScroll
-
-    local smLayout = Instance.new("UIGridLayout", mutsFrame)
-    smLayout.CellSize = UDim2.new(0, 48, 0, 22)
-
-    for _, m in ipairs({"Normal","Gold","Diamond","Rainbow","Lava"}) do
-        local mBtn = Instance.new("TextButton")
-        mBtn.BackgroundColor3 = specificTargets[brName].Muts[m] and T.AccentDim or T.Off
-        mBtn.Text = m:sub(1,3)
-        mBtn.TextColor3 = T.Text
-        mBtn.TextSize = 10
-        mBtn.Font = T.FontMed
-        mBtn.AutoButtonColor = false
-        mBtn.Parent = mutsFrame
-        Instance.new("UICorner", mBtn).CornerRadius = UDim.new(0, 4)
-
-        connectInput(mBtn, function()
-            specificTargets[brName].Muts[m] = not specificTargets[brName].Muts[m]
-            mBtn.BackgroundColor3 = specificTargets[brName].Muts[m] and T.AccentDim or T.Off
-            savedSettings["SpecificTargets"] = specificTargets; saveSettings()
-        end)
+    
+    local itemFrame = Instance.new("Frame") 
+    itemFrame.Size = UDim2.new(1, 0, 0, 35) 
+    itemFrame.BackgroundTransparency = 1 
+    itemFrame.Parent = specScroll 
+    ySpecSize = ySpecSize + 35 
+    
+    local nameBtn = Instance.new("TextButton") 
+    nameBtn.Size = UDim2.new(0.7, 0, 1, 0) 
+    nameBtn.Position = UDim2.new(0.05, 0, 0, 0) 
+    nameBtn.BackgroundTransparency = 1 
+    nameBtn.Text = brName 
+    nameBtn.TextColor3 = Theme.Text
+    nameBtn.TextXAlignment = Enum.TextXAlignment.Left 
+    nameBtn.Font = Enum.Font.Gotham
+    nameBtn.TextSize = 14 
+    nameBtn.Parent = itemFrame 
+    nameBtn.AutoButtonColor = false 
+    nameBtn.Name = "SpecNameBtn_" .. brName 
+    
+    local checkBtn = Instance.new("TextButton") 
+    checkBtn.Size = UDim2.new(0, 20, 0, 20) 
+    checkBtn.Position = UDim2.new(0.85, 0, 0.5, -10) 
+    checkBtn.BackgroundColor3 = specificTargets[brName].Active and Theme.Accent or Theme.Off
+    checkBtn.Text = "" 
+    checkBtn.Parent = itemFrame 
+    checkBtn.AutoButtonColor = false 
+    checkBtn.Name = "SpecCheckBtn_" .. brName 
+    Instance.new("UICorner", checkBtn).CornerRadius = UDim.new(0, 4) 
+    
+    local mutsFrame = Instance.new("Frame") 
+    mutsFrame.Size = UDim2.new(1, 0, 0, 35) 
+    mutsFrame.BackgroundTransparency = 1 
+    mutsFrame.Visible = false 
+    mutsFrame.Parent = specScroll 
+    
+    local smLayout = Instance.new("UIGridLayout") 
+    smLayout.CellSize = UDim2.new(0, 50, 0, 25) 
+    smLayout.Parent = mutsFrame 
+    
+    for _, m in ipairs({"Normal", "Gold", "Diamond", "Rainbow", "Lava"}) do
+        local mBtn = Instance.new("TextButton") 
+        local mutState = specificTargets[brName].Muts[m] 
+        if mutState == nil then
+            mutState = true
+        end
+        mBtn.BackgroundColor3 = mutState and Theme.AccentDim or Theme.Off
+        mBtn.Text = m:sub(1,3) 
+        mBtn.TextColor3 = Theme.Text
+        mBtn.TextSize = 12 
+        mBtn.Parent = mutsFrame 
+        mBtn.AutoButtonColor = false 
+        mBtn.Name = "SpecMutBtn_" .. brName .. "_" .. m 
+        Instance.new("UICorner", mBtn) 
+        
+        if specificTargets[brName].Muts[m] == nil then
+            specificTargets[brName].Muts[m] = true
+        end
+        
+        local function toggleSpecMut() 
+            if createDebounce("SpecMutBtn_" .. brName .. "_" .. m, 0.05) then
+                specificTargets[brName].Muts[m] = not specificTargets[brName].Muts[m] 
+                TweenService:Create(mBtn, TweenInfo.new(0.15), {
+                    BackgroundColor3 = specificTargets[brName].Muts[m] and Theme.AccentDim or Theme.Off
+                }):Play()
+                savedSettings["SpecificTargets"] = specificTargets 
+                saveSettings()
+            end
+        end
+        mBtn.Activated:Connect(toggleSpecMut) 
+        mBtn.MouseButton1Click:Connect(toggleSpecMut)
     end
-
-    connectInput(nameBtn, function()
-        mutsFrame.Visible = not mutsFrame.Visible
-        ySpecSize = ySpecSize + (mutsFrame.Visible and 28 or -28)
-        specScroll.CanvasSize = UDim2.new(0, 0, 0, ySpecSize)
-    end)
-
-    connectInput(checkBtn, function()
-        specificTargets[brName].Active = not specificTargets[brName].Active
-        TweenService:Create(checkBtn, TweenInfo.new(0.15), {
-            BackgroundColor3 = specificTargets[brName].Active and T.Accent or T.Off
-        }):Play()
-        savedSettings["SpecificTargets"] = specificTargets; saveSettings()
-    end)
-end
-specScroll.CanvasSize = UDim2.new(0, 0, 0, ySpecSize)
-
---// ══════════════════════════════════════════════════════════
---//           SHOW INITIAL TAB + CONNECTIONS
---// ══════════════════════════════════════════════════════════
-
-function showTab(tabName)
-    activeTab = tabName
-    for t, list in pairs(options) do
-        for _, v in pairs(list) do v.Visible = (t == tabName) end
-    end
-    DropdownFrame.Visible = false
-    IndexMutContainer.Visible = false
-    SpecificListContainer.Visible = false
-    SellListContainer.Visible = false
-    autoSecretConfigVisible = false
-    autoSecretConfigContainer.Visible = false
-
-    for name, btn in pairs(tabButtons) do
-        if name == tabName then
-            btn.BackgroundColor3 = T.AccentDim
-            btn.TextColor3 = T.Accent
-            local s = btn:FindFirstChild("TabStroke")
-            if s then s.Color = T.Accent; s.Transparency = 0.2 end
-        else
-            btn.BackgroundColor3 = T.Panel2
-            btn.TextColor3 = T.Muted
-            local s = btn:FindFirstChild("TabStroke")
-            if s then s.Color = T.StrokeDim; s.Transparency = 0.5 end
+    
+    local function toggleSpecMutsFrame() 
+        if createDebounce("SpecNameBtn_" .. brName, 0.05) then
+            mutsFrame.Visible = not mutsFrame.Visible 
+            local addY = mutsFrame.Visible and 35 or -35 
+            ySpecSize = ySpecSize + addY 
+            specScroll.CanvasSize = UDim2.new(0, 0, 0, ySpecSize)
         end
     end
+    nameBtn.Activated:Connect(toggleSpecMutsFrame) 
+    nameBtn.MouseButton1Click:Connect(toggleSpecMutsFrame) 
+    
+    local function toggleSpecCheckBtn() 
+        if createDebounce("SpecCheckBtn_" .. brName, 0.05) then
+            specificTargets[brName].Active = not specificTargets[brName].Active 
+            TweenService:Create(checkBtn, TweenInfo.new(0.15), {
+                BackgroundColor3 = specificTargets[brName].Active and Theme.Accent or Theme.Off
+            }):Play()
+            savedSettings["SpecificTargets"] = specificTargets 
+            saveSettings()
+        end
+    end
+    checkBtn.Activated:Connect(toggleSpecCheckBtn) 
+    checkBtn.MouseButton1Click:Connect(toggleSpecCheckBtn)
+end
 
+specScroll.CanvasSize = UDim2.new(0, 0, 0, ySpecSize) 
+
+function showTab(tabName) 
+    activeTab = tabName 
+    for t, list in pairs(options) do
+        for _, v in pairs(list) do
+            v.Visible = (t == tabName)
+        end
+    end
+    DropdownFrame.Visible = false 
+    IndexMutContainer.Visible = false 
+    SpecificListContainer.Visible = false 
+    SellListContainer.Visible = false 
+    autoSecretConfigVisible = false 
+    autoSecretConfigContainer.Visible = false 
+    
+    for _, btn in ipairs(tabButtons) do
+        local isActive = (btn == (tabName == "Main" and TabMain or tabName == "Buy" and TabBuy or tabName == "Farm" and TabFarm or tabName == "Config" and TabConfig or TabCredits))
+        TweenService:Create(btn, TweenInfo.new(0.2), {
+            BackgroundColor3 = isActive and Theme.AccentDim or Theme.Panel2,
+            TextColor3 = isActive and Theme.Accent or Theme.Muted
+        }):Play()
+        local stroke = btn:FindFirstChildOfClass("UIStroke")
+        if stroke then
+            TweenService:Create(stroke, TweenInfo.new(0.2), {
+                Color = isActive and Theme.Accent or Theme.StrokeDim,
+                Transparency = isActive and 0.2 or 0.5
+            }):Play()
+        end
+    end
+    
     repositionElements(tabName)
 end
 
---// ═══ DRAGGING (Mobile + PC) ═══
-local draggingBtn = false
-local dragStart, startPos
+TabMain.Activated:Connect(function() showTab("Main") end)
+TabBuy.Activated:Connect(function() showTab("Buy") end)
+TabFarm.Activated:Connect(function() showTab("Farm") end)
+TabConfig.Activated:Connect(function() showTab("Config") end)
+TabCredits.Activated:Connect(function() showTab("Credits") end)
 
-local function beginDrag(input)
-    draggingBtn = true
-    dragStart = input.Position
-    startPos = FloatingButton.Position
-end
+TabMain.MouseButton1Click:Connect(function() showTab("Main") end)
+TabBuy.MouseButton1Click:Connect(function() showTab("Buy") end)
+TabFarm.MouseButton1Click:Connect(function() showTab("Farm") end)
+TabConfig.MouseButton1Click:Connect(function() showTab("Config") end)
+TabCredits.MouseButton1Click:Connect(function() showTab("Credits") end)
 
-local function updateDrag(input)
-    if draggingBtn then
-        local delta = input.Position - dragStart
-        FloatingButton.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
-        )
-    end
-end
+--// DRAG MOBILE + PC
+local draggingBtn, dragStartBtn, startPosBtn 
+FloatingButton.MouseButton1Down:Connect(function() 
+    draggingBtn = true 
+    dragStartBtn = Mouse.Hit.Position 
+    startPosBtn = FloatingButton.Position
+end)
 
-local function endDrag()
-    draggingBtn = false
-end
-
-FloatingButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        beginDrag(input)
+Mouse.Move:Connect(function() 
+    if draggingBtn and dragStartBtn and startPosBtn then
+        local delta = Mouse.Hit.Position - dragStartBtn 
+        FloatingButton.Position = UDim2.new(startPosBtn.X.Scale, startPosBtn.X.Offset + (delta.X * 0.5), startPosBtn.Y.Scale, startPosBtn.Y.Offset + (delta.Y * 0.5))
     end
 end)
 
-UIS.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-    or input.UserInputType == Enum.UserInputType.Touch then
-        updateDrag(input)
+UserInputService.InputEnded:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingBtn = false
     end
 end)
 
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        endDrag()
-    end
-end)
-
--- Main frame drag (topbar)
-local draggingMain = false
-local mainDragStart, mainStartPos
-
-TopBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        draggingMain = true
-        mainDragStart = input.Position
-        mainStartPos = MainFrame.Position
-    end
-end)
-
-UIS.InputChanged:Connect(function(input)
-    if draggingMain and (input.UserInputType == Enum.UserInputType.MouseMovement
-    or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - mainDragStart
-        MainFrame.Position = UDim2.new(
-            mainStartPos.X.Scale, mainStartPos.X.Offset + delta.X,
-            mainStartPos.Y.Scale, mainStartPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        draggingMain = false
-    end
-end)
-
---// ═══ KEYBIND H + BUTTON TOGGLE ═══
 FloatingButton.Activated:Connect(toggleHub)
-CloseBtn.Activated:Connect(closeHub)
-CloseBtn.MouseButton1Click:Connect(closeHub)
 
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.H then
+FloatingButton.MouseButton1Click:Connect(function() 
+    if not draggingBtn then
         toggleHub()
     end
 end)
 
-showTab("Main")
+CloseBtn.Activated:Connect(closeHub)
+CloseBtn.MouseButton1Click:Connect(closeHub)
 
---// ══════════════════════════════════════════════════════════
---//              GAME LOGIC (ALL AUTOMATION)
---// ══════════════════════════════════════════════════════════
+repositionElements("Main") 
 
--- Anti AFK
-Player.Idled:Connect(function()
+--// ═══════════════════════════════════════════════════════
+--//           TODO O RESTO (LÓGICA DO JOGO INTACTA)
+--// ═══════════════════════════════════════════════════════
+
+Player.Idled:Connect(function() 
     if isAntiAFK() then
-        pcall(function()
-            VirtualUser:CaptureController()
+        pcall(function() 
+            VirtualUser:CaptureController() 
             VirtualUser:ClickButton2(Vector2.new())
         end)
     end
 end)
 
--- Staff Detector
-local badRoles = {["Proprietário(a)"]=true, ["Administrador(a)"]=true, ["Dev Game"]=true}
-local staffIds = {[4358286401]=true, [4386104527]=true}
+local badRoles = {["Proprietário(a)"] = true, ["Administrador(a)"] = true, ["Dev Game"] = true} 
+local staffIds = {[4358286401] = true, [4386104527] = true} 
 
-local function checkStaff(p)
+game.Players.PlayerAdded:Connect(function(p) 
     if isStaffDetector() then
-        task.wait(0.1)
-        pcall(function()
+        task.wait(0.1) 
+        pcall(function() 
+            if staffIds[p.UserId] or badRoles[p:GetRoleInGroup(17350197)] then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
+            end
+        end)
+    end
+end)
+
+for _, p in pairs(game.Players:GetPlayers()) do
+    if p ~= Player and isStaffDetector() then
+        task.wait(0.1) 
+        pcall(function() 
             if staffIds[p.UserId] or badRoles[p:GetRoleInGroup(17350197)] then
                 TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
             end
@@ -1717,16 +1842,10 @@ local function checkStaff(p)
     end
 end
 
-Players.PlayerAdded:Connect(function(p) checkStaff(p) end)
-for _, p in pairs(Players:GetPlayers()) do
-    if p ~= Player then checkStaff(p) end
-end
-
--- Anti Cheat
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+local oldNamecall 
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...) 
     if isAntiCheat() then
-        local method = getnamecallmethod()
+        local method = getnamecallmethod() 
         if method == "FireServer" and tostring(self) == "Cheat" then
             return nil
         end
@@ -1734,91 +1853,94 @@ oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     return oldNamecall(self, ...)
 end)
 
--- Main Heartbeat (Speed, Fly, Noclip)
-RunService.Heartbeat:Connect(function()
-    local char = Player.Character
+RunService.Heartbeat:Connect(function() 
+    local char = Player.Character 
     if char and char:FindFirstChild("Humanoid") then
         char.Humanoid.WalkSpeed = isSpeedEnabled() and customSpeedVal or 32
     end
-
     if isFlyActive and bg and bv then
-        local cam = workspace.CurrentCamera
+        local cam = workspace.CurrentCamera 
+        local char = Player.Character 
         if char and char:FindFirstChild("HumanoidRootPart") then
-            local hum = char:FindFirstChildOfClass("Humanoid")
+            local hum = char:FindFirstChildOfClass("Humanoid") 
             if hum then
-                local md = hum.MoveDirection
-                if md.Magnitude > 0 then
-                    local cd = cam.CFrame.LookVector
-                    local cr = cam.CFrame.RightVector
-                    local fl = Vector3.new(cd.X, 0, cd.Z)
-                    if fl.Magnitude > 0.001 then fl = fl.Unit
-                    else fl = Vector3.new(cam.CFrame.UpVector.X, 0, cam.CFrame.UpVector.Z).Unit * -math.sign(cd.Y) end
-                    local fr = Vector3.new(cr.X, 0, cr.Z)
-                    if fr.Magnitude > 0.001 then fr = fr.Unit else fr = Vector3.new(1,0,0) end
-                    bv.Velocity = (cd * md:Dot(fl) + cr * md:Dot(fr)) * flySpeed
+                local moveDir = hum.MoveDirection 
+                if moveDir.Magnitude > 0 then
+                    local camDir = cam.CFrame.LookVector 
+                    local camRight = cam.CFrame.RightVector 
+                    local flatLook = Vector3.new(camDir.X, 0, camDir.Z) 
+                    if flatLook.Magnitude > 0.001 then
+                        flatLook = flatLook.Unit
+                    else
+                        flatLook = Vector3.new(cam.CFrame.UpVector.X, 0, cam.CFrame.UpVector.Z).Unit * -math.sign(camDir.Y)
+                    end
+                    local flatRight = Vector3.new(camRight.X, 0, camRight.Z) 
+                    if flatRight.Magnitude > 0.001 then
+                        flatRight = flatRight.Unit
+                    else
+                        flatRight = Vector3.new(1, 0, 0)
+                    end
+                    local forwardInput = moveDir:Dot(flatLook) 
+                    local rightInput = moveDir:Dot(flatRight) 
+                    bv.Velocity = (camDir * forwardInput + camRight * rightInput) * flySpeed
                 else
-                    bv.Velocity = Vector3.zero
+                    bv.Velocity = Vector3.new(0, 0, 0)
                 end
                 bg.CFrame = cam.CFrame
             end
         end
     end
-
     if noclipEnabled then
+        local char = Player.Character 
         if char then
-            for _, p in pairs(char:GetDescendants()) do
-                if p:IsA("BasePart") then p.CanCollide = false end
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
             end
         end
     end
 end)
 
--- Brainrots folder
-local clientFolder = workspace:FindFirstChild("Client")
-local pathFolder = clientFolder and clientFolder:FindFirstChild("Path")
-local brainrotsFolder = pathFolder and pathFolder:FindFirstChild("Brainrots")
+local clientFolder = workspace:FindFirstChild("Client") 
+local pathFolder = clientFolder and clientFolder:FindFirstChild("Path") 
+local brainrotsFolder = pathFolder and pathFolder:FindFirstChild("Brainrots") 
 
 if not brainrotsFolder then
-    task.spawn(function()
+    task.spawn(function() 
         while not brainrotsFolder do
-            clientFolder = workspace:FindFirstChild("Client")
-            pathFolder = clientFolder and clientFolder:FindFirstChild("Path")
-            brainrotsFolder = pathFolder and pathFolder:FindFirstChild("Brainrots")
+            clientFolder = workspace:FindFirstChild("Client") 
+            pathFolder = clientFolder and clientFolder:FindFirstChild("Path") 
+            brainrotsFolder = pathFolder and pathFolder:FindFirstChild("Brainrots") 
             task.wait(1)
         end
     end)
 end
 
--- Brainrot tables
-local targetHead, allValidHeads, currentTargetIndex, isHidden = nil, {}, 1, false
+local targetHead = nil 
+local allValidHeads = {} 
+local currentTargetIndex = 1 
+local isHidden = false 
 
-local epicNames = {["Brr Brr Patapim"]=true,["Rhino Toasterino"]=true,["Brr Bicus Dicus"]=true,["Strawberrelli Flamingelli"]=true,["Bananito Delfinito"]=true,["Balerina Capucina"]=true,["Glorbo Fruttodrillo"]=true}
-local legendaryNames = {["Blueberrinni Octopusini"]=true,["Chimpanzini Bananini"]=true,["Bombardiro Crocodilo"]=true,["Elefanto Cocofanto"]=true,["Bommunini Gusini"]=true,["Pandaccini Bananini"]=true,["Chef Crabracadabra"]=true}
-local mythicNames = {["Gorillo Watermelondrillo"]=true,["Frigo Camelo"]=true,["Girafa Celestre"]=true,["Ganganzelli Trulala"]=true,["Tigroligre Frutonni"]=true,["Matteo"]=true,["Cavallo Virtuoso"]=true}
-local secretNames = {["La Vacca Saturno Saturnita"]=true,["Esok Sekolah"]=true,["Tralaledon"]=true,["Tralalero Tralala"]=true,["Chicleteira Bicicleteira"]=true,["Torrtuginni Dragonfrutini"]=true,["Nuclearo Dinosauro"]=true,["Quesadilla Crocodila"]=true,["Graipussi Medussi"]=true,["Lucky Block"]=true,["Caramelini Brasilini"]=true,["Garama and Madundung"]=true}
-local stellarNames = {["Meowl"]=true,["Smurf Cat"]=true,["Capitano Clash Warnini"]=true,["Strawberry Elephant"]=true}
+local epicNames = { ["Brr Brr Patapim"] = true, ["Rhino Toasterino"] = true, ["Brr Bicus Dicus"] = true, ["Strawberrelli Flamingelli"] = true, ["Bananito Delfinito"] = true, ["Balerina Capucina"] = true, ["Glorbo Fruttodrillo"] = true } 
+local legendaryNames = { ["Blueberrinni Octopusini"] = true, ["Chimpanzini Bananini"] = true, ["Bombardiro Crocodilo"] = true, ["Elefanto Cocofanto"] = true, ["Bommunini Gusini"] = true, ["Pandaccini Bananini"] = true, ["Chef Crabracadabra"] = true } 
+local mythicNames = { ["Gorillo Watermelondrillo"] = true, ["Frigo Camelo"] = true, ["Girafa Celestre"] = true, ["Ganganzelli Trulala"] = true, ["Tigroligre Frutonni"] = true, ["Matteo"] = true, ["Cavallo Virtuoso"] = true } 
+local secretNames = { ["La Vacca Saturno Saturnita"] = true, ["Esok Sekolah"] = true, ["Tralaledon"] = true, ["Tralalero Tralala"] = true, ["Chicleteira Bicicleteira"] = true, ["Torrtuginni Dragonfrutini"] = true, ["Nuclearo Dinosauro"] = true, ["Quesadilla Crocodila"] = true, ["Graipussi Medussi"] = true, ["Lucky Block"] = true, ["Caramelini Brasilini"] = true, ["Garama and Madundung"] = true } 
+local stellarNames = { ["Meowl"] = true, ["Smurf Cat"] = true, ["Capitano Clash Warnini"] = true, ["Strawberry Elephant"] = true } 
 
-local rebirthTargets = {
-    [1]={["Pipi Potato"]=true,["Burbaloni Loliloli"]=true},
-    [2]={["Tung Tung Sahur"]=true,["Cappuccino Assassino"]=true},
-    [3]={["Pipi Kiwi"]=true,["Orangutini Ananassini"]=true},
-    [4]={["Brr Bicus Dicus"]=true,["Rhino Toasterino"]=true},
-    [5]={["Bombardiro Crocodilo"]=true,["Bommunini Gusini"]=true},
-    [6]={["Elefanto Cocofanto"]=true,["Pandaccini Bananini"]=true},
-    [7]={["Frigo Camelo"]=true,["Tigroligre Frutonni"]=true},
-    [8]={["La Vacca Saturno Saturnita"]=true,["Tralaledon"]=true},
-    [9]={["Matteo"]=true,["Cavallo Virtuoso"]=true},
-    [10]={["Tralalero Tralala"]=true,["Chicleteira Bicicleteira"]=true},
-    [11]={["Graipussi Medussi"]=true,["Nuclearo Dinosauro"]=true}
-}
+local rebirthTargets = { [1] = {["Pipi Potato"] = true, ["Burbaloni Loliloli"] = true}, [2] = {["Tung Tung Sahur"] = true, ["Cappuccino Assassino"] = true}, [3] = {["Pipi Kiwi"] = true, ["Orangutini Ananassini"] = true}, [4] = {["Brr Bicus Dicus"] = true, ["Rhino Toasterino"] = true}, [5] = {["Bombardiro Crocodilo"] = true, ["Bommunini Gusini"] = true}, [6] = {["Elefanto Cocofanto"] = true, ["Pandaccini Bananini"] = true}, [7] = {["Frigo Camelo"] = true, ["Tigroligre Frutonni"] = true}, [8] = {["La Vacca Saturno Saturnita"] = true, ["Tralaledon"] = true}, [9] = {["Matteo"] = true, ["Cavallo Virtuoso"] = true}, [10] = {["Tralalero Tralala"] = true, ["Chicleteira Bicicleteira"] = true}, [11] = {["Graipussi Medussi"] = true, ["Nuclearo Dinosauro"] = true} } 
 
-local function setVisibility(visible)
-    local char = Player.Character
-    if not char then return end
-    local t = visible and 0 or 1
+local function setVisibility(visible) 
+    local char = Player.Character 
+    if not char then
+        return
+    end
+    local transparency = visible and 0 or 1 
     for _, v in pairs(char:GetDescendants()) do
-        if (v:IsA("BasePart") or v:IsA("Decal")) and v.Name ~= "HumanoidRootPart" then
-            v.Transparency = t
+        if v:IsA("BasePart") or v:IsA("Decal") then
+            if v.Name ~= "HumanoidRootPart" then
+                v.Transparency = transparency
+            end
         elseif v:IsA("BillboardGui") or v:IsA("SurfaceGui") then
             v.Enabled = visible
         end
@@ -1826,14 +1948,14 @@ local function setVisibility(visible)
     isHidden = not visible
 end
 
-local MainModule = nil
-task.spawn(function()
-    pcall(function()
+local MainModule = nil 
+task.spawn(function() 
+    pcall(function() 
         MainModule = require(Player.PlayerScripts:WaitForChild("Client"):WaitForChild("Main"))
     end)
 end)
 
-local function checkIndex(name, mutation)
+local function checkIndex(name, mutation) 
     if MainModule and type(MainModule) == "table" and MainModule.Data and MainModule.Data.Index and MainModule.Data.Index[mutation] then
         for internalName, _ in pairs(MainModule.Data.Index[mutation]) do
             if internalName == name or (MainModule.Shared and MainModule.Shared.Brainrots and MainModule.Shared.Brainrots[internalName] and MainModule.Shared.Brainrots[internalName].Name == name) then
@@ -1844,302 +1966,212 @@ local function checkIndex(name, mutation)
     return false
 end
 
--- Auto Farm Heartbeat
-RunService.Heartbeat:Connect(function()
-    if not brainrotsFolder then return end
-
-    local aE = isAutoEpic()
-    local aL = isAutoLegendary()
-    local aM = isAutoMystic()
-    local aS = isAutoSecret()
-    local aSt = isAutoStellar()
-    local aI = isAutoIndex()
-    local aSp = isAutoSpecific()
-    local rA = isRebirthAutoActive and currentRebirthSelect > 0
-    local smart = isSmartTeleport()
-
-    if not (aE or aL or aM or aS or aSt or rA or aI or aSp) then
-        targetHead = nil; allValidHeads = {}; currentTargetIndex = 1
-        if isHidden then setVisibility(true) end
+RunService.Heartbeat:Connect(function() 
+    if not brainrotsFolder then
         return
     end
-
-    local char = Player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    allValidHeads = {}
-
+    local autoEpic = isAutoEpic() 
+    local autoLegendary = isAutoLegendary() 
+    local autoMystic = isAutoMystic() 
+    local autoSecret = isAutoSecret() 
+    local autoStellar = isAutoStellar() 
+    local autoIdx = isAutoIndex() 
+    local autoSpec = isAutoSpecific() 
+    local rActive = isRebirthAutoActive and currentRebirthSelect > 0 
+    local smartMode = isSmartTeleport() 
+    
+    if not (autoEpic or autoLegendary or autoMystic or autoSecret or autoStellar or rActive or autoIdx or autoSpec) then
+        targetHead = nil 
+        allValidHeads = {} 
+        currentTargetIndex = 1 
+        if isHidden then
+            setVisibility(true)
+        end
+        return
+    end
+    
+    local char = Player.Character 
+    local root = char and char:FindFirstChild("HumanoidRootPart") 
+    if not root then
+        return
+    end
+    
+    allValidHeads = {} 
+    
     for _, model in pairs(brainrotsFolder:GetChildren()) do
         if model:IsA("Model") then
-            local ui = model:FindFirstChild("Brainrot_UI")
-            local frame = ui and ui:FindFirstChild("Frame")
-            local rarityLbl = frame and frame:FindFirstChild("Rarity")
-            local titleLbl = frame and frame:FindFirstChild("Title")
-            local typeLbl = frame and frame:FindFirstChild("Type")
-            local head = model:FindFirstChild("Head")
-
+            local ui = model:FindFirstChild("Brainrot_UI") 
+            local frame = ui and ui:FindFirstChild("Frame") 
+            local rarityLbl = frame and frame:FindFirstChild("Rarity") 
+            local titleLbl = frame and frame:FindFirstChild("Title") 
+            local typeLbl = frame and frame:FindFirstChild("Type") 
+            local head = model:FindFirstChild("Head") 
+            
             if head and frame then
-                local rText = rarityLbl and string.lower(rarityLbl.Text) or ""
-                local tText = titleLbl and titleLbl.Text or ""
-                local typeText = typeLbl and typeLbl.Text or ""
-                local shouldAdd = false
-
-                local curMut = "Normal"
-                if typeText:find("Gold") then curMut = "Gold"
-                elseif typeText:find("Diamond") then curMut = "Diamond"
-                elseif typeText:find("Rainbow") then curMut = "Rainbow"
-                elseif typeText:find("Lava") then curMut = "Lava" end
-
-                if aSp and specificTargets[tText] and specificTargets[tText].Active and specificTargets[tText].Muts[curMut] then
-                    shouldAdd = true
-                elseif aSt and (rText:find("stellar") or stellarNames[tText]) then
-                    shouldAdd = true
-                elseif aS and (rText:find("secret") or secretNames[tText]) then
-                    if tText == "Lucky Block" and not optionStates["AutoSecretLuckyBlocks"] then
+                local rarityText = rarityLbl and string.lower(rarityLbl.Text) or "" 
+                local titleText = titleLbl and titleLbl.Text or "" 
+                local shouldAdd = false 
+                local currentMut = "Normal" 
+                local tText = typeLbl and typeLbl.Text or "" 
+                
+                if tText:find("Gold") then
+                    currentMut = "Gold" 
+                elseif tText:find("Diamond") then
+                    currentMut = "Diamond" 
+                elseif tText:find("Rainbow") then
+                    currentMut = "Rainbow" 
+                elseif tText:find("Lava") then
+                    currentMut = "Lava"
+                end
+                
+                if autoSpec and specificTargets[titleText] and specificTargets[titleText].Active and specificTargets[titleText].Muts[currentMut] then
+                    shouldAdd = true 
+                elseif autoStellar and (rarityText:find("stellar") or stellarNames[titleText]) then
+                    shouldAdd = true 
+                elseif autoSecret and (rarityText:find("secret") or secretNames[titleText]) then
+                    if titleText == "Lucky Block" and not optionStates["AutoSecretLuckyBlocks"] then
                         shouldAdd = false
                     else
                         shouldAdd = true
                     end
-                elseif aM and (rText:find("mythic") or mythicNames[tText]) then
-                    shouldAdd = true
-                elseif aL and (rText:find("legendary") or legendaryNames[tText]) then
-                    shouldAdd = true
-                elseif aE and (rText:find("epic") or epicNames[tText]) then
-                    shouldAdd = true
-                elseif rA and rebirthTargets[currentRebirthSelect] and rebirthTargets[currentRebirthSelect][tText] then
-                    shouldAdd = true
-                elseif aI and mutSelected[curMut] and tText ~= "Lucky Block" and not checkIndex(tText, curMut) then
+                elseif autoMystic and (rarityText:find("mythic") or mythicNames[titleText]) then
+                    shouldAdd = true 
+                elseif autoLegendary and (rarityText:find("legendary") or legendaryNames[titleText]) then
+                    shouldAdd = true 
+                elseif autoEpic and (rarityText:find("epic") or epicNames[titleText]) then
+                    shouldAdd = true 
+                elseif rActive and rebirthTargets[currentRebirthSelect] and rebirthTargets[currentRebirthSelect][titleText] then
+                    shouldAdd = true 
+                elseif autoIdx and mutSelected[currentMut] and titleText ~= "Lucky Block" and not checkIndex(titleText, currentMut) then
                     shouldAdd = true
                 end
-
-                if shouldAdd then table.insert(allValidHeads, head) end
+                
+                if shouldAdd then
+                    table.insert(allValidHeads, head)
+                end
             end
         end
     end
-
+    
     if #allValidHeads > 0 then
-        if smart then
-            if currentTargetIndex > #allValidHeads then currentTargetIndex = 1 end
-            targetHead = allValidHeads[currentTargetIndex]
+        if smartMode then
+            if currentTargetIndex > #allValidHeads then
+                currentTargetIndex = 1
+            end
+            targetHead = allValidHeads[currentTargetIndex] 
             currentTargetIndex = currentTargetIndex + 1
         else
             targetHead = allValidHeads[1]
         end
         if targetHead and targetHead.Parent then
-            root.CFrame = targetHead.CFrame
-            if not isHidden then setVisibility(false) end
+            root.CFrame = targetHead.CFrame 
+            if not isHidden then
+                setVisibility(false)
+            end
         end
     else
-        targetHead = nil
-        if isHidden then setVisibility(true) end
+        targetHead = nil 
+        if isHidden then
+            setVisibility(true)
+        end
     end
 end)
 
--- Hitbox
-RunService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function() 
     if isHitboxEnabled() then
-        hitboxesExpanded = true
-        for _, p in pairs(Players:GetPlayers()) do
+        hitboxesExpanded = true 
+        for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = p.Character.HumanoidRootPart
-                hrp.Size = Vector3.new(hitboxSizeVal, hitboxSizeVal, hitboxSizeVal)
-                hrp.Transparency = 0.8
-                hrp.Color = T.Accent
-                hrp.Material = Enum.Material.Neon
+                local hrp = p.Character.HumanoidRootPart 
+                hrp.Size = Vector3.new(hitboxSizeVal, hitboxSizeVal, hitboxSizeVal) 
+                hrp.Transparency = 0.8 
+                hrp.Color = Theme.Accent
+                hrp.Material = Enum.Material.Neon 
                 hrp.CanCollide = false
             end
         end
     elseif hitboxesExpanded then
-        hitboxesExpanded = false
-        for _, p in pairs(Players:GetPlayers()) do
+        hitboxesExpanded = false 
+        for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = p.Character.HumanoidRootPart
-                hrp.Size = Vector3.new(2, 2, 1)
-                hrp.Transparency = 1
-                hrp.Color = Color3.fromRGB(163,162,165)
-                hrp.Material = Enum.Material.Plastic
+                local hrp = p.Character.HumanoidRootPart 
+                hrp.Size = Vector3.new(2, 2, 1) 
+                hrp.Transparency = 1 
+                hrp.Color = Color3.fromRGB(163, 162, 165) 
+                hrp.Material = Enum.Material.Plastic 
                 hrp.CanCollide = true
             end
         end
     end
 end)
 
--- Auto Rebirth
-task.spawn(function()
-    local Bridge = RS:WaitForChild("Remotes"):WaitForChild("Bridge")
-    local last = 0
+task.spawn(function() 
+    local Bridge = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Bridge") 
+    local lastExecution = 0 
     while true do
-        task.wait(0.05)
-        if isAutoRebirth() and (tick() - last) >= 0.5 then
-            pcall(function() Bridge:FireServer("General", "Rebirth", "Use") end)
-            last = tick()
+        task.wait(0.05) 
+        local currentTime = tick() 
+        if isAutoRebirth() and (currentTime - lastExecution) >= 0.5 then
+            pcall(function() 
+                Bridge:FireServer("General", "Rebirth", "Use")
+            end) 
+            lastExecution = currentTime
         end
     end
 end)
 
--- Auto Collect
-task.spawn(function()
-    local Bridge = RS:WaitForChild("Remotes"):WaitForChild("Bridge")
-    local last = 0
+task.spawn(function() 
+    local Bridge = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Bridge") 
+    local lastCollect = 0 
     while true do
-        task.wait(0.05)
-        if isAutoCollect() and (tick() - last) >= 1 then
-            pcall(function()
+        task.wait(0.05) 
+        if isAutoCollect() and (tick() - lastCollect) >= 1 then
+            pcall(function() 
                 for i = 1, 21 do
                     Bridge:FireServer("General", "Brainrots", "Collect", "Slot" .. i)
                 end
-            end)
-            last = tick()
+            end) 
+            lastCollect = tick()
         end
     end
 end)
 
--- Instant Brainrot
-task.spawn(function()
+task.spawn(function() 
     while task.wait(1.5) do
         if isInstantBrainrot() then
-            pcall(function()
+            pcall(function() 
                 for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") then obj.HoldDuration = 0 end
+                    if obj:IsA("ProximityPrompt") then
+                        obj.HoldDuration = 0
+                    end
                 end
             end)
         end
     end
 end)
 
--- Auto Buy Brainrots + Target Prompt
-task.spawn(function()
-    local blackList = {SellPrompt=true, GrabPrompt=true, PlacePrompt=true, AddPrompt=true, DeleteAllPrompt=true, DeletePrompt=true, StealPrompt=true, GiftPrompt=true, OpenPrompt=true}
+task.spawn(function() 
+    local blackListNames = {["SellPrompt"] = true, ["GrabPrompt"] = true, ["PlacePrompt"] = true, ["AddPrompt"] = true, ["DeleteAllPrompt"] = true, ["DeletePrompt"] = true, ["StealPrompt"] = true, ["GiftPrompt"] = true, ["OpenPrompt"] = true} 
+    
     while task.wait(0.1) do
-        local buyAny = isAutoBuyBrainrot()
+        local buyAny = isAutoBuyBrainrot() 
         if buyAny or targetHead then
-            pcall(function()
-                local char = Player.Character
+            pcall(function() 
+                local char = Player.Character 
                 if char and char:FindFirstChild("HumanoidRootPart") then
-                    local root = char.HumanoidRootPart
+                    local root = char.HumanoidRootPart 
                     for _, prompt in pairs(workspace:GetDescendants()) do
-                        if prompt:IsA("ProximityPrompt") and prompt.Enabled and not blackList[prompt.Name] then
-                            local part = prompt.Parent
-                            local model = part and part:FindFirstAncestorOfClass("Model")
-                            local isMerchant = model and (model.Name == "IngredientsMerchant" or model.Name == "RobuxMerchant")
-                            if part and part:IsA("BasePart") and not isMerchant then
-                                if (root.Position - part.Position).Magnitude <= prompt.MaxActivationDistance then
-                                    if buyAny then
-                                        fireproximityprompt(prompt)
-                                    elseif targetHead and prompt.Parent.Parent == targetHead.Parent then
-                                        fireproximityprompt(prompt)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end)
-
--- Player ESP
-task.spawn(function()
-    while task.wait(1) do
-        local esp = isPlayerESP()
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= Player and p.Character then
-                local hl = p.Character:FindFirstChild("HaxESP")
-                if esp then
-                    if not hl then
-                        hl = Instance.new("Highlight")
-                        hl.Name = "HaxESP"
-                        hl.FillColor = T.Accent
-                        hl.OutlineColor = T.Accent
-                        hl.FillTransparency = 0.5
-                        hl.Parent = p.Character
-                    end
-                else
-                    if hl then hl:Destroy() end
-                end
-            end
-        end
-    end
-end)
-
--- Anti Ragdoll
-RunService.Heartbeat:Connect(function()
-    if isGodRagdoll() then
-        local char = Player.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local root = char.HumanoidRootPart
-            if root:FindFirstChild("RagdollWeld") then root.RagdollWeld:Destroy() end
-            for _, v in pairs(char:GetDescendants()) do
-                if v:IsA("Motor6D") then v.Enabled = true end
-                if v:IsA("BallSocketConstraint") or v:IsA("NoCollisionConstraint") then v:Destroy() end
-            end
-        end
-    end
-end)
-
--- Notification cleaner
-local function isAnyBuyActive()
-    return buyIce() or buyVic() or buyStar() or buyFlow() or buyPhon() or buyTaco() or buyLighter()
-end
-
-pcall(function()
-    PlayerGui.Notification.DescendantAdded:Connect(function(desc)
-        if isAutoRebirth() or isAnyBuyActive() then
-            if desc:IsA("TextLabel") or desc:IsA("Frame") then
-                RunService.RenderStepped:Wait()
-                local text = ""
-                pcall(function()
-                    text = desc:IsA("TextLabel") and desc.Text or desc.Value.Text
-                end)
-                if text:find("enough money") or text:find("necessary Brainrots") or text:find("not in stock") or isAnyBuyActive() then
-                    desc:Destroy()
-                end
-            end
-        end
-    end)
-end)
-
--- Auto Sell
-task.spawn(function()
-    local Bridge = RS:WaitForChild("Remotes"):WaitForChild("Bridge")
-    local last = 0
-
-    local function getMyBase()
-        local sb = workspace:FindFirstChild("Server") and workspace.Server:FindFirstChild("Bases")
-        if sb then
-            for _, b in pairs(sb:GetChildren()) do
-                local o = b:FindFirstChild("OwnerId")
-                if o and tostring(o.Value) == tostring(Player.UserId) then return b.Name end
-            end
-        end
-    end
-
-    while true do
-        task.wait(0.05)
-        if isAutoSell() and (tick() - last) >= 1 then
-            pcall(function()
-                local bn = getMyBase()
-                if bn then
-                    local cb = workspace:FindFirstChild("Client") and workspace.Client:FindFirstChild("Bases")
-                    local mb = cb and cb:FindFirstChild(bn)
-                    local sf = mb and mb:FindFirstChild("Slots")
-                    if sf then
-                        for _, slot in pairs(sf:GetChildren()) do
-                            local ui = slot:FindFirstChild("Brainrot_UI") and slot.Brainrot_UI:FindFirstChild("Frame")
-                            if ui then
-                                local nl = ui:FindFirstChild("Title")
-                                local tl = ui:FindFirstChild("Type")
-                                local el = ui:FindFirstChild("Earn")
-                                if nl and el then
-                                    local name = nl.Text
-                                    local earn = parseEarnValue(el.Text)
-                                    local cfg = sellTargets[name]
-                                    if cfg and cfg.Active and (earn < minEarnValue) then
-                                        local mt = (tl.Text == "" or tl.Text == nil) and "Normal" or tl.Text
-                                        if cfg.Muts[mt] then
-                                            Bridge:FireServer("General", "Brainrots", "Sell", slot.Name)
+                        if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                            if not blackListNames[prompt.Name] then
+                                local part = prompt.Parent 
+                                local model = part and part:FindFirstAncestorOfClass("Model") 
+                                local isMerchant = model and (model.Name == "IngredientsMerchant" or model.Name == "RobuxMerchant") 
+                                if part and part:IsA("BasePart") and not isMerchant then
+                                    if (root.Position - part.Position).Magnitude <= prompt.MaxActivationDistance then
+                                        if buyAny then
+                                            fireproximityprompt(prompt) 
+                                        elseif targetHead and prompt.Parent.Parent == targetHead.Parent then
+                                            fireproximityprompt(prompt)
                                         end
                                     end
                                 end
@@ -2148,100 +2180,233 @@ task.spawn(function()
                     end
                 end
             end)
-            last = tick()
         end
     end
 end)
 
--- Auto Spin
-task.spawn(function()
-    local Bridge = RS:WaitForChild("Remotes"):WaitForChild("Bridge")
-    local LocalMM = nil
-    pcall(function()
-        LocalMM = require(Player.PlayerScripts:WaitForChild("Client"):WaitForChild("Main"))
-    end)
-    local lastCheck, lastSpin = 0, 0
-    while true do
-        task.wait(0.05)
-        if isAutoSpin() and (tick() - lastCheck) >= 1 then
-            local can = false
-            pcall(function()
-                if LocalMM and type(LocalMM) == "table" and LocalMM.Data then
-                    if LocalMM.Data.Spins and LocalMM.Data.Spins >= 1 then
-                        can = true
-                    elseif LocalMM.Data.Last_Free_Spin then
-                        if 3600 - (DateTime.now().UnixTimestamp - LocalMM.Data.Last_Free_Spin) <= 0 then can = true end
+task.spawn(function() 
+    while task.wait(1) do
+        local espAtivo = isPlayerESP() 
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= Player then
+                local char = p.Character 
+                if char then
+                    local highlight = char:FindFirstChild("PhantomESP") 
+                    if espAtivo then
+                        if not highlight then
+                            highlight = Instance.new("Highlight") 
+                            highlight.Name = "PhantomESP" 
+                            highlight.FillColor = Theme.Accent
+                            highlight.OutlineColor = Theme.Accent
+                            highlight.FillTransparency = 0.5 
+                            highlight.Parent = char
+                        end
+                    else
+                        if highlight then
+                            highlight:Destroy()
+                        end
                     end
                 end
-            end)
-            if can and (tick() - lastSpin) >= 5 then
-                pcall(function() Bridge:FireServer("General", "SpinWheel", "Spin", false) end)
-                lastSpin = tick()
             end
-            lastCheck = tick()
         end
     end
 end)
 
--- Auto Dig
-task.spawn(function()
-    local Bridge = RS:WaitForChild("Remotes"):WaitForChild("Bridge")
-    local last = 0
+RunService.Heartbeat:Connect(function() 
+    if isGodRagdoll() then
+        local char = Player.Character 
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local root = char.HumanoidRootPart 
+            if root:FindFirstChild("RagdollWeld") then
+                root.RagdollWeld:Destroy()
+            end
+            for _, v in pairs(char:GetDescendants()) do
+                if v:IsA("Motor6D") then
+                    v.Enabled = true
+                end
+                if v:IsA("BallSocketConstraint") or v:IsA("NoCollisionConstraint") then
+                    v:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+local function isAnyBuyActive() 
+    return buyIce() or buyVic() or buyStar() or buyFlow() or buyPhon() or buyTaco() or buyLighter()
+end
+
+PlayerGui.Notification.DescendantAdded:Connect(function(descendant) 
+    if isAutoRebirth() or isAnyBuyActive() then
+        if descendant:IsA("TextLabel") or descendant:IsA("Frame") then
+            RunService.RenderStepped:Wait() 
+            local text = "" 
+            pcall(function() 
+                text = descendant:IsA("TextLabel") and descendant.Text or descendant.Value.Text
+            end) 
+            if text:find("enough money") or text:find("necessary Brainrots") or text:find("not in stock") or isAnyBuyActive() then
+                descendant:Destroy()
+            end
+        end
+    end
+end)
+
+task.spawn(function() 
+    local Bridge = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge") 
+    local Player = game:GetService("Players").LocalPlayer 
+    local lastSellCheck = 0 
+    
+    local function getMyBaseName() 
+        local serverBases = workspace:FindFirstChild("Server") and workspace.Server:FindFirstChild("Bases") 
+        if serverBases then
+            for _, baseModel in pairs(serverBases:GetChildren()) do
+                local owner = baseModel:FindFirstChild("OwnerId") 
+                if owner and (tostring(owner.Value) == tostring(Player.UserId)) then
+                    return baseModel.Name
+                end
+            end
+        end
+        return nil
+    end
+    
     while true do
-        task.wait(0.05)
-        if isAutoDig() and (tick() - last) >= 0.1 then
-            pcall(function()
-                local char = Player.Character
+        task.wait(0.05) 
+        if isAutoSell() and (tick() - lastSellCheck) >= 1 then
+            pcall(function() 
+                local myBaseName = getMyBaseName() 
+                if myBaseName then
+                    local clientBases = workspace:FindFirstChild("Client") and workspace.Client:FindFirstChild("Bases") 
+                    local myClientBase = clientBases and clientBases:FindFirstChild(myBaseName) 
+                    local slotsFolder = myClientBase and myClientBase:FindFirstChild("Slots") 
+                    if slotsFolder then
+                        for _, slotModel in pairs(slotsFolder:GetChildren()) do
+                            local uiFrame = slotModel:FindFirstChild("Brainrot_UI") and slotModel.Brainrot_UI:FindFirstChild("Frame") 
+                            if uiFrame then
+                                local brNameLabel = uiFrame:FindFirstChild("Title") 
+                                local brTypeLabel = uiFrame:FindFirstChild("Type") 
+                                local brEarnLabel = uiFrame:FindFirstChild("Earn") 
+                                if brNameLabel and brEarnLabel then
+                                    local brName = brNameLabel.Text 
+                                    local currentEarn = parseEarnValue(brEarnLabel.Text) 
+                                    local config = sellTargets[brName] 
+                                    if config and config.Active and (currentEarn < minEarnValue) then
+                                        local mutType = (brTypeLabel.Text == "" or brTypeLabel.Text == nil) and "Normal" or brTypeLabel.Text 
+                                        if config.Muts[mutType] then
+                                            Bridge:FireServer("General", "Brainrots", "Sell", slotModel.Name)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end) 
+            lastSellCheck = tick()
+        end
+    end
+end)
+
+task.spawn(function() 
+    local Bridge = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge") 
+    local LocalMainModule = nil 
+    pcall(function() 
+        LocalMainModule = require(game:GetService("Players").LocalPlayer.PlayerScripts:WaitForChild("Client"):WaitForChild("Main"))
+    end) 
+    local lastSpinCheck = 0 
+    local lastSpinTime = 0 
+    while true do
+        task.wait(0.05) 
+        if isAutoSpin() and (tick() - lastSpinCheck) >= 1 then
+            local canSpin = false 
+            pcall(function() 
+                if LocalMainModule and type(LocalMainModule) == "table" and LocalMainModule.Data then
+                    if LocalMainModule.Data.Spins and LocalMainModule.Data.Spins >= 1 then
+                        canSpin = true 
+                    elseif LocalMainModule.Data.Last_Free_Spin then
+                        local timeLeft = 3600 - (DateTime.now().UnixTimestamp - LocalMainModule.Data.Last_Free_Spin) 
+                        if timeLeft <= 0 then
+                            canSpin = true
+                        end
+                    end
+                end
+            end) 
+            if canSpin and (tick() - lastSpinTime) >= 5 then
+                pcall(function() 
+                    Bridge:FireServer("General", "SpinWheel", "Spin", false)
+                end) 
+                lastSpinTime = tick()
+            end
+            lastSpinCheck = tick()
+        end
+    end
+end)
+
+task.spawn(function() 
+    local Bridge = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge") 
+    local Player = game:GetService("Players").LocalPlayer 
+    local lastDigCheck = 0 
+    while true do
+        task.wait(0.05) 
+        if isAutoDig() and (tick() - lastDigCheck) >= 0.1 then
+            pcall(function() 
+                local char = Player.Character 
                 if char and char:FindFirstChild("Humanoid") then
-                    local shovel = char:FindFirstChildOfClass("Tool")
+                    local shovel = char:FindFirstChildOfClass("Tool") 
                     if not (shovel and string.find(shovel.Name, "Shovel")) then
-                        local bp = Player:FindFirstChild("Backpack")
-                        if bp then
-                            for _, item in pairs(bp:GetChildren()) do
+                        local backpack = Player:FindFirstChild("Backpack") 
+                        if backpack then
+                            for _, item in pairs(backpack:GetChildren()) do
                                 if item:IsA("Tool") and string.find(item.Name, "Shovel") then
-                                    char.Humanoid:EquipTool(item); shovel = item; break
+                                    char.Humanoid:EquipTool(item) 
+                                    shovel = item 
+                                    break
                                 end
                             end
                         end
                     end
                     if shovel and string.find(shovel.Name, "Shovel") then
-                        if Player:GetAttribute("Digging") then
+                        local isDigging = Player:GetAttribute("Digging") 
+                        local hasCooldown = Player:GetAttribute("Dig_Cooldown") 
+                        if isDigging then
                             for i = 1, 15 do
-                                pcall(function() Bridge:FireServer("General", "Dig", "Click") end)
+                                pcall(function() 
+                                    Bridge:FireServer("General", "Dig", "Click")
+                                end)
                             end
-                        elseif not Player:GetAttribute("Dig_Cooldown") then
-                            pcall(function() Bridge:FireServer("General", "Dig", "Start", 1.9174998539686197) end)
+                        elseif not hasCooldown then
+                            pcall(function() 
+                                Bridge:FireServer("General", "Dig", "Start", 1.9174998539686197)
+                            end)
                         end
                     end
                 end
-            end)
-            last = tick()
+            end) 
+            lastDigCheck = tick()
         end
     end
 end)
 
--- Auto Bat
-task.spawn(function()
-    local AttackRemote = RS:WaitForChild("Remotes"):WaitForChild("Attack")
+task.spawn(function() 
+    local AttackRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Attack") 
     while task.wait(0.1) do
         if isAutoBat() then
-            local char = Player.Character
+            local char = Player.Character 
             if char then
-                local tool = char:FindFirstChildOfClass("Tool")
+                local tool = char:FindFirstChildOfClass("Tool") 
                 if tool and (tool.Name:find("Bat") or tool.Name:find("Hammer")) then
-                    pcall(function()
-                        local root = char:FindFirstChild("HumanoidRootPart")
+                    pcall(function() 
+                        local root = char:FindFirstChild("HumanoidRootPart") 
                         if root then
-                            local hp = OverlapParams.new()
-                            hp.FilterType = Enum.RaycastFilterType.Exclude
-                            hp.FilterDescendantsInstances = {char}
-                            local center = root.CFrame * CFrame.new(0, 0, -3.5)
-                            local parts = workspace:GetPartBoundsInBox(center, Vector3.new(7, 7, 7), hp)
-                            local targets = {}
-                            for _, p in ipairs(parts) do
-                                local m = p:FindFirstAncestorOfClass("Model")
-                                if m and m:FindFirstChild("Humanoid") and not table.find(targets, m) then
-                                    table.insert(targets, m)
+                            local hitParams = OverlapParams.new() 
+                            hitParams.FilterType = Enum.RaycastFilterType.Exclude 
+                            hitParams.FilterDescendantsInstances = {char} 
+                            local hitBoxCenter = root.CFrame * CFrame.new(0, 0, -3.5) 
+                            local parts = workspace:GetPartBoundsInBox(hitBoxCenter, Vector3.new(7, 7, 7), hitParams) 
+                            local targets = {} 
+                            for _, part in ipairs(parts) do
+                                local model = part:FindFirstAncestorOfClass("Model") 
+                                if model and model:FindFirstChild("Humanoid") and not table.find(targets, model) then
+                                    table.insert(targets, model)
                                 end
                             end
                             AttackRemote:InvokeServer("Bat", targets)
@@ -2253,28 +2418,24 @@ task.spawn(function()
     end
 end)
 
--- Auto Buy Items
-local buyList = {
-    {get=buyIce, name="IceEmblem"}, {get=buyVic, name="Victrola"},
-    {get=buyStar, name="Star"}, {get=buyFlow, name="Flower"},
-    {get=buyPhon, name="Phone"}, {get=buyTaco, name="Taco"},
-    {get=buyLighter, name="Lighter"}
-}
+local buyList = { {get = buyIce, name = "IceEmblem"}, {get = buyVic, name = "Victrola"}, {get = buyStar, name = "Star"}, {get = buyFlow, name = "Flower"}, {get = buyPhon, name = "Phone"}, {get = buyTaco, name = "Taco"}, {get = buyLighter, name = "Lighter"} } 
 
-task.spawn(function()
-    local Bridge = RS:WaitForChild("Remotes"):WaitForChild("Bridge")
-    local last = 0
+task.spawn(function() 
+    local Bridge = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Bridge") 
+    local lastBuyCheck = 0 
     while true do
-        task.wait(0.05)
-        if isAnyBuyActive() and (tick() - last) >= 1 then
-            pcall(function()
+        task.wait(0.05) 
+        if isAnyBuyActive() and (tick() - lastBuyCheck) >= 1 then
+            pcall(function() 
                 for _, item in ipairs(buyList) do
                     if item.get() then
-                        pcall(function() Bridge:FireServer("General", "Ingredients", "Purchase", item.name) end)
+                        pcall(function() 
+                            Bridge:FireServer("General", "Ingredients", "Purchase", item.name)
+                        end)
                     end
                 end
-            end)
-            last = tick()
+            end) 
+            lastBuyCheck = tick()
         end
     end
 end)
