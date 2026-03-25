@@ -1,4 +1,3 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/ummarxfarooq/mystrix-hub/refs/heads/main/eftb2"))():
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
