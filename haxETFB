@@ -953,6 +953,17 @@ game:GetService("RunService").Heartbeat:Connect(function()
             end
         end
     end
+
+-- 5. CARNIVAL COINS (Pega todos os COINS na pasta)
+local carnivalFolder = workspace:FindFirstChild("CarnivalCoin")
+if carnivalFolder then
+    for _, carnival in ipairs(carnivalFolder:GetChildren()) do
+        local hitbox = carnival:FindFirstChild("Hitbox")
+        if hitbox then
+            tryTouch(hitbox, hrp)
+        end
+    end
+end
 end)
 
 
