@@ -1103,7 +1103,7 @@ notify("SISTEMA PRONTO!", Color3.fromRGB(255, 200, 0))
 
 local hitboxExpanded = false
 local originalSizes = {}           -- guarda tamanhos originais por tool
-local NOVO_TAMANHO = Vector3.new(40, 40, 40)
+local NOVO_TAMANHO = Vector3.new(55, 55, 55)
 local HITBOX_TRANSPARENCY = 0.7   -- 1 = invisível, 0.7 = semi-visível pra debug
 
 local function expandHitboxes()
