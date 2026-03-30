@@ -1,4 +1,4 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
+
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
@@ -1387,3 +1387,4 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end);
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
