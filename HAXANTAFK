@@ -265,7 +265,7 @@ local function instaPrompt(p)
     if p:IsA("ProximityPrompt") then 
         p.HoldDuration = 0.2 -- instantâneo
         p.RequiresLineOfSight = false
-        p.MaxActivationDistance = 25
+        p.MaxActivationDistance = 15
     end
 end
 
@@ -531,13 +531,6 @@ plr.CharacterAdded:Connect(onCharacterAdded)
 -- =============================================
 task.spawn(function()
     task.wait(3)
-
-    local function tryRemove(obj)
-        -- Remove VIPWalls
-        if obj.Name == "VIPWalls" and obj:IsA("Model") then
-            obj:Destroy()
-        end
-
         -- Remove Workspace.Barriers.Barrier
         if obj.Name == "Barrier" and obj.Parent 
             and obj.Parent.Name == "Barriers"
