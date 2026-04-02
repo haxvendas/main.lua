@@ -740,7 +740,8 @@ function applyGodMode()
     local hum = char:FindFirstChildOfClass("Humanoid")
     if not hum then return end
     
-    for _, conn in godConns do 
+    -- limpa conexões antigas
+    for _, conn in ipairs(godConns) do 
         pcall(function() conn:Disconnect() end)
     end
     godConns = {}
@@ -750,12 +751,14 @@ function applyGodMode()
     hum.JumpPower = 50
     
     table.insert(godConns, hum.HealthChanged:Connect(function()
-        hum.Health = math.huge
+        if hum and hum.Parent then
+            hum.Health = math.huge
+        end
     end))
     
     table.insert(godConns, hum.Died:Connect(function()
-        task.wait()
-        hum.Health = math.huge
+        -- não tenta mexer no humanoid morto
+        -- deixa o CharacterAdded cuidar disso
     end))
     
     table.insert(godConns, RunService.Heartbeat:Connect(function()
@@ -780,6 +783,21 @@ function applyGodMode()
         end
     end))
 end
+
+-- reaplica sempre que nascer
+plr.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid")
+    task.wait(0.5) -- menor delay, mais rápido
+    applyGodMode()
+end)
+
+-- segurança extra (anti falha)
+task.spawn(function()
+    while true do
+        task.wait(3)
+        pcall(applyGodMode)
+    end
+end)
 
 applyGodMode()
 -- =============================================
