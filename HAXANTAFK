@@ -32,21 +32,6 @@ local notifyBusy = false
 local scriptFullyLoaded = true
 local detected = {}
 local connections = {} 
-
-local noclipEnabled = false
-
-RunService.Stepped:Connect(function()
-    if noclipEnabled then
-        local char = plr.Character
-        if char then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end
-    end
-end)
 -- =============================================
 -- Notify Function
 -- =============================================
