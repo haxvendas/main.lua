@@ -4,10 +4,13 @@ local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 
 local plr = Players.LocalPlayer
-
+local TS          = game:GetService("TweenService")
+local Teleport    = game:GetService("TeleportService")
 -- Variáveis
 local godConns = {}
 local scriptFullyLoaded = true
+local smoothFastTP
+local smoothFastTP2
 
 -- Função personagem
 local function waitForCharacter()
@@ -42,6 +45,330 @@ UserInputService.JumpRequest:Connect(function()
         hum:ChangeState(Enum.HumanoidStateType.Jumping) 
     end
 end)
+-- =============================================
+-- AUTO DEPOSIT - SISTEMA PERSISTENTE (V3)
+-- =============================================
+local function setupAutoDeposit()
+    local function activatePrompt(prompt)
+        if not prompt or not prompt:IsA("ProximityPrompt") then return end
+        prompt.HoldDuration = 0
+        prompt.RequiresLineOfSight = false
+        prompt.MaxActivationDistance = 30
+        
+        task.spawn(function()
+            while prompt and prompt.Parent and prompt.Enabled do
+                pcall(fireproximityprompt, prompt)
+                task.wait(0.18)
+            end
+        end)
+    end
+
+    local function scanForCannon()
+        local pMap = workspace:FindFirstChild("PhantomMap")
+        if not pMap then return end
+        
+        local cannon = pMap:FindFirstChild("GhostCannon")
+        if not cannon then return end
+        
+        local part = cannon:FindFirstChild("Part")
+        if not part then return end
+        
+        local prompts = part:FindFirstChild("Prompts")
+        if not prompts then return end
+        
+        for _, prompt in prompts:GetChildren() do
+            activatePrompt(prompt)
+        end
+    end
+
+    -- Primeira tentativa
+    task.wait(1.5)
+    scanForCannon()
+
+    -- Monitora novos PhantomMap
+    workspace.ChildAdded:Connect(function(child)
+        if child.Name == "PhantomMap" then
+            task.wait(1.2)
+            scanForCannon()
+        end
+    end)
+    
+    -- Monitora já existentes (caso recarregue rápido)
+    for _, map in workspace:GetChildren() do
+        if map.Name == "PhantomMap" then
+            task.spawn(scanForCannon)
+        end
+    end
+end
+
+task.spawn(setupAutoDeposit)
+
+-- =============================================
+-- TP AUTO E MANUAL (CONFIGURAÇÃO)
+-- =============================================
+local vipPos2 = {
+    Vector3.new(448.55, 172.06, 335.86),
+    Vector3.new(344.604, -33.399, 123.946),
+    Vector3.new(4021.991, -17.010, -24.029),
+    Vector3.new(344.604, -33.399, 123.946)
+}
+local vipNames2 = { "SEC 1", "2", "3", "4" }
+
+local curIndex2 = 0
+local isTweening2 = false
+local isAutoLooping = false 
+local lastInputTime2 = 0
+local DEBOUNCE2 = 0.05
+local activeTween2 = nil
+local statusLabel2 = nil 
+
+-- =============================================
+-- FUNÇÕES DE LÓGICA DO TP
+-- =============================================
+
+local function updateStatus2()
+    if not statusLabel2 then return end
+    local loopStatus = isAutoLooping and "<font color='rgb(100,255,100)'> [AUTO ATIVO]</font>" or "<font color='rgb(255,100,100)'> [MANUAL]</font>"
+    
+    statusLabel2.Text = "Q → Alternar Auto | R → Próximo\n" ..
+                        "Status: " .. loopStatus .. "\n" ..
+                        "<font color='rgb(220,200,255)'>Zona " .. (curIndex2 == 0 and "-" or curIndex2) .. "/" .. #vipPos2 ..
+                        " - " .. (vipNames2[curIndex2] or "Aguardando") .. "</font>"
+end
+
+local function smoothFastTP2(targetIndex)
+    if tick() - lastInputTime2 < DEBOUNCE2 then return end
+    
+    if activeTween2 then 
+        activeTween2:Cancel() 
+    end
+
+    local char = plr.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    isTweening2 = true
+    lastInputTime2 = tick()
+    curIndex2 = targetIndex 
+    updateStatus2()
+
+    local targetPos = vipPos2[targetIndex] + Vector3.new(0, 4, 0)
+    local distance = (hrp.Position - targetPos).Magnitude
+    local speed = 1600
+    local tweenTime = distance / speed
+
+    local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
+    activeTween2 = TS:Create(hrp, tweenInfo, {
+        CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(180), 0)
+    })
+
+    activeTween2:Play()
+
+    activeTween2.Completed:Connect(function(state)
+        if state == Enum.PlaybackState.Completed then
+            isTweening2 = false
+            updateStatus2()
+        end
+    end)
+end
+
+-- Função que executa o Loop
+local function startAutoLoop()
+
+    while isAutoLooping do
+
+        local nextIndex = (curIndex2 % #vipPos2) + 1
+        smoothFastTP2(nextIndex)
+
+        if activeTween2 then
+            activeTween2.Completed:Wait()
+        end
+
+        -- tempo diferente para SEC 1
+        if nextIndex == 1 then
+            task.wait(0.15)
+        else
+            task.wait(0.01)
+        end
+
+    end
+
+    updateStatus2()
+
+end
+-- =============================================
+-- VFLY ORIGINAL + ANTI-GRAVIDADE SUAVE
+-- =============================================
+
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+
+local plr = Players.LocalPlayer
+
+-- CONFIG
+local vflyEnabled = false
+local flyConnection = nil
+local flySpeed = 600
+
+-- 🔥 controle da "gravidade fake"
+local antiGravity = 2.5-- aumenta pra subir, diminui pra descer (80~110 ideal)
+
+local keys = {W = false, A = false, S = false, D = false, Space = false, Ctrl = false}
+
+-- CONEXÕES
+local flyInputConn
+local flyInputEndConn
+
+-- ==================== INPUT ====================
+local function setupInput()
+    if flyInputConn then flyInputConn:Disconnect() end
+    if flyInputEndConn then flyInputEndConn:Disconnect() end
+
+    flyInputConn = UserInputService.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        local kc = input.KeyCode
+
+        if kc == Enum.KeyCode.V then
+            vflyEnabled = not vflyEnabled
+            if vflyEnabled then
+                startVFly()
+                print("✅ VFLY ATIVADO")
+            else
+                stopVFly()
+                print("❌ VFLY DESATIVADO")
+            end
+            return
+        end
+
+        if kc == Enum.KeyCode.W then keys.W = true end
+        if kc == Enum.KeyCode.A then keys.A = true end
+        if kc == Enum.KeyCode.S then keys.S = true end
+        if kc == Enum.KeyCode.D then keys.D = true end
+        if kc == Enum.KeyCode.Space then keys.Space = true end
+        if kc == Enum.KeyCode.LeftControl or kc == Enum.KeyCode.RightControl then
+            keys.Ctrl = true
+        end
+    end)
+
+    flyInputEndConn = UserInputService.InputEnded:Connect(function(input)
+        local kc = input.KeyCode
+
+        if kc == Enum.KeyCode.W then keys.W = false end
+        if kc == Enum.KeyCode.A then keys.A = false end
+        if kc == Enum.KeyCode.S then keys.S = false end
+        if kc == Enum.KeyCode.D then keys.D = false end
+        if kc == Enum.KeyCode.Space then keys.Space = false end
+        if kc == Enum.KeyCode.LeftControl or kc == Enum.KeyCode.RightControl then
+            keys.Ctrl = false
+        end
+    end)
+end
+
+-- ==================== STOP ====================
+function stopVFly()
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+
+    local char = plr.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.AssemblyLinearVelocity = Vector3.zero
+    end
+end
+
+-- ==================== START ====================
+function startVFly()
+    stopVFly()
+
+    local char = plr.Character
+    if not char then return end
+
+    local hrp = char:WaitForChild("HumanoidRootPart", 3)
+    if not hrp then return end
+
+    flyConnection = RunService.Heartbeat:Connect(function(dt)
+        if not vflyEnabled or not hrp.Parent then
+            stopVFly()
+            return
+        end
+
+        local cam = workspace.CurrentCamera
+        local move = Vector3.zero
+
+        if keys.W then move += cam.CFrame.LookVector end
+        if keys.S then move -= cam.CFrame.LookVector end
+        if keys.A then move -= cam.CFrame.RightVector end
+        if keys.D then move += cam.CFrame.RightVector end
+
+        -- vertical manual
+        if keys.Space then move += Vector3.new(0,1,0) end
+        if keys.Ctrl then move -= Vector3.new(0,1,0) end
+
+        -- normalização movimento
+        if move.Magnitude > 0 then
+            move = move.Unit * flySpeed
+        end
+
+        -- 🔥 ANTI-GRAVIDADE (isso resolve teu problema)
+        local gravityFix = Vector3.new(0, antiGravity, 0)
+
+        hrp.AssemblyLinearVelocity = move + gravityFix
+    end)
+end
+
+-- ==================== SETUP ====================
+setupInput()
+
+plr.CharacterAdded:Connect(function()
+    task.wait(1)
+    if vflyEnabled then
+        startVFly()
+    end
+end)
+
+-- =============================================
+-- INTERFACE (GUI)
+-- =============================================
+task.spawn(function()
+    local tpGui2 = Instance.new("ScreenGui")
+    tpGui2.Name = "SecTPGui"
+    tpGui2.ResetOnSpawn = false
+    tpGui2.Parent = plr:WaitForChild("PlayerGui")
+    
+    local frame2 = Instance.new("Frame", tpGui2)
+    frame2.Size = UDim2.new(0, 220, 0, 80)
+    frame2.Position = UDim2.new(0, 15, 0, 100)
+    frame2.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+    frame2.BorderSizePixel = 0
+    frame2.Active = true
+    frame2.Draggable = true
+    Instance.new("UICorner", frame2).CornerRadius = UDim.new(0, 8)
+    
+    local title2 = Instance.new("TextLabel", frame2)
+    title2.Size = UDim2.new(1, 0, 0, 25)
+    title2.BackgroundColor3 = Color3.fromRGB(140, 80, 180)
+    title2.Text = " TP SECUNDÁRIO AUTO "
+    title2.TextColor3 = Color3.new(1,1,1)
+    title2.Font = Enum.Font.GothamBold
+    title2.TextScaled = true
+    
+    statusLabel2 = Instance.new("TextLabel", frame2)
+    statusLabel2.Size = UDim2.new(1, -10, 1, -30)
+    statusLabel2.Position = UDim2.new(0, 5, 0, 25)
+    statusLabel2.BackgroundTransparency = 1
+    statusLabel2.TextColor3 = Color3.fromRGB(200, 180, 255)
+    statusLabel2.TextScaled = true
+    statusLabel2.Font = Enum.Font.Gotham
+    statusLabel2.RichText = true
+
+    updateStatus2()
+end)
+
 -- =============================================
 -- ESP Celestial / Divine / Brainrots / Arcade Ticket / Ticket Bomb
 -- =============================================
@@ -413,7 +740,147 @@ function applyGodMode()
     end))
 end
 
-applyGodMode();
-pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/TheRealXORA/Roblox/refs/heads/Main/Scripts%20/Universal%20/Fly.luau", true))()
+applyGodMode()
+-- =============================================
+-- INPUTS (Q = AUTO | R = PRÓXIMO)
+-- =============================================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.Q then
+        isAutoLooping = not isAutoLooping
+        updateStatus2()
+
+        if isAutoLooping then
+            task.spawn(startAutoLoop)
+        end
+    end
+
+    if input.KeyCode == Enum.KeyCode.R then
+        if isAutoLooping then return end
+        
+        local nextIndex = (curIndex2 % #vipPos2) + 1
+        smoothFastTP2(nextIndex)
+    end
+end);
+-- =============================================
+-- VFLY ALTERNATIVO (LinearVelocity + AlignOrientation) - TECLA V
+-- Mais difícil de detectar que BodyVelocity + BodyGyro
+-- =============================================
+
+local vflyEnabled = true  -- começa desligado (mude para true se quiser auto-ativar)
+local flyConnection = nil
+local lv = nil             -- LinearVelocity
+local ao = nil             -- AlignOrientation
+
+local keys = { W = false, A = false, S = false, D = false, Space = false }
+
+-- Captura de teclas (mantém compatível com o resto do script)
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.W then keys.W = true end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = true end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = true end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = true end
+    if input.KeyCode == Enum.KeyCode.Space then keys.Space = true end
+
+    -- Toggle com tecla V
+    if input.KeyCode == Enum.KeyCode.V then
+        vflyEnabled = not vflyEnabled
+        if vflyEnabled then
+            startVFly()
+        else
+            stopVFly()
+        end
+    end
 end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then keys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then keys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then keys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then keys.D = false end
+    if input.KeyCode == Enum.KeyCode.Space then keys.Space = false end
+end)
+
+local function stopVFly()
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    if lv then lv:Destroy() lv = nil end
+    if ao then ao:Destroy() ao = nil end
+    
+    -- Restaura física normal
+    local char = plr.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = false end
+    end
+end
+
+local function startVFly()
+    stopVFly()
+
+    local char = plr.Character
+    if not char then return end
+
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+
+    hum.PlatformStand = true  -- desativa gravidade do humanoid
+
+    -- LinearVelocity (substituto moderno do BodyVelocity)
+    lv = Instance.new("LinearVelocity")
+    lv.Name = "VFly_LV"
+    lv.Attachment0 = Instance.new("Attachment", hrp)
+    lv.MaxForce = 50000          -- valor mais baixo = menos suspeito
+    lv.VectorVelocity = Vector3.zero
+    lv.Parent = hrp
+
+    -- AlignOrientation (substituto do BodyGyro)
+    ao = Instance.new("AlignOrientation")
+    ao.Name = "VFly_AO"
+    ao.Attachment0 = Instance.new("Attachment", hrp)
+    ao.MaxTorque = 50000
+    ao.Responsiveness = 50       -- suavidade
+    ao.Parent = hrp
+
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not vflyEnabled or not hrp.Parent then 
+            stopVFly()
+            return 
+        end
+
+        local cam = workspace.CurrentCamera
+        local dir = Vector3.zero
+
+        if keys.W then dir += cam.CFrame.LookVector end
+        if keys.S then dir -= cam.CFrame.LookVector end
+        if keys.A then dir -= cam.CFrame.RightVector end
+        if keys.D then dir += cam.CFrame.RightVector end
+        if keys.Space then dir += Vector3.new(0, 1, 0) end
+
+        -- Normaliza e aplica velocidade (ajuste o 120 se quiser mais rápido/lento)
+        if dir.Magnitude > 0 then
+            dir = dir.Unit * 120
+        end
+
+        lv.VectorVelocity = dir
+        ao.CFrame = cam.CFrame  -- olha para onde a câmera aponta
+    end)
+end
+
+-- Personagem atual + respawn
+local function onCharacterAdded(char)
+    task.wait(0.5)
+    if vflyEnabled then
+        startVFly()
+    end
+end
+
+if plr.Character then
+    onCharacterAdded(plr.Character)
+end
+plr.CharacterAdded:Connect(onCharacterAdded)
