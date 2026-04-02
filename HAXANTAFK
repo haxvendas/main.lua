@@ -1,4 +1,4 @@
--- Serviços 
+-- Serviços
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
@@ -43,6 +43,60 @@ UserInputService.JumpRequest:Connect(function()
     local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
     if hum then 
         hum:ChangeState(Enum.HumanoidStateType.Jumping) 
+    end
+end)
+-- =================================
+-- MAGNET POR TOQUE - MULTI-ORB & SHARD FIX
+-- =================================
+
+local MAGNET_DISTANCE = 100000
+local COOLDOWN = 0.01
+
+local lastTouch = {}
+
+local function getHRP()
+    local char = game.Players.LocalPlayer.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function tryTouch(part, hrp)
+    if not part or not hrp or not part:IsA("BasePart") then return end
+    
+    local dist = (part.Position - hrp.Position).Magnitude
+
+    if dist <= MAGNET_DISTANCE then
+        if not lastTouch[part] or tick() - lastTouch[part] > COOLDOWN then
+            firetouchinterest(hrp, part, 0)
+            firetouchinterest(hrp, part, 1)
+            lastTouch[part] = tick()
+        end
+    end
+end
+
+game:GetService("RunService").Heartbeat:Connect(function()
+    local hrp = getHRP()
+    if not hrp then return end
+
+    -- 3. PHANTOM ORBS (Pega 1, 2, 3... qualquer um dentro da pasta)
+    local orbFolder = workspace:FindFirstChild("PhantomOrbParts")
+    if orbFolder then
+        for _, orb in ipairs(orbFolder:GetChildren()) do
+            local hitbox = orb:FindFirstChild("Hitbox")
+            if hitbox then
+                tryTouch(hitbox, hrp)
+            end
+        end
+    end
+
+    -- 4. PHANTOM SHARDS (Pega todos os shards na pasta)
+    local shardFolder = workspace:FindFirstChild("PhantomShardParts")
+    if shardFolder then
+        for _, shard in ipairs(shardFolder:GetChildren()) do
+            local hitbox = shard:FindFirstChild("Hitbox")
+            if hitbox then
+                tryTouch(hitbox, hrp)
+            end
+        end
     end
 end)
 -- =============================================
