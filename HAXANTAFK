@@ -1,238 +1,17 @@
+-- Serviços
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 
+local plr = Players.LocalPlayer
 
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
-local Players     = game:GetService("Players") 
-local RunService  = game:GetService("RunService")
-local UIS         = game:GetService("UserInputService")
-local Http        = game:GetService("HttpService")
-local TS          = game:GetService("TweenService")
-local ProximityPromptService = game:GetService("ProximityPromptService")
-
-local plr         = Players.LocalPlayer
-local cam         = workspace.CurrentCamera
-
-local backpack = plr:WaitForChild("Backpack")
-
-local flying      = false
-local flySpeed    = 5
-local godConns    = {}
-local controls    = {W=0, S=0, A=0, D=0, Space=0, Ctrl=0}
-
-local notifyBusy = false
+-- Variáveis
+local godConns = {}
 local scriptFullyLoaded = true
-local detected = {}
-local connections = {} 
--- =============================================
--- Notify Function
--- =============================================
-local function notify(msg, color)
-    color = color or Color3.fromRGB(0, 170, 255)
-    
-    if notifyBusy then task.wait(0.4) end
-    notifyBusy = true
-    
-    task.spawn(function()
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "HaxNotify"
-        gui.Parent = plr:WaitForChild("PlayerGui")
-        
-        local main = Instance.new("Frame", gui)
-        main.Size = UDim2.new(0, 0, 0, 35)
-        main.Position = UDim2.new(0.5, 0, 0.08, 0)
-        main.AnchorPoint = Vector2.new(0.5, 0.5)
-        main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-        main.BackgroundTransparency = 0.25
-        main.BorderSizePixel = 0
-        main.ClipsDescendants = true
-        
-        local corner = Instance.new("UICorner", main)
-        corner.CornerRadius = UDim.new(0, 6)
-        
-        local accent = Instance.new("Frame", main)
-        accent.Size = UDim2.new(0, 4, 1, 0)
-        accent.BackgroundColor3 = color
-        accent.BorderSizePixel = 0
-        
-        local txt = Instance.new("TextLabel", main)
-        txt.Size = UDim2.new(1, -30, 1, 0)
-        txt.Position = UDim2.new(0, 15, 0, 0)
-        txt.BackgroundTransparency = 1
-        txt.Font = Enum.Font.GothamMedium
-        txt.Text = msg
-        txt.TextColor3 = Color3.new(1,1,1)
-        txt.TextSize = 15
-        txt.TextXAlignment = Enum.TextXAlignment.Left
-        txt.RichText = true
-        
-        TS:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {
-            Size = UDim2.new(0, 280, 0, 40)
-        }):Play()
-        
-        task.wait(3.2)
-        
-        local tweenOut = TS:Create(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {
-            Size = UDim2.new(0, 0, 0, 40),
-            BackgroundTransparency = 1
-        })
-        tweenOut:Play()
-        
-        tweenOut.Completed:Connect(function()
-            gui:Destroy()
-            notifyBusy = false
-        end)
-    end)
-end
 
-
--- =============================================
--- Espera personagem
--- ============================================= 
-local function waitForCharacter(timeout)
-    timeout = timeout or 1
-    local start = tick()
-    while not plr.Character and tick() - start < timeout do
-        task.wait()
-    end
-    return plr.Character
-end
-
--- =============================================
--- Inicialização
--- =============================================
-task.spawn(function()
-    task.wait(1)  -- reduzido
-    scriptFullyLoaded = true
-    enableInfiniteZoom()
-    applyGodMode()
-    notify("HAX CARREGADO!", Color3.fromRGB(0, 255, 140))
-end)
-
--- =============================================
--- Infinite Zoom
--- =============================================
-function enableInfiniteZoom()
-    if not scriptFullyLoaded then return end
-    plr.CameraMaxZoomDistance = 40000
-    plr.CameraMinZoomDistance = 0.5
-end
-
--- =============================================
--- Fly (F)
--- =============================================
-local function updateFly()
-    if not flying or not scriptFullyLoaded then return end
-    local move = Vector3.new(controls.D - controls.A, controls.Space - controls.Ctrl, controls.W - controls.S)
-    if move.Magnitude > 0 then move = move.Unit end
-    
-    local look = cam.CFrame.LookVector
-    local right = cam.CFrame.RightVector
-    local vel = look * move.Z + right * move.X + Vector3.new(0, move.Y, 0)
-    
-    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-    if hrp then 
-        hrp.CFrame = hrp.CFrame + vel * flySpeed 
-    end
-end
-
-local function toggleFly()
-    if not scriptFullyLoaded then return end
-    flying = not flying
-    local char = waitForCharacter()
-    if not char then return end
-    
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChild("Humanoid")
-    if not hrp or not hum then return end
-    
-    hrp.Anchored = flying
-    hum.PlatformStand = flying
-    
-    if flying then
-        RunService:BindToRenderStep("CFly", Enum.RenderPriority.Character.Value + 1, updateFly)
-        notify("FLY: ATIVADO", Color3.fromRGB(0, 255, 120))
-    else
-        RunService:UnbindFromRenderStep("CFly")
-        notify("FLY: DESATIVADO", Color3.fromRGB(255, 70, 70))
-    end
-end
-
--- =============================================
--- GodMode
--- =============================================
-function applyGodMode()
-    if not scriptFullyLoaded then return end
-    
-    local char = waitForCharacter()
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    
-    for _, conn in godConns do 
-        pcall(function() conn:Disconnect() end)
-    end
-    godConns = {}
-    
-    hum.MaxHealth = math.huge
-    hum.Health = math.huge
-    hum.JumpPower = 50
-    
-    table.insert(godConns, hum.HealthChanged:Connect(function()
-        hum.Health = math.huge
-    end))
-    
-    table.insert(godConns, hum.Died:Connect(function()
-        task.wait()
-        hum.Health = math.huge
-    end))
-    
-    table.insert(godConns, RunService.Heartbeat:Connect(function()
-        if not hum or not hum.Parent then return end
-        
-        local s = hum:GetState()
-        if s == Enum.HumanoidStateType.Ragdoll 
-        or s == Enum.HumanoidStateType.Physics 
-        or s == Enum.HumanoidStateType.FallingDown then
-            hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
-        end
-        
-        for _, v in ipairs(hum:GetChildren()) do
-            if (v:IsA("BoolValue") or v:IsA("NumberValue")) then
-                local name = v.Name:lower()
-                if name:find("stun") or name:find("slow") 
-                or name:find("poison") or name:find("bleed") 
-                or name:find("knock") then
-                    v:Destroy()
-                end
-            end
-        end
-    end))
-end
-
--- =============================================
---              S E R V E R   H O P   (T)
--- =============================================
-
-local function hopServer()
-    print("🔄 HOPPING SERVER... (procurando servidor com poucos players)")
-    
-    local success, servers = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-    end)
-    
-    if success and servers and servers.data then
-        for _, v in pairs(servers.data) do
-            if type(v) == "table" and v.playing and v.maxPlayers and v.playing < v.maxPlayers and v.id and #v.id > 10 then
-                print("🚀 Teleportando para servidor com " .. v.playing .. "/" .. v.maxPlayers .. " players")
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id, plr)
-                return
-            end
-        end
-    end
-    
-    -- Fallback: teleport aleatório se não achar
-    print("⚠️ Fallback: teleport aleatório")
-    TeleportService:Teleport(game.PlaceId, plr)
+-- Função personagem
+local function waitForCharacter()
+    return plr.Character or plr.CharacterAdded:Wait()
 end
 
 -- =============================================
@@ -240,7 +19,7 @@ end
 -- =============================================
 local function instaPrompt(p)
     if p:IsA("ProximityPrompt") then 
-        p.HoldDuration = 0.2 -- instantâneo
+        p.HoldDuration = 0 -- instantâneo
         p.RequiresLineOfSight = false
         p.MaxActivationDistance = 15
     end
@@ -255,135 +34,14 @@ end
 workspace.DescendantAdded:Connect(function(v)
     instaPrompt(v)
 end)
--- =============================================
--- VFLY (BODYGYRO / BODYVELOCITY) - TECLA V
--- =============================================
 
-local vflyEnabled = true
-local flyConnection
-local bv
-local bg
-
-local keys = {
-    W = false,
-    A = false,
-    S = false,
-    D = false, 
-	SPACE = false
-}
-
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.W then keys.W = true end
-    if input.KeyCode == Enum.KeyCode.A then keys.A = true end
-    if input.KeyCode == Enum.KeyCode.S then keys.S = true end
-    if input.KeyCode == Enum.KeyCode.D then keys.D = true end
-	if input.KeyCode == Enum.KeyCode.Space then keys.Space = true end
+UserInputService.JumpRequest:Connect(function()
+    if not scriptFullyLoaded then return end
+    local hum = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
+    if hum then 
+        hum:ChangeState(Enum.HumanoidStateType.Jumping) 
+    end
 end)
-
-UIS.InputEnded:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.W then keys.W = false end
-    if input.KeyCode == Enum.KeyCode.A then keys.A = false end
-    if input.KeyCode == Enum.KeyCode.S then keys.S = false end
-    if input.KeyCode == Enum.KeyCode.D then keys.D = false end
-	if input.KeyCode == Enum.KeyCode.Space then keys.Space = false end
-end)
-
-local function stopVFly()
-    if flyConnection then
-        flyConnection:Disconnect()
-        flyConnection = nil
-    end
-    if bv then bv:Destroy() bv = nil end
-    if bg then bg:Destroy() bg = nil end
-end
-
-function startVFly()
-    stopVFly()
-
-    local char = plr.Character
-    if not char then return end
-
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    local cam = workspace.CurrentCamera
-
-    bv = Instance.new("BodyVelocity")
-    bv.MaxForce = Vector3.new(1e9,1e9,1e9)
-    bv.Velocity = Vector3.zero
-    bv.Parent = hrp
-
-    bg = Instance.new("BodyGyro")
-    bg.MaxTorque = Vector3.new(1e9,1e9,1e9)
-    bg.P = 1e4
-    bg.CFrame = hrp.CFrame
-    bg.Parent = hrp
-
-    flyConnection = RunService.RenderStepped:Connect(function()
-
-        local dir = Vector3.zero
-      if keys.W then dir += cam.CFrame.LookVector end
-        if keys.S then dir -= cam.CFrame.LookVector end
-        if keys.A then dir -= cam.CFrame.RightVector end
-        if keys.D then dir += cam.CFrame.RightVector end
-
-        bv.Velocity = dir * 600
-        bg.CFrame = cam.CFrame
-    end)
-end
-
-local function onCharacterAdded(char)
-
-    local hum = char:WaitForChild("Humanoid")
-    local hrp = char:WaitForChild("HumanoidRootPart")
-
-    task.wait(0.3)
-
-    applyGodMode()
-    enableInfiniteZoom()
-
-    if vflyEnabled then
-        startVFly()
-    end
-end
-
--- personagem atual
-if plr.Character then
-    onCharacterAdded(plr.Character)
-end
-
--- respawn
-plr.CharacterAdded:Connect(onCharacterAdded)
-
--- =============================================
--- Remove VIPWalls + Barrier
--- =============================================
-task.spawn(function()
-    task.wait(3)
-        -- Remove Workspace.Barriers.Barrier
-        if obj.Name == "Barrier" and obj.Parent 
-            and obj.Parent.Name == "Barriers"
-            and obj.Parent.Parent == workspace then
-            obj:Destroy()
-        end
-    end
-    
-    -- Remove os que já existem
-    for _, obj in workspace:GetDescendants() do
-        tryRemove(obj)
-    end
-
-    -- Remove os que spawnarem depois
-    workspace.DescendantAdded:Connect(tryRemove)
-end)
-local workspace = game:GetService("Workspace")
-local objetoParaDeletar = workspace:FindFirstChild("___")
-
-if objetoParaDeletar then
-    objetoParaDeletar:Destroy()
-    print("Objeto deletado com sucesso.")
-else
-    warn("O objeto não foi encontrado no Workspace.")
-end
 -- =============================================
 -- ESP Celestial / Divine / Brainrots / Arcade Ticket / Ticket Bomb
 -- =============================================
@@ -519,9 +177,6 @@ local function createDistanceBillboard(adornee, labelText, emoji, color)
     table.insert(connections, conn)
 end
 
-local function notifyEvent(text)
-    notify("👁️ " .. text, Color3.fromRGB(255, 60, 60))
-end
 
 local function processFolder(folder, target)
     if not folder then return end
@@ -558,8 +213,6 @@ local function processFolder(folder, target)
 
         createHighlight(realObj, cfg.Color)
         createDistanceBillboard(realObj, label, cfg.Emoji, cfg.Color)
-
-        notifyEvent(cfg.Emoji .. " " .. label .. " DETECTADO!")
     end
 end
 
@@ -587,54 +240,68 @@ task.delay(4, function()
         end
     end
 end)
--- =============================================
--- Hitbox Expander com Toggle (H)
--- =============================================
 
+-- =============================================
+-- Remove VIPWalls + Barrier
+-- =============================================
+task.spawn(function()
+    task.wait(3)
+
+    local function tryRemove(obj)
+        -- Remove VIPWalls
+        if obj.Name == "VIPWalls" and obj:IsA("Model") then
+            obj:Destroy()
+        end
+
+        -- Remove Workspace.Barriers.Barrier
+        if obj.Name == "Barrier" and obj.Parent 
+            and obj.Parent.Name == "Barriers"
+            and obj.Parent.Parent == workspace then
+            obj:Destroy()
+        end
+    end
+    
+    -- Remove os que já existem
+    for _, obj in workspace:GetDescendants() do
+        tryRemove(obj)
+    end
+
+    -- Remove os que spawnarem depois
+    workspace.DescendantAdded:Connect(tryRemove)
+end)
+local objetoParaDeletar = workspace:FindFirstChild("___")
+
+if objetoParaDeletar then
+    objetoParaDeletar:Destroy()
+    print("Objeto deletado com sucesso.")
+else
+    warn("O objeto não foi encontrado no Workspace.")
+end
+
+-- =============================================
+-- Hitbox Expander (Toggle H)
+-- =============================================
 local hitboxExpanded = false
-local originalSizes = {}           -- guarda tamanhos originais por tool
-local NOVO_TAMANHO = Vector3.new(55, 55, 55)
-local HITBOX_TRANSPARENCY = 0.7   -- 1 = invisível, 0.7 = semi-visível pra debug
+local originalSizes = {}
+local NOVO_TAMANHO = Vector3.new(40,40,40)
+local HITBOX_TRANSPARENCY = 0.7
 
 local function expandHitboxes()
     local backpack = plr:WaitForChild("Backpack")
     local character = plr.Character
-    
-    -- Salva tamanhos originais (só na primeira expansão)
+    local count = 0
+
     if not hitboxExpanded then
         originalSizes = {}
-        
-        -- Backpack
-        for _, tool in backpack:GetChildren() do
-            if tool:IsA("Tool") then
-                local hitbox = tool:FindFirstChild("Hitbox", true)
-                if hitbox and hitbox:IsA("BasePart") then
-                    originalSizes[tool] = hitbox.Size
-                end
-            end
-        end
-        
-        -- Character (ferramentas equipadas)
-        if character then
-            for _, tool in character:GetChildren() do
-                if tool:IsA("Tool") then
-                    local hitbox = tool:FindFirstChild("Hitbox", true)
-                    if hitbox and hitbox:IsA("BasePart") then
-                        originalSizes[tool] = hitbox.Size
-                    end
-                end
-            end
-        end
     end
-    
-    -- Aplica novo tamanho
-    local count = 0
-    
-    -- Backpack
-    for _, tool in backpack:GetChildren() do
+
+    local function processTool(tool)
         if tool:IsA("Tool") then
             local hitbox = tool:FindFirstChild("Hitbox", true)
             if hitbox and hitbox:IsA("BasePart") then
+                if not originalSizes[tool] then
+                    originalSizes[tool] = hitbox.Size
+                end
                 hitbox.Size = NOVO_TAMANHO
                 hitbox.Transparency = HITBOX_TRANSPARENCY
                 hitbox.CanCollide = false
@@ -642,188 +309,111 @@ local function expandHitboxes()
             end
         end
     end
-    
-    -- Character (equipada)
+
+    for _, tool in ipairs(backpack:GetChildren()) do
+        processTool(tool)
+    end
+
     if character then
-        for _, tool in character:GetChildren() do
-            if tool:IsA("Tool") then
-                local hitbox = tool:FindFirstChild("Hitbox", true)
-                if hitbox and hitbox:IsA("BasePart") then
-                    hitbox.Size = NOVO_TAMANHO
-                    hitbox.Transparency = HITBOX_TRANSPARENCY
-                    hitbox.CanCollide = false
-                    count += 1
-                end
-            end
+        for _, tool in ipairs(character:GetChildren()) do
+            processTool(tool)
         end
     end
-    
+
     return count
 end
 
 local function restoreHitboxes()
     local count = 0
-    
-    for tool, originalSize in pairs(originalSizes) do
-        if tool and tool.Parent then  -- ainda existe?
+
+    for tool, size in pairs(originalSizes) do
+        if tool and tool.Parent then
             local hitbox = tool:FindFirstChild("Hitbox", true)
             if hitbox and hitbox:IsA("BasePart") then
-                hitbox.Size = originalSize
-                hitbox.Transparency = 0   -- ou valor original do jogo
+                hitbox.Size = size
+                hitbox.Transparency = 0
                 count += 1
             end
         end
     end
-    
-    -- Limpa se tool foi destruída
+
     originalSizes = {}
     return count
 end
 
 local function toggleHitboxExpander()
     hitboxExpanded = not hitboxExpanded
-    
-    local count
-    
+
     if hitboxExpanded then
-        count = expandHitboxes()
-        if count > 0 then
-            notify("HITBOX EXPANDER: ATIVADO (" .. count .. " ferramentas)", Color3.fromRGB(255, 180, 60))
-        else
-            notify("Nenhuma hitbox encontrada para expandir", Color3.fromRGB(255, 100, 100))
-            hitboxExpanded = false  -- reverte se nada mudou
-        end
+        local count = expandHitboxes()
+        print("Hitbox ON:", count)
     else
-        count = restoreHitboxes()
-        notify("HITBOX EXPANDER: DESATIVADO", Color3.fromRGB(180, 180, 180))
+        restoreHitboxes()
+        print("Hitbox OFF")
     end
 end
 
-local UserInputService = game:GetService("UserInputService")
-
+-- Tecla H
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
-    local inputType = input.UserInputType
-    local keyCode   = input.KeyCode
-
-    -- =============================================
-    -- TOGGLE VFLY (SEMPRE FUNCIONA)
-    -- =============================================
-    if inputType == Enum.UserInputType.Keyboard then
-         if input.KeyCode == Enum.KeyCode.V then
-        vflyEnabled = not vflyEnabled
-
-        if vflyEnabled then
-            startVFly()
-        else
-            stopVFly()
-        end
-            return
-        end
+    if input.KeyCode == Enum.KeyCode.H then
+        toggleHitboxExpander()
     end
+end)
 
 -- =============================================
--- TECLAS GLOBAIS (FUNCIONAM SEM VFLY)
+-- GodMode
 -- =============================================
-if inputType == Enum.UserInputType.Keyboard then
+function applyGodMode()
+    if not scriptFullyLoaded then return end
     
-	if input.KeyCode == Enum.KeyCode.N then
-    noclipEnabled = not noclipEnabled
-    notify("NOCLIP: " .. (noclipEnabled and "ON" or "OFF"), Color3.fromRGB(120,255,120))
-    return
+    local char = waitForCharacter()
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    
+    for _, conn in godConns do 
+        pcall(function() conn:Disconnect() end)
+    end
+    godConns = {}
+    
+    hum.MaxHealth = math.huge
+    hum.Health = math.huge
+    hum.JumpPower = 50
+    
+    table.insert(godConns, hum.HealthChanged:Connect(function()
+        hum.Health = math.huge
+    end))
+    
+    table.insert(godConns, hum.Died:Connect(function()
+        task.wait()
+        hum.Health = math.huge
+    end))
+    
+    table.insert(godConns, RunService.Heartbeat:Connect(function()
+        if not hum or not hum.Parent then return end
+        
+        local s = hum:GetState()
+        if s == Enum.HumanoidStateType.Ragdoll 
+        or s == Enum.HumanoidStateType.Physics 
+        or s == Enum.HumanoidStateType.FallingDown then
+            hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+        end
+        
+        for _, v in ipairs(hum:GetChildren()) do
+            if (v:IsA("BoolValue") or v:IsA("NumberValue")) then
+                local name = v.Name:lower()
+                if name:find("stun") or name:find("slow") 
+                or name:find("poison") or name:find("bleed") 
+                or name:find("knock") then
+                    v:Destroy()
+                end
+            end
+        end
+    end))
 end
 
-    if keyCode == Enum.KeyCode.F then
-        toggleFly()
-        return
-        
-    elseif keyCode == Enum.KeyCode.H then
-        toggleHitboxExpander()
-        return
-        
-    elseif keyCode == Enum.KeyCode.T then
-        hopServer()
-        return
-
-   -- NOVO: Q PARA AUTOMÁTICO
-        elseif keyCode == Enum.KeyCode.Q then
-            isAutoLooping = not isAutoLooping
-            if isAutoLooping then
-                notify("AUTO-LOOP: LIGADO", Color3.fromRGB(100, 255, 100))
-                task.spawn(startAutoLoop)
-            else
-                notify("AUTO-LOOP: DESLIGADO", Color3.fromRGB(255, 80, 80))
-            end
-            updateStatus2()
-
-        -- NOVO: R PARA MANUAL
-        elseif keyCode == Enum.KeyCode.R then
-            if isAutoLooping then 
-                isAutoLooping = false 
-                notify("MODO MANUAL ATIVADO", Color3.fromRGB(255, 200, 0))
-            end
-            local nextIndex = (curIndex2 % #vipPos2) + 1
-            smoothFastTP2(nextIndex)
-
-        elseif keyCode == Enum.KeyCode.RightControl then
-            smoothFastTP2(1)
-        end
-     end
-
-    -- =============================================
-    -- DAQUI PRA BAIXO SÓ SE VFLY ESTIVER ATIVO
-    -- =============================================
-    if inputType == Enum.UserInputType.Keyboard then
-        
-        local changed = false
-        
-        -- VELOCIDADE
-        if keyCode == Enum.KeyCode.Equals or keyCode == Enum.KeyCode.Plus then
-            vflySpeed += 100
-            changed = true
-            
-        elseif keyCode == Enum.KeyCode.Minus then
-            vflySpeed = math.max(100, vflySpeed - 100)
-            changed = true
-            
-        elseif keyCode == Enum.KeyCode.I then
-            vflySpeed = 500
-            notify("VFly Speed resetado para 500", Color3.fromRGB(200,200,255))
-            changed = true
-   -- MOVIMENTO
-        elseif keyCode == Enum.KeyCode.W then controls.W = 1
-        elseif keyCode == Enum.KeyCode.S then controls.S = 1
-        elseif keyCode == Enum.KeyCode.A then controls.A = 1
-        elseif keyCode == Enum.KeyCode.D then controls.D = 1
-        elseif keyCode == Enum.KeyCode.Space then controls.Space = 1
-        elseif keyCode == Enum.KeyCode.LeftControl then controls.Ctrl = 1
-        end
-
-        if changed then
-            notify("VFly Speed: " .. vflySpeed, Color3.fromRGB(100,255,100))
-        end
-    end
+applyGodMode();
+pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/TheRealXORA/Roblox/refs/heads/Main/Scripts%20/Universal%20/Fly.luau", true))()
 end)
-
--- =============================================
--- INPUT ENDED (MOVIMENTO)
--- =============================================
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-    
-    local key = input.KeyCode
-    
-    if     key == Enum.KeyCode.W then controls.W = 0
-    elseif key == Enum.KeyCode.S then controls.S = 0
-    elseif key == Enum.KeyCode.A then controls.A = 0
-    elseif key == Enum.KeyCode.D then controls.D = 0
-    elseif key == Enum.KeyCode.Space then controls.Space = 0
-    elseif key == Enum.KeyCode.LeftControl then controls.Ctrl = 0
-    end
-end)
-
--- =============================================
--- Final
--- =============================================
-notify("HAX INICIANDO... (2-5s)", Color3.fromRGB(255, 200, 0));
