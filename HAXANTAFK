@@ -47,6 +47,22 @@ UserInputService.JumpRequest:Connect(function()
         hum:ChangeState(Enum.HumanoidStateType.Jumping) 
     end
 end)
+-- =============================================
+-- Infinite Zoom
+-- =============================================
+function enableInfiniteZoom()
+    if not scriptFullyLoaded then return end
+    plr.CameraMaxZoomDistance = 40000
+    plr.CameraMinZoomDistance = 0.5
+end
+-- ATIVA IMEDIATAMENTE (coloca aqui)
+enableInfiniteZoom()
+-- reaplica sempre que nascer
+plr.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid")
+    task.wait(0.5) -- menor delay, mais rápido
+    enableInfiniteZoom()
+end)
 -- =================================
 -- MAGNET POR TOQUE - MULTI-ORB & SHARD FIX
 -- =================================
