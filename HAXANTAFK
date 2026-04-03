@@ -180,9 +180,9 @@ task.spawn(setupAutoDeposit)
 -- =============================================
 local vipPos2 = {
     Vector3.new(448.55, 172.06, 335.86),
-    Vector3.new(336.26, 97.13, 135.34),
-   Vector3.new(4133.41, 97.13, 133.68),
-    Vector3.new(336.26, 97.13, 135.34)
+    Vector3.new(336.28, 71.33, 138.29),
+    Vector3.new(4105.28, 67.33, 136.97),
+    Vector3.new(336.28, 71.33, 138.29)
 }
 local vipNames2 = { "SEC 1", "2", "3", "4" }
 
@@ -258,7 +258,7 @@ local function startAutoLoop()
 
         -- tempo diferente para SEC 1
         if nextIndex == 1 then
-            task.wait(0.15)
+            task.wait(0.2)
         else
             task.wait(0.01)
         end
