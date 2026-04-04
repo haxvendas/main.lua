@@ -835,3 +835,228 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         smoothFastTP2(nextIndex)
     end
 end);
+
+-- =============================================
+-- AUTO TORRE BRAINROT v15 - FINAL ESTÁVEL
+-- =============================================
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local player = game.Players.LocalPlayer
+local root
+
+local function updateRoot()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        root = player.Character.HumanoidRootPart
+    end
+end
+updateRoot()
+player.CharacterAdded:Connect(updateRoot)
+
+-- ================= CONFIG =================
+local SPEED = 1400
+local MAX = 20
+
+local START_POS = Vector3.new(118.46, 3.33, 131.52)
+
+local PATH_TO_TOWER = {
+    Vector3.new(180.28, 71.33, 137.63),
+    Vector3.new(4304.76, 71.33, 134.36),
+    Vector3.new(4326.76, 6.32, -2.82)
+}
+
+local BACK_1 = Vector3.new(4326.76, 6.32, -2.82)
+local BACK_2 = Vector3.new(4304.76, 71.33, 134.36)
+
+local FARM = {
+    ["Common"]     = Vector3.new(245.89, 71.33, 134.67),
+    ["Uncommon"]   = Vector3.new(478.33, 71.33, 132.57),
+    ["Rare"]       = Vector3.new(478.33, 71.33, 132.57),
+    ["Epic"]       = Vector3.new(651.41, 71.33, 132.07),
+    ["Legendary"]  = Vector3.new(909.53, 71.33, 133.00),
+    ["Mythical"]   = Vector3.new(1311.89, 71.33, 134.38),
+    ["Cosmic"]     = Vector3.new(2543.30, 71.33, 132.75),
+    ["Secret"]     = Vector3.new(3878.56, 71.33, 132.13),
+    ["Celestial"]  = Vector3.new(4148.29, 71.33, 129.69),
+}
+
+local RARITIES = {"Common","Uncommon","Rare","Epic","Legendary","Mythical","Cosmic","Secret","Celestial"}
+
+local towerPrompt = workspace.GameObjects.PlaceSpecific.root.Tower.Main.Prompt.ProximityPrompt
+local requirementLabel = workspace.GameObjects.PlaceSpecific.root.Tower.Main.Billboard.BillboardGui.Frame.Info.Requirement
+
+local enabled = false
+local running = false
+
+-- ================= MOVIMENTO =================
+local function tweenTo(pos)
+    if not root or not enabled then return end
+
+    local dist = (pos - root.Position).Magnitude
+    local t = dist / SPEED
+
+    local tween = TweenService:Create(root, TweenInfo.new(t, Enum.EasingStyle.Linear), {
+        CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+    })
+
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+-- ================= RARIDADE =================
+local function getRarity()
+    local txt = requirementLabel.Text:lower()
+
+    for _, r in ipairs(RARITIES) do
+        if txt:match("%f[%a]" .. r:lower() .. "%f[%A]") then
+            return r
+        end
+    end
+end
+
+-- ================= PEGAR =================
+local function grabBrainrot(rarity)
+    local folder = workspace.ActiveBrainrots:FindFirstChild(rarity)
+    if not folder then return false end
+
+    local list = {}
+
+    for _,obj in ipairs(folder:GetDescendants()) do
+        if obj:IsA("Model") then
+            table.insert(list, obj)
+        end
+    end
+
+    if #list == 0 then return false end
+
+    local target = list[math.random(1,#list)]
+    local part = target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart")
+
+    if not part then return false end
+
+    root.AssemblyLinearVelocity = Vector3.zero
+    root.CFrame = part.CFrame * CFrame.new(0,2,0)
+
+    task.wait(0.2)
+
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    task.wait(0.1)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+
+    task.wait(0.5)
+
+    return true
+end
+
+-- ================= TORRE =================
+local function usePrompt()
+    towerPrompt.HoldDuration = 0
+    towerPrompt:InputHoldBegin()
+    task.wait(0.2)
+    towerPrompt:InputHoldEnd()
+end
+
+-- ================= ESPERAR RARIDADE =================
+local function waitForRarity()
+    local timeout = tick() + 6
+    local rarity
+
+    repeat
+        rarity = getRarity()
+        task.wait(0.2)
+    until rarity or tick() > timeout
+
+    return rarity
+end
+
+-- ================= LOOP =================
+local function loop()
+    running = true
+    local total = 0
+
+    -- PRIMEIRA VEZ (vai torre completa)
+    for _,v in ipairs(PATH_TO_TOWER) do
+        tweenTo(v)
+    end
+
+    task.wait(1)
+
+    while enabled do
+        -- ATIVA TORRE E ESPERA RARIDADE
+        usePrompt()
+        local rarity = waitForRarity()
+
+        if not rarity then
+            warn("❌ Falha ao pegar raridade")
+            task.wait(1)
+            continue
+        end
+
+        print("🎯 RARIDADE:", rarity)
+
+        -- VOLTA MEIO
+        tweenTo(BACK_1)
+        tweenTo(BACK_2)
+
+        -- VAI FARM
+        local farmPos = FARM[rarity]
+        if not farmPos then continue end
+
+        tweenTo(farmPos)
+
+        -- PEGA 1
+        if grabBrainrot(rarity) then
+            total += 1
+            print("📦 TOTAL:", total)
+        end
+
+        -- VOLTA FARM
+        tweenTo(farmPos)
+
+        -- VOLTA PRA TORRE
+        tweenTo(BACK_2)
+        tweenTo(BACK_1)
+
+        task.wait(0.5)
+
+        -- ENTREGA
+        usePrompt()
+
+        -- ESPERA PRÓXIMA RARIDADE
+        task.wait(3)
+
+        -- FINAL
+        if total >= MAX then
+            print("🏁 FINALIZADO 20, indo base")
+
+            tweenTo(BACK_2)
+            tweenTo(START_POS)
+
+            total = 0
+        end
+    end
+
+    running = false
+end
+
+-- ================= TOGGLE =================
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+
+    if input.KeyCode == Enum.KeyCode.P then
+        enabled = not enabled
+
+        if enabled then
+            print("✅ LIGADO")
+            if not running then
+                task.spawn(loop)
+            end
+        else
+            print("⛔ DESLIGADO")
+        end
+    end
+end)
+
+print("🔥 v15 FINAL PRONTO")
