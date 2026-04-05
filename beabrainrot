@@ -1,0 +1,142 @@
+-- =============================================
+-- TELEPORT (Q) + NOCLIP (N) + INF JUMP + AUTO COLLECT MONEY AURA (F)
+-- =============================================
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+-- destino 1
+local base15 = game:GetService("Workspace").BaseZones:WaitForChild("base15")
+-- destino 2 (posição fixa)
+local buildPosition = Vector3.new(729.93, 39.87, -2120.74)
+
+local toggleTP = false
+local noclip = false
+local autoCollect = false
+
+-- =============================================
+-- FUNÇÃO DE TELEPORTE
+-- =============================================
+local function teleportTo(target)
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    if typeof(target) == "Instance" then
+        root.CFrame = target.CFrame + Vector3.new(0, 5, 0)
+    elseif typeof(target) == "Vector3" then
+        root.CFrame = CFrame.new(target + Vector3.new(0, 5, 0))
+    end
+end
+
+-- =============================================
+-- NOCLIP LOOP
+-- =============================================
+RunService.Stepped:Connect(function()
+    if noclip then
+        local char = player.Character
+        if char then
+            for _, v in pairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+-- =============================================
+-- INF JUMP (SEMPRE ATIVO)
+-- =============================================
+UserInputService.JumpRequest:Connect(function()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- =============================================
+-- AUTO COLLECT MONEY AURA
+-- =============================================
+local function getMyPlot()
+    local plots = workspace:WaitForChild("Plots")
+    for _, plot in pairs(plots:GetChildren()) do
+        if plot:FindFirstChild("YourBase") then
+            return plot
+        end
+    end
+    return nil
+end
+
+local function collectAllPodiums()
+    local myPlot = getMyPlot()
+    if not myPlot then 
+        print("Sua plot não foi encontrada!")
+        return 
+    end
+
+    local podiumsFolder = myPlot:FindFirstChild("Podiums")
+    if not podiumsFolder then 
+        print("Pasta Podiums não encontrada na sua plot!")
+        return 
+    end
+
+    for _, podium in pairs(podiumsFolder:GetChildren()) do
+        if podium:IsA("Model") or podium:IsA("Folder") then
+            local collectPart = podium:FindFirstChild("Collect")
+            if collectPart then
+                local touchInterest = collectPart:FindFirstChild("TouchInterest")
+                if touchInterest then
+                    -- Simula o toque (método mais confiável para TouchInterest)
+                    firetouchinterest(player.Character.HumanoidRootPart, collectPart, 0) -- 0 = touch
+                    task.wait() -- pequeno delay para não dar rate limit
+                    firetouchinterest(player.Character.HumanoidRootPart, collectPart, 1) -- 1 = untouch (opcional, mas recomendado)
+                end
+            end
+        end
+    end
+end
+
+-- Loop do Auto Collect (roda rápido quando ativado)
+task.spawn(function()
+    while true do
+        if autoCollect then
+            collectAllPodiums()
+        end
+        task.wait(0.15) -- velocidade da aura (pode diminuir para mais rápido, mas cuidado com kick)
+    end
+end)
+
+-- =============================================
+-- TECLAS
+-- =============================================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    -- TELEPORT (Q)
+    if input.KeyCode == Enum.KeyCode.Q then
+        toggleTP = not toggleTP
+        if toggleTP then
+            teleportTo(base15)
+        else
+            teleportTo(buildPosition)
+        end
+    end
+
+    -- NOCLIP (N)
+    if input.KeyCode == Enum.KeyCode.N then
+        noclip = not noclip
+        print("Noclip:", noclip and "ON" or "OFF")
+    end
+
+    -- AUTO COLLECT AURA (F)
+    if input.KeyCode == Enum.KeyCode.F then
+        autoCollect = not autoCollect
+        print("Auto Collect Money Aura:", autoCollect and "ON" or "OFF")
+    end
+end)
+
+print("Script carregado! Use F para ligar/desligar o Auto Collect Aura")
