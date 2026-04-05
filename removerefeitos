@@ -1,0 +1,169 @@
+-- =========================================
+-- FPS BOOST + FULLBRIGHT
+-- =========================================
+
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+-- =========================
+-- FULLBRIGHT (CORRIGIDO)
+-- =========================
+Lighting.GlobalShadows = false
+Lighting.FogEnd = 9e9
+Lighting.Brightness = 3
+Lighting.ClockTime = 14
+Lighting.Ambient = Color3.new(1,1,1)
+Lighting.OutdoorAmbient = Color3.new(1,1,1)
+
+-- mantém fullbright mesmo se o jogo tentar mudar
+Lighting:GetPropertyChangedSignal("Brightness"):Connect(function()
+    Lighting.Brightness = 3
+end)
+
+Lighting:GetPropertyChangedSignal("Ambient"):Connect(function()
+    Lighting.Ambient = Color3.new(1,1,1)
+end)
+
+-- remove efeitos visuais
+for _, v in pairs(Lighting:GetChildren()) do
+    if v:IsA("PostEffect") then
+        v:Destroy()
+    end
+end
+
+-- =========================
+-- FUNÇÃO LIMPEZA
+-- =========================
+local function optimize(obj)
+    if obj:IsA("ParticleEmitter")
+    or obj:IsA("Trail")
+    or obj:IsA("Smoke")
+    or obj:IsA("Fire")
+    or obj:IsA("Sparkles") then
+        obj.Enabled = false
+    end
+
+    if obj:IsA("Explosion") then
+        obj.BlastPressure = 0
+        obj.BlastRadius = 0
+    end
+
+    if obj:IsA("Decal") or obj:IsA("Texture") then
+        obj.Transparency = 1
+    end
+
+    if obj:IsA("BasePart") then
+        obj.Material = Enum.Material.Plastic
+        obj.Reflectance = 0
+        obj.CastShadow = false
+    end
+end
+
+-- =========================
+-- APLICAR NO MAPA
+-- =========================
+for _, v in pairs(Workspace:GetDescendants()) do
+    optimize(v)
+end
+
+Workspace.DescendantAdded:Connect(function(v)
+    optimize(v)
+end)
+
+-- =========================
+-- PLAYER CHARACTER
+-- =========================
+local function onCharacter(char)
+    for _, v in pairs(char:GetDescendants()) do
+        optimize(v)
+    end
+
+    char.DescendantAdded:Connect(optimize)
+end
+
+local player = Players.LocalPlayer
+
+if player.Character then
+    onCharacter(player.Character)
+end
+
+player.CharacterAdded:Connect(onCharacter)
+
+
+print("FPS BOOST + FULLBRIGHT ATIVADO 🌟")
+
+-- =========================
+-- INSTANT PROXIMITY PROMPT
+-- =========================
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+-- remove delay dos prompts existentes
+for _, v in pairs(workspace:GetDescendants()) do
+    if v:IsA("ProximityPrompt") then
+        v.HoldDuration = 0
+        v.RequiresLineOfSight = false
+        v.MaxActivationDistance = 20
+    end
+end
+
+-- aplica nos novos
+workspace.DescendantAdded:Connect(function(v)
+    if v:IsA("ProximityPrompt") then
+        v.HoldDuration = 0
+        v.RequiresLineOfSight = false
+        v.MaxActivationDistance = 20
+    end
+end)
+
+print("INSTANT PP ATIVADO ⚡")
+
+-- =========================
+-- ANTI RAGDOLL
+-- =========================
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function antiRagdoll(char)
+    local hum = char:WaitForChild("Humanoid")
+
+    -- impede estados de ragdoll
+    hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+    hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+    hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+
+    -- força levantar se tentar cair
+    hum.StateChanged:Connect(function(old, new)
+        if new == Enum.HumanoidStateType.Ragdoll
+        or new == Enum.HumanoidStateType.FallingDown
+        or new == Enum.HumanoidStateType.Physics then
+            
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+    end)
+
+    -- remove joints de ragdoll (BallSocket etc)
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BallSocketConstraint")
+        or v:IsA("HingeConstraint") then
+            v:Destroy()
+        end
+    end
+
+    char.DescendantAdded:Connect(function(v)
+        if v:IsA("BallSocketConstraint")
+        or v:IsA("HingeConstraint") then
+            v:Destroy()
+        end
+    end)
+end
+
+-- aplicar
+if player.Character then
+    antiRagdoll(player.Character)
+end
+
+player.CharacterAdded:Connect(antiRagdoll)
+
+print("ANTI RAGDOLL ATIVADO 🛡️")
