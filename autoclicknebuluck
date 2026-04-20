@@ -6,8 +6,8 @@ local isAutoClickEnabled = false
 local clickDelay = -100  -- Tempo entre cliques (em segundos). 0.05 = ~20 cliques por segundo. Abaixe para mais rápido.
 
 local positions = {
-    Vector2.new(1234, 657),  -- Nebuluck
-    Vector2.new(766, 776)    -- Craft
+    Vector2.new(1267, 428),  -- Nebuluck
+    Vector2.new(753, 782)    -- Craft
 }
 
 local function simulateClick(position)
@@ -46,8 +46,8 @@ local UserInputService = game:GetService("UserInputService")
 local isAutoClickEnabled = false
 
 local positions = {
-    Vector2.new(1234, 657),
-    Vector2.new(766, 776)
+    Vector2.new(1267, 428),
+    Vector2.new(753, 782)
 }
 
 local function click(pos)
@@ -84,4 +84,4 @@ end)
 print("AUTO CLICKER INSANO carregado!");
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/Branch/GUIS/Emotes.lua"))();
-loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))(); 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))(); w
