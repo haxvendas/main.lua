@@ -40,7 +40,7 @@ end
 
 -- ====================== AUTO PEGAR ======================
 local itensProcurar = {
-    "Agarrini La Pallini","Diamond Agarrini La Pallini","Gold Agarrini La Pallini",
+    "Diamond Chillin Chili","Agarrini La Pallini","Diamond Agarrini La Pallini","Gold Agarrini La Pallini",
     "Graipussi Medussi","Diamond Graipussi Medussi","Gold Graipussi Medussi",
     "Tortuginni Dragonfrutini","Diamond Tortuginni Dragonfrutini","Gold Tortuginni Dragonfrutini",
     "La Vacca Saturno Saturnita","Diamond La Vacca Saturno Saturnita","Gold La Vacca Saturno Saturnita",
