@@ -53,15 +53,6 @@ local titleFrame = Instance.new("Frame")
 titleFrame.Size = UDim2.new(1, 0, 0, 40)
 titleFrame.BackgroundTransparency = 1
 titleFrame.Parent = mainFrame
-
-local fireEmoji = Instance.new("TextLabel")
-fireEmoji.Size = UDim2.new(0, 30, 1, 0)
-fireEmoji.Position = UDim2.new(0, 15, 0, 0)
-fireEmoji.BackgroundTransparency = 1
-fireEmoji.Text = "🔥"
-fireEmoji.TextSize = 28
-fireEmoji.Parent = titleFrame
-
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -60, 1, 0)
 titleLabel.Position = UDim2.new(0, 50, 0, 0)
@@ -75,7 +66,7 @@ titleLabel.Parent = titleFrame
 -- SecretText
 local secretLabel = Instance.new("TextLabel")
 secretLabel.Size = UDim2.new(1, -30, 0, 32)
-secretLabel.Position = UDim2.new(0, 15, 0, 48)
+secretLabel.Position = UDim2.new(0, 15, 0, 78)
 secretLabel.BackgroundTransparency = 1
 secretLabel.Text = "Carregando..."
 secretLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
@@ -87,7 +78,7 @@ secretLabel.Parent = mainFrame
 -- OGText
 local ogLabel = Instance.new("TextLabel")
 ogLabel.Size = UDim2.new(1, -30, 0, 32)
-ogLabel.Position = UDim2.new(0, 15, 0, 78)
+ogLabel.Position = UDim2.new(0, 15, 0, 48)
 ogLabel.BackgroundTransparency = 1
 ogLabel.Text = "Carregando..."
 ogLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
