@@ -1,7 +1,6 @@
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 
 local player = game.Players.LocalPlayer
@@ -23,7 +22,114 @@ local bv = nil
 local bg = nil
 local infiniteJumpConnection = nil
 
-print("✅ Script carregado!")
+print("✅ Script carregado com GUI elegante!")
+
+-- ====================== GUI ELEGANTE - CANTO INFERIOR DIREITO ======================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BrainrotStatus"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 340, 0, 110)
+mainFrame.Position = UDim2.new(1, -360, 1, -130)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+mainFrame.BackgroundTransparency = 0.25
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 16)
+uiCorner.Parent = mainFrame
+
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(255, 215, 0)
+uiStroke.Thickness = 2
+uiStroke.Transparency = 0.6
+uiStroke.Parent = mainFrame
+
+-- Título
+local titleFrame = Instance.new("Frame")
+titleFrame.Size = UDim2.new(1, 0, 0, 40)
+titleFrame.BackgroundTransparency = 1
+titleFrame.Parent = mainFrame
+
+local fireEmoji = Instance.new("TextLabel")
+fireEmoji.Size = UDim2.new(0, 30, 1, 0)
+fireEmoji.Position = UDim2.new(0, 15, 0, 0)
+fireEmoji.BackgroundTransparency = 1
+fireEmoji.Text = "🔥"
+fireEmoji.TextSize = 28
+fireEmoji.Parent = titleFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -60, 1, 0)
+titleLabel.Position = UDim2.new(0, 50, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Brainrot Status"
+titleLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBlack
+titleLabel.Parent = titleFrame
+
+-- SecretText
+local secretLabel = Instance.new("TextLabel")
+secretLabel.Size = UDim2.new(1, -30, 0, 32)
+secretLabel.Position = UDim2.new(0, 15, 0, 48)
+secretLabel.BackgroundTransparency = 1
+secretLabel.Text = "SecretText: Carregando..."
+secretLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+secretLabel.TextXAlignment = Enum.TextXAlignment.Left
+secretLabel.TextScaled = true
+secretLabel.Font = Enum.Font.GothamSemibold
+secretLabel.Parent = mainFrame
+
+-- OGText
+local ogLabel = Instance.new("TextLabel")
+ogLabel.Size = UDim2.new(1, -30, 0, 32)
+ogLabel.Position = UDim2.new(0, 15, 0, 78)
+ogLabel.BackgroundTransparency = 1
+ogLabel.Text = "OGText: Carregando..."
+ogLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
+ogLabel.TextXAlignment = Enum.TextXAlignment.Left
+ogLabel.TextScaled = true
+ogLabel.Font = Enum.Font.GothamSemibold
+ogLabel.Parent = mainFrame
+
+-- Atualiza GUI
+local function cleanText(text)
+    if not text then return "N/A" end
+    text = text:gsub("<font color=\".-\">", "")
+    text = text:gsub("</font>", "")
+    return text
+end
+
+local function updateStatusGUI()
+    pcall(function()
+        local board = workspace:FindFirstChild("Warning")
+        if not board then return end
+        local painel = board:FindFirstChild("Board") and board.Board:FindFirstChild("Painel")
+        if not painel then return end
+        local frontGui = painel:FindFirstChild("FrontSurfaceGui")
+        if not frontGui then return end
+        local frameGui = frontGui:FindFirstChild("Frame")
+        if not frameGui then return end
+
+        local secret = frameGui:FindFirstChild("SecretText")
+        local og = frameGui:FindFirstChild("OGText")
+
+        if secret and secret:IsA("TextLabel") then
+            secretLabel.Text = "SecretText: " .. cleanText(secret.Text)
+        end
+        if og and og:IsA("TextLabel") then
+            ogLabel.Text = "OGText: " .. cleanText(og.Text)
+        end
+    end)
+end
+
+RunService.Heartbeat:Connect(updateStatusGUI)
+
+print("📊 GUI elegante no canto inferior direito!")
 
 -- ====================== INFINITE JUMP ======================
 local function enableInfiniteJump()
@@ -38,7 +144,7 @@ local function enableInfiniteJump()
     print("🐰 Infinite Jump ativado!")
 end
 
--- ====================== AUTO PEGAR ======================
+-- ====================== AUTO PEGAR (SÓ EM ActiveBrainrots) ======================
 local itensProcurar = {
     "Diamond Chillin Chili","Agarrini La Pallini","Diamond Agarrini La Pallini","Gold Agarrini La Pallini",
     "Graipussi Medussi","Diamond Graipussi Medussi","Gold Graipussi Medussi",
@@ -61,13 +167,15 @@ local itensProcurar = {
 }
 
 local function tentarPegarItem(desc)
+    if not desc:FindFirstAncestor("ActiveBrainrots") then return false end
+
     for _, nome in ipairs(itensProcurar) do
         if desc.Name:find(nome) then
             local targetCFrame = desc:GetPivot() or CFrame.new(desc.Position)
-            root.CFrame = targetCFrame * CFrame.new(0, 0, 0) -- mais alto ainda
-            
+            root.CFrame = targetCFrame * CFrame.new(0, 15, 0)
+
             print("🚀 Teleportado ACIMA de: " .. desc.Name)
-            
+
             task.wait(0.18)
             local prompt = desc:FindFirstChildWhichIsA("ProximityPrompt") or desc.Parent:FindFirstChildWhichIsA("ProximityPrompt")
             if prompt then
@@ -83,7 +191,6 @@ local function tentarPegarItem(desc)
     return false
 end
 
--- Monitoramento de itens
 workspace.DescendantAdded:Connect(function(desc)
     if desc:IsA("Model") or desc:IsA("Part") then
         task.wait(0.12)
@@ -175,10 +282,7 @@ end
 
 local function stopVFly()
     flying = false
-    if flyConnection then 
-        flyConnection:Disconnect() 
-        flyConnection = nil 
-    end
+    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
     if bv then bv:Destroy() bv = nil end
     if bg then bg:Destroy() bg = nil end
     if humanoid then
@@ -198,8 +302,6 @@ end
 -- ====================== INPUTS ======================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-
-    print("Tecla detectada: " .. input.KeyCode.Name)  -- Debug para ver se chega aqui
 
     if input.KeyCode == Enum.KeyCode.Q then
         if not posicaoSecundaria then
@@ -244,4 +346,4 @@ player.CharacterAdded:Connect(function(newChar)
     pcall(enableInfiniteJump)
 end)
 
-print("🎮 Script pronto! Olhe o console quando apertar teclas.")
+print("🎮 Tudo pronto! A lista completa foi restaurada.")
