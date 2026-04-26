@@ -77,7 +77,7 @@ local secretLabel = Instance.new("TextLabel")
 secretLabel.Size = UDim2.new(1, -30, 0, 32)
 secretLabel.Position = UDim2.new(0, 15, 0, 48)
 secretLabel.BackgroundTransparency = 1
-secretLabel.Text = "SecretText: Carregando..."
+secretLabel.Text = "Carregando..."
 secretLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
 secretLabel.TextXAlignment = Enum.TextXAlignment.Left
 secretLabel.TextScaled = true
@@ -89,7 +89,7 @@ local ogLabel = Instance.new("TextLabel")
 ogLabel.Size = UDim2.new(1, -30, 0, 32)
 ogLabel.Position = UDim2.new(0, 15, 0, 78)
 ogLabel.BackgroundTransparency = 1
-ogLabel.Text = "OGText: Carregando..."
+ogLabel.Text = "Carregando..."
 ogLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
 ogLabel.TextXAlignment = Enum.TextXAlignment.Left
 ogLabel.TextScaled = true
@@ -119,10 +119,10 @@ local function updateStatusGUI()
         local og = frameGui:FindFirstChild("OGText")
 
         if secret and secret:IsA("TextLabel") then
-            secretLabel.Text = "SecretText: " .. cleanText(secret.Text)
+            secretLabel.Text = "" .. cleanText(secret.Text)
         end
         if og and og:IsA("TextLabel") then
-            ogLabel.Text = "OGText: " .. cleanText(og.Text)
+            ogLabel.Text = "" .. cleanText(og.Text)
         end
     end)
 end
