@@ -107,7 +107,7 @@ local function enableUltraIPP()
         if prompt:IsA("ProximityPrompt") then
             prompt.HoldDuration = 0
             prompt.RequiresLineOfSight = false
-            prompt.MaxActivationDistance = 50
+            prompt.MaxActivationDistance = 25
         end
     end
 
@@ -115,7 +115,7 @@ local function enableUltraIPP()
         if desc:IsA("ProximityPrompt") then
             desc.HoldDuration = 0
             desc.RequiresLineOfSight = false
-            desc.MaxActivationDistance = 50
+            desc.MaxActivationDistance = 25
         end
     end)
     print("⚡ Ultra IPP ativado!")
