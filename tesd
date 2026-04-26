@@ -1,0 +1,241 @@
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local root = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+
+-- ====================== VARIÁVEIS ======================
+local posicaoInicial = root.CFrame
+local posicaoSecundaria = nil
+local alternarParaInicial = false
+
+local flying = false
+local flySpeed = 350
+
+local noclipConnection = nil
+local flyConnection = nil
+local bv, bg = nil, nil
+local infiniteJumpConnection = nil
+
+print("✅ Script carregado com Infinite Jump + Auto Pegar!")
+
+-- ====================== INFINITE JUMP ======================
+local function enableInfiniteJump()
+    if infiniteJumpConnection then return end
+    infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
+        if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end)
+    print("🐰 Infinite Jump ativado!")
+end
+
+-- ====================== ITENS PARA PEGAR ======================
+local itensProcurar = {
+    "Agarrini La Pallini","Diamond Agarrini La Pallini","Gold Agarrini La Pallini",
+    "Graipussi Medussi","Diamond Graipussi Medussi","Gold Graipussi Medussi",
+    "Tortuginni Dragonfrutini","Diamond Tortuginni Dragonfrutini","Gold Tortuginni Dragonfrutini",
+    "La Vacca Saturno Saturnita","Diamond La Vacca Saturno Saturnita","Gold La Vacca Saturno Saturnita",
+    "67","Diamond 67","Gold 67",
+    "Tic Tac Sahur","Diamond Tic Tac Sahur","Gold Tic Tac Sahur",
+    "Esok Sekolah","Diamond Esok Sekolah","Gold Esok Sekolah",
+    "Karkerk ar Kurkur","Diamond Karkerk ar Kurkur","Gold Karkerk ar Kurkur",
+    "La Grande Combinasion","Diamond La Grande Combinasion","Gold La Grande Combinasion",
+    "Nuclearo Dinosauro","Diamond Nuclearo Dinosauro","Gold Nuclearo Dinosauro",
+    "Nyan Cat","Diamond Nyan Cat","Gold Nyan Cat",
+    "Ketchuru And Musturu","Diamond Ketchuru And Musturu","Gold Ketchuru And Musturu",
+    "Dragon Cannelloni","Diamond Dragon Cannelloni","Gold Dragon Cannelloni",
+    "Meowl", "Diamond Meowl", "Gold Meowl",
+    "Ben", "Diamond Ben", "Gold Ben",
+    "Skibidi Toilet", "Diamond Skibidi Toilet", "Gold Skibidi Toilet",
+    "Strawberry Elephant", "Diamond Strawberry Elephant", "Gold Strawberry Elephant",
+    "Smurf Cat", "Diamond Smurf Cat", "Gold Smurf Cat"
+}
+
+-- ====================== AUTO PEGAR (ACIMA DO ITEM) ======================
+local function tentarPegarItem(desc)
+    for _, nome in ipairs(itensProcurar) do
+        if desc.Name:find(nome) then
+            local targetCFrame = desc:GetPivot() or CFrame.new(desc.Position)
+            root.CFrame = targetCFrame * CFrame.new(0, 12, 0)   -- Bem acima
+            
+            print("🚀 Teleportado ACIMA de: " .. desc.Name)
+
+            task.wait(0.15)
+
+            local prompt = desc:FindFirstChildWhichIsA("ProximityPrompt") 
+                        or desc.Parent:FindFirstChildWhichIsA("ProximityPrompt")
+
+            if prompt then
+                prompt.HoldDuration = 0
+                prompt:InputHoldBegin()
+                task.wait(0.08)
+                prompt:InputHoldEnd()
+                print("👆 E pressionado automaticamente em: " .. desc.Name)
+            end
+            return true
+        end
+    end
+    return false
+end
+
+workspace.DescendantAdded:Connect(function(desc)
+    if desc:IsA("Model") or desc:IsA("Part") then
+        task.wait(0.1)
+        tentarPegarItem(desc)
+    end
+end)
+
+for _, desc in ipairs(workspace:GetDescendants()) do
+    tentarPegarItem(desc)
+end
+
+-- ====================== ULTRA IPP ======================
+local function enableUltraIPP()
+    ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
+        prompt.HoldDuration = 0
+    end)
+
+    for _, prompt in ipairs(workspace:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            prompt.HoldDuration = 0
+            prompt.RequiresLineOfSight = false
+            prompt.MaxActivationDistance = 50
+        end
+    end
+
+    workspace.DescendantAdded:Connect(function(desc)
+        if desc:IsA("ProximityPrompt") then
+            desc.HoldDuration = 0
+            desc.RequiresLineOfSight = false
+            desc.MaxActivationDistance = 50
+        end
+    end)
+    print("⚡ Ultra IPP ativado!")
+end
+
+-- ====================== NOCLIP ======================
+local function enableNoclip()
+    if noclipConnection then return end
+    noclipConnection = RunService.Stepped:Connect(function()
+        if not character then return end
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end)
+    print("👻 Noclip ativado")
+end
+
+-- ====================== VFLY ======================
+local function startVFly()
+    if flyConnection then return end
+    flying = true
+    humanoid.PlatformStand = true
+
+    bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+    bv.Velocity = Vector3.new(0,0,0)
+    bv.Parent = root
+
+    bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+    bg.P = 15000
+    bg.CFrame = root.CFrame
+    bg.Parent = root
+
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not flying or not root then return end
+        local camera = workspace.CurrentCamera
+        local move = Vector3.new()
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then move += camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then move -= camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then move -= camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then move += camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move += Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move -= Vector3.new(0,1,0) end
+
+        bv.Velocity = move.Magnitude > 0 and (move.Unit * flySpeed) or Vector3.new(0,0,0)
+        bg.CFrame = camera.CFrame
+    end)
+
+    print("✈️ VFly ATIVADO!")
+end
+
+local function stopVFly()
+    flying = false
+    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    if bv then bv:Destroy() bv = nil end
+    if bg then bg:Destroy() bg = nil end
+    if humanoid then
+        humanoid.PlatformStand = false
+        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+    end
+    print("🛑 VFly DESATIVADO")
+end
+
+-- ====================== SERVER HOP ======================
+local function serverHop()
+    print("🔄 Server Hop...")
+    local placeId = game.PlaceId
+    TeleportService:Teleport(placeId, player)
+end
+
+-- ====================== INPUTS ======================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.Q then
+        if not posicaoSecundaria then
+            posicaoSecundaria = root.CFrame
+            root.CFrame = posicaoSecundaria * CFrame.new(0, 4, 0)
+            print("📍 Posição Secundária salva!")
+            alternarParaInicial = true
+        else
+            if alternarParaInicial then
+                root.CFrame = posicaoInicial * CFrame.new(0, 4, 0)
+                print("🚀 Teleportado para Posição Inicial")
+            else
+                root.CFrame = posicaoSecundaria * CFrame.new(0, 4, 0)
+                print("🚀 Teleportado para Posição Secundária")
+            end
+            alternarParaInicial = not alternarParaInicial
+        end
+
+    elseif input.KeyCode == Enum.KeyCode.T then
+        serverHop()
+
+    elseif input.KeyCode == Enum.KeyCode.F then
+        if flying then
+            stopVFly()
+        else
+            startVFly()
+        end
+    end
+end)
+
+-- ====================== INIT ======================
+enableNoclip()
+enableUltraIPP()
+enableInfiniteJump()
+
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    root = newChar:WaitForChild("HumanoidRootPart")
+    humanoid = newChar:WaitForChild("Humanoid")
+    task.wait(0.5)
+    enableNoclip()
+    enableInfiniteJump()
+end)
+
+print("🎮 Script corrigido e pronto!")
+print("• Infinite Jump (Space)")
+print("• Auto Pegar + Teleporte acima")
+print("• Q = Alternar posições | F = VFly | T = Server Hop")
