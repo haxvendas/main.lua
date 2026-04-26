@@ -19,23 +19,26 @@ local flySpeed = 350
 
 local noclipConnection = nil
 local flyConnection = nil
-local bv, bg = nil, nil
+local bv = nil
+local bg = nil
 local infiniteJumpConnection = nil
 
-print("✅ Script carregado com Infinite Jump + Auto Pegar!")
+print("✅ Script carregado!")
 
 -- ====================== INFINITE JUMP ======================
 local function enableInfiniteJump()
     if infiniteJumpConnection then return end
     infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
-        if humanoid then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
+        pcall(function()
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
     end)
     print("🐰 Infinite Jump ativado!")
 end
 
--- ====================== ITENS PARA PEGAR ======================
+-- ====================== AUTO PEGAR ======================
 local itensProcurar = {
     "Agarrini La Pallini","Diamond Agarrini La Pallini","Gold Agarrini La Pallini",
     "Graipussi Medussi","Diamond Graipussi Medussi","Gold Graipussi Medussi",
@@ -57,26 +60,22 @@ local itensProcurar = {
     "Smurf Cat", "Diamond Smurf Cat", "Gold Smurf Cat"
 }
 
--- ====================== AUTO PEGAR (ACIMA DO ITEM) ======================
 local function tentarPegarItem(desc)
     for _, nome in ipairs(itensProcurar) do
         if desc.Name:find(nome) then
             local targetCFrame = desc:GetPivot() or CFrame.new(desc.Position)
-            root.CFrame = targetCFrame * CFrame.new(0, 12, 0)   -- Bem acima
+            root.CFrame = targetCFrame * CFrame.new(0, 15, 0) -- mais alto ainda
             
             print("🚀 Teleportado ACIMA de: " .. desc.Name)
-
-            task.wait(0.15)
-
-            local prompt = desc:FindFirstChildWhichIsA("ProximityPrompt") 
-                        or desc.Parent:FindFirstChildWhichIsA("ProximityPrompt")
-
+            
+            task.wait(0.18)
+            local prompt = desc:FindFirstChildWhichIsA("ProximityPrompt") or desc.Parent:FindFirstChildWhichIsA("ProximityPrompt")
             if prompt then
                 prompt.HoldDuration = 0
                 prompt:InputHoldBegin()
-                task.wait(0.08)
+                task.wait(0.1)
                 prompt:InputHoldEnd()
-                print("👆 E pressionado automaticamente em: " .. desc.Name)
+                print("👆 Pegou: " .. desc.Name)
             end
             return true
         end
@@ -84,21 +83,24 @@ local function tentarPegarItem(desc)
     return false
 end
 
+-- Monitoramento de itens
 workspace.DescendantAdded:Connect(function(desc)
     if desc:IsA("Model") or desc:IsA("Part") then
-        task.wait(0.1)
-        tentarPegarItem(desc)
+        task.wait(0.12)
+        pcall(tentarPegarItem, desc)
     end
 end)
 
 for _, desc in ipairs(workspace:GetDescendants()) do
-    tentarPegarItem(desc)
+    pcall(tentarPegarItem, desc)
 end
 
--- ====================== ULTRA IPP ======================
+-- ====================== IPP ======================
 local function enableUltraIPP()
-    ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
-        prompt.HoldDuration = 0
+    pcall(function()
+        ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
+            prompt.HoldDuration = 0
+        end)
     end)
 
     for _, prompt in ipairs(workspace:GetDescendants()) do
@@ -123,12 +125,14 @@ end
 local function enableNoclip()
     if noclipConnection then return end
     noclipConnection = RunService.Stepped:Connect(function()
-        if not character then return end
-        for _, part in ipairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
+        pcall(function()
+            if not character then return end
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
             end
-        end
+        end)
     end)
     print("👻 Noclip ativado")
 end
@@ -171,7 +175,10 @@ end
 
 local function stopVFly()
     flying = false
-    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    if flyConnection then 
+        flyConnection:Disconnect() 
+        flyConnection = nil 
+    end
     if bv then bv:Destroy() bv = nil end
     if bg then bg:Destroy() bg = nil end
     if humanoid then
@@ -191,6 +198,8 @@ end
 -- ====================== INPUTS ======================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
+
+    print("Tecla detectada: " .. input.KeyCode.Name)  -- Debug para ver se chega aqui
 
     if input.KeyCode == Enum.KeyCode.Q then
         if not posicaoSecundaria then
@@ -222,20 +231,17 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- ====================== INIT ======================
-enableNoclip()
-enableUltraIPP()
-enableInfiniteJump()
+pcall(enableNoclip)
+pcall(enableUltraIPP)
+pcall(enableInfiniteJump)
 
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     root = newChar:WaitForChild("HumanoidRootPart")
     humanoid = newChar:WaitForChild("Humanoid")
     task.wait(0.5)
-    enableNoclip()
-    enableInfiniteJump()
+    pcall(enableNoclip)
+    pcall(enableInfiniteJump)
 end)
 
-print("🎮 Script corrigido e pronto!")
-print("• Infinite Jump (Space)")
-print("• Auto Pegar + Teleporte acima")
-print("• Q = Alternar posições | F = VFly | T = Server Hop")
+print("🎮 Script pronto! Olhe o console quando apertar teclas.")
