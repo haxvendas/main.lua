@@ -137,14 +137,14 @@ end
 
 -- ====================== AUTO PEGAR (SÓ EM ActiveBrainrots) ======================
 local itensProcurar = {
-    "Diamond Chillin Chili","Agarrini La Pallini","Diamond Agarrini La Pallini","Gold Agarrini La Pallini",
-    "Graipussi Medussi","Diamond Graipussi Medussi","Gold Graipussi Medussi",
-    "Tortuginni Dragonfrutini","Diamond Tortuginni Dragonfrutini","Gold Tortuginni Dragonfrutini",
+    "Diamond Agarrini La Pallini","Gold Agarrini La Pallini",
+    "Diamond Graipussi Medussi","Gold Graipussi Medussi",
+    "Diamond Tortuginni Dragonfrutini","Gold Tortuginni Dragonfrutini",
     "La Vacca Saturno Saturnita","Diamond La Vacca Saturno Saturnita","Gold La Vacca Saturno Saturnita",
     "67","Diamond 67","Gold 67",
     "Tic Tac Sahur","Diamond Tic Tac Sahur","Gold Tic Tac Sahur",
     "Esok Sekolah","Diamond Esok Sekolah","Gold Esok Sekolah",
-    "Karkerk ar Kurkur","Diamond Karkerk ar Kurkur","Gold Karkerk ar Kurkur",
+    "Karkerkar Kurkur","Diamond Karkerkar Kurkur","Gold Karkerkar Kurkur",
     "La Grande Combinasion","Diamond La Grande Combinasion","Gold La Grande Combinasion",
     "Nuclearo Dinosauro","Diamond Nuclearo Dinosauro","Gold Nuclearo Dinosauro",
     "Nyan Cat","Diamond Nyan Cat","Gold Nyan Cat",
