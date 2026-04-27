@@ -163,7 +163,7 @@ local function tentarPegarItem(desc)
     for _, nome in ipairs(itensProcurar) do
         if desc.Name:find(nome) then
             local targetCFrame = desc:GetPivot() or CFrame.new(desc.Position)
-            root.CFrame = targetCFrame * CFrame.new(0, 15, 0)
+            root.CFrame = targetCFrame * CFrame.new(0, 0, 0)
 
             print("🚀 Teleportado ACIMA de: " .. desc.Name)
 
