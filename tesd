@@ -2,6 +2,8 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local TweenService = game:GetService("TweenService")
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -20,10 +22,48 @@ local noclipConnection = nil
 local flyConnection = nil
 local bv = nil
 local bg = nil
-local infiniteJumpConnection = nil
+local isProcessing = false 
+-- ====================== IPP ======================
+local function enableUltraIPP()
+    pcall(function()
+        ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
+            prompt.HoldDuration = 0
+        end)
+    end)
 
-print("✅ Script carregado com GUI elegante!")
+    for _, prompt in ipairs(workspace:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            prompt.HoldDuration = 0
+            prompt.RequiresLineOfSight = false
+            prompt.MaxActivationDistance = 25
+        end
+    end
 
+    workspace.DescendantAdded:Connect(function(desc)
+        if desc:IsA("ProximityPrompt") then
+            desc.HoldDuration = 0
+            desc.RequiresLineOfSight = false
+            desc.MaxActivationDistance = 25
+        end
+    end)
+    print("⚡ Ultra IPP ativado!")
+end
+
+-- ====================== NOCLIP ======================
+local function enableNoclip()
+    if noclipConnection then return end
+    noclipConnection = RunService.Stepped:Connect(function()
+        pcall(function()
+            if not character then return end
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
+        end)
+    end)
+    print("👻 Noclip ativado")
+end
 -- ====================== GUI ELEGANTE - CANTO INFERIOR DIREITO ======================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BrainrotStatus"
@@ -135,190 +175,207 @@ local function enableInfiniteJump()
     print("🐰 Infinite Jump ativado!")
 end
 
--- ====================== AUTO PEGAR (SÓ EM ActiveBrainrots) ======================
+-- Tabela de busca rápida
 local itensProcurar = {
-    "Diamond Agarrini La Pallini","Gold Agarrini La Pallini",
-    "Diamond Graipussi Medussi","Gold Graipussi Medussi",
-    "Diamond Tortuginni Dragonfrutini","Gold Tortuginni Dragonfrutini",
-    "La Vacca Saturno Saturnita","Diamond La Vacca Saturno Saturnita","Gold La Vacca Saturno Saturnita",
-    "67","Diamond 67","Gold 67",
-    "Tic Tac Sahur","Diamond Tic Tac Sahur","Gold Tic Tac Sahur",
-    "Esok Sekolah","Diamond Esok Sekolah","Gold Esok Sekolah",
-    "Karkerkar Kurkur","Diamond Karkerkar Kurkur","Gold Karkerkar Kurkur",
-    "La Grande Combinasion","Diamond La Grande Combinasion","Gold La Grande Combinasion",
-    "Nuclearo Dinosauro","Diamond Nuclearo Dinosauro","Gold Nuclearo Dinosauro",
-    "Nyan Cat","Diamond Nyan Cat","Gold Nyan Cat",
-    "Ketchuru And Musturu","Diamond Ketchuru And Musturu","Gold Ketchuru And Musturu",
-    "Dragon Cannelloni","Diamond Dragon Cannelloni","Gold Dragon Cannelloni",
-    "Meowl", "Diamond Meowl", "Gold Meowl",
-    "Ben", "Diamond Ben", "Gold Ben",
-    "Skibidi Toilet", "Diamond Skibidi Toilet", "Gold Skibidi Toilet",
-    "Strawberry Elephant", "Diamond Strawberry Elephant", "Gold Strawberry Elephant",
-    "Smurf Cat", "Diamond Smurf Cat", "Gold Smurf Cat"
+    ["Nyan Cat"] = true, ["Diamond Nyan Cat"] = true, ["Gold Nyan Cat"] = true,
+    ["Ketchuru And Musturu"] = true, ["Diamond Ketchuru And Musturu"] = true, ["Gold Ketchuru And Musturu"] = true,
+    ["Dragon Cannelloni"] = true, ["Diamond Dragon Cannelloni"] = true, ["Gold Dragon Cannelloni"] = true,
+    ["Meowl"] = true, ["Diamond Meowl"] = true, ["Gold Meowl"] = true,
+    ["Ben"] = true, ["Diamond Ben"] = true, ["Gold Ben"] = true,
+    ["Skibidi Toilet"] = true, ["Diamond Skibidi Toilet"] = true, ["Gold Skibidi Toilet"] = true,
+    ["Strawberry Elephant"] = true, ["Diamond Strawberry Elephant"] = true, ["Gold Strawberry Elephant"] = true,
+    ["Smurf Cat"] = true, ["Diamond Smurf Cat"] = true, ["Gold Smurf Cat"] = true,
+    ["Diamond Agarrini La Pallini"] = true, ["Gold Agarrini La Pallini"] = true,
+    ["Diamond Graipussi Medussi"] = true, ["Gold Graipussi Medussi"] = true,
+    ["Diamond Tortuginni Dragonfrutini"] = true, ["Gold Tortuginni Dragonfrutini"] = true,
+    ["La Vacca Saturno Saturnita"] = true, ["Diamond La Vacca Saturno Saturnita"] = true, ["Gold La Vacca Saturno Saturnita"] = true,
+    ["67"] = true, ["Diamond 67"] = true, ["Gold 67"] = true,
+    ["Tic Tac Sahur"] = true, ["Diamond Tic Tac Sahur"] = true, ["Gold Tic Tac Sahur"] = true,
+    ["Esok Sekolah"] = true, ["Diamond Esok Sekolah"] = true, ["Gold Esok Sekolah"] = true,
+    ["Karkerkar Kurkur"] = true, ["Diamond Karkerkar Kurkur"] = true, ["Gold Karkerkar Kurkur"] = true,
+    ["La Grande Combinasion"] = true, ["Diamond La Grande Combinasion"] = true, ["Gold La Grande Combinasion"] = true,
+    ["Nuclearo Dinosauro"] = true, ["Diamond Nuclearo Dinosauro"] = true, ["Gold Nuclearo Dinosauro"] = true
+   
 }
 
-local function tentarPegarItem(desc)
-    if not desc:FindFirstAncestor("ActiveBrainrots") then return false end
+print("🎯 Script v7 (Foco Total) carregado!")
 
-    for _, nome in ipairs(itensProcurar) do
-        if desc.Name:find(nome) then
-            local targetCFrame = desc:GetPivot() or CFrame.new(desc.Position)
-            root.CFrame = targetCFrame * CFrame.new(0, 0, 0)
+-- ====================== SISTEMA DE NOTIFICAÇÃO ======================
+local notifyGui = Instance.new("ScreenGui")
+notifyGui.Name = "ManusNotifications"
+notifyGui.Parent = player:WaitForChild("PlayerGui")
 
-            print("🚀 Teleportado ACIMA de: " .. desc.Name)
+local function notify(title, text, color)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 250, 0, 60)
+    frame.Position = UDim2.new(1, 10, 0.1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    frame.BorderSizePixel = 0
+    frame.Parent = notifyGui
+    
+    local corner = Instance.new("UICorner", frame)
+    corner.CornerRadius = UDim.new(0, 8)
+    
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = color or Color3.fromRGB(255, 215, 0)
+    stroke.Thickness = 2
+    
+    local tLabel = Instance.new("TextLabel", frame)
+    tLabel.Size = UDim2.new(1, -10, 0, 25)
+    tLabel.Position = UDim2.new(0, 10, 0, 5)
+    tLabel.BackgroundTransparency = 1
+    tLabel.Text = title
+    tLabel.TextColor3 = color or Color3.fromRGB(255, 215, 0)
+    tLabel.Font = Enum.Font.GothamBold
+    tLabel.TextSize = 14
+    tLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local dLabel = Instance.new("TextLabel", frame)
+    dLabel.Size = UDim2.new(1, -10, 0, 25)
+    dLabel.Position = UDim2.new(0, 10, 0, 30)
+    dLabel.BackgroundTransparency = 1
+    dLabel.Text = text
+    dLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dLabel.Font = Enum.Font.Gotham
+    dLabel.TextSize = 12
+    dLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-            task.wait(0.18)
-            local prompt = desc:FindFirstChildWhichIsA("ProximityPrompt") or desc.Parent:FindFirstChildWhichIsA("ProximityPrompt")
-            if prompt then
-                prompt.HoldDuration = 0
-                prompt:InputHoldBegin()
-                task.wait(0.1)
-                prompt:InputHoldEnd()
-                print("👆 Pegou: " .. desc.Name)
-            end
-            return true
-        end
-    end
-    return false
+    local sound = Instance.new("Sound", workspace)
+    sound.SoundId = "rbxassetid://203691837"
+    sound.Volume = 0.5
+    sound:Play()
+    game:GetService("Debris"):AddItem(sound, 2)
+
+    TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(1, -260, 0.1, 0)}):Play()
+    
+    task.delay(3, function()
+        local out = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Position = UDim2.new(1, 10, 0.1, 0)})
+        out:Play()
+        out.Completed:Connect(function() frame:Destroy() end)
+    end)
 end
 
-workspace.DescendantAdded:Connect(function(desc)
-    if desc:IsA("Model") or desc:IsA("Part") then
-        task.wait(0.12)
-        pcall(tentarPegarItem, desc)
+-- ====================== FUNÇÕES AUXILIARES ======================
+local function teleportToEndPart()
+    local endPart = workspace:FindFirstChild("EndPart")
+    if endPart then
+        root.CFrame = endPart:GetPivot()
+    end
+end
+
+local function simularCliqueE()
+    for i = 1, 3 do
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        task.wait(0.05)
+    end
+end
+
+-- ====================== LÓGICA DE COLETA (FOCO EXCLUSIVO) ======================
+local function processarItem(item)
+    if isProcessing or not item or not item.Parent then return end
+    
+    -- Verifica se o item está dentro do ActiveBrainrots
+    if not item:FindFirstAncestor("ActiveBrainrots") then return end
+
+    local encontrado = false
+    for nome, _ in pairs(itensProcurar) do
+        if item.Name:find(nome) then
+            encontrado = true
+            break
+        end
+    end
+
+    if encontrado then
+        isProcessing = true
+        notify("ITEM DETECTADO!", "Coletando: " .. item.Name, Color3.fromRGB(0, 255, 120))
+        
+        local targetCFrame = item:GetPivot()
+        root.CFrame = targetCFrame
+        task.wait(0.2)
+        simularCliqueE()
+        task.wait(0.1)
+        teleportToEndPart()
+        isProcessing = false
+    end
+end
+
+-- Monitoramento por Evento (Apenas no ActiveBrainrots)
+local activeBrainrots = workspace:WaitForChild("ActiveBrainrots", 10)
+if activeBrainrots then
+    activeBrainrots.ChildAdded:Connect(function(child)
+        task.wait(0.1)
+        processarItem(child)
+    end)
+end
+
+-- Verificação periódica leve (Apenas no ActiveBrainrots)
+task.spawn(function()
+    while true do
+        if not isProcessing and activeBrainrots then
+            local children = activeBrainrots:GetChildren()
+            for _, child in ipairs(children) do
+                processarItem(child)
+                if isProcessing then break end
+            end
+        end
+        task.wait(2)
     end
 end)
-
-for _, desc in ipairs(workspace:GetDescendants()) do
-    pcall(tentarPegarItem, desc)
-end
-
--- ====================== IPP ======================
-local function enableUltraIPP()
-    pcall(function()
-        ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
-            prompt.HoldDuration = 0
-        end)
-    end)
-
-    for _, prompt in ipairs(workspace:GetDescendants()) do
-        if prompt:IsA("ProximityPrompt") then
-            prompt.HoldDuration = 0
-            prompt.RequiresLineOfSight = false
-            prompt.MaxActivationDistance = 25
-        end
-    end
-
-    workspace.DescendantAdded:Connect(function(desc)
-        if desc:IsA("ProximityPrompt") then
-            desc.HoldDuration = 0
-            desc.RequiresLineOfSight = false
-            desc.MaxActivationDistance = 25
-        end
-    end)
-    print("⚡ Ultra IPP ativado!")
-end
-
--- ====================== NOCLIP ======================
-local function enableNoclip()
-    if noclipConnection then return end
-    noclipConnection = RunService.Stepped:Connect(function()
-        pcall(function()
-            if not character then return end
-            for _, part in ipairs(character:GetDescendants()) do
-                if part:IsA("BasePart") and part.CanCollide then
-                    part.CanCollide = false
-                end
-            end
-        end)
-    end)
-    print("👻 Noclip ativado")
-end
 
 -- ====================== VFLY ======================
 local function startVFly()
     if flyConnection then return end
     flying = true
     humanoid.PlatformStand = true
-
-    bv = Instance.new("BodyVelocity")
+    bv = Instance.new("BodyVelocity", root)
     bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-    bv.Velocity = Vector3.new(0,0,0)
-    bv.Parent = root
-
-    bg = Instance.new("BodyGyro")
+    bg = Instance.new("BodyGyro", root)
     bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
     bg.P = 15000
-    bg.CFrame = root.CFrame
-    bg.Parent = root
-
+    
     flyConnection = RunService.RenderStepped:Connect(function()
         if not flying or not root then return end
         local camera = workspace.CurrentCamera
         local move = Vector3.new()
-
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then move += camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then move -= camera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then move -= camera.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then move += camera.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move += Vector3.new(0,1,0) end
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move -= Vector3.new(0,1,0) end
-
         bv.Velocity = move.Magnitude > 0 and (move.Unit * flySpeed) or Vector3.new(0,0,0)
         bg.CFrame = camera.CFrame
     end)
-
-    print("✈️ VFly ATIVADO!")
-end
-
-local function stopVFly()
-    flying = false
-    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-    if bv then bv:Destroy() bv = nil end
-    if bg then bg:Destroy() bg = nil end
-    if humanoid then
-        humanoid.PlatformStand = false
-        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-    end
-    print("🛑 VFly DESATIVADO")
-end
-
--- ====================== SERVER HOP ======================
-local function serverHop()
-    print("🔄 Server Hop...")
-    local placeId = game.PlaceId
-    TeleportService:Teleport(placeId, player)
 end
 
 -- ====================== INPUTS ======================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-
     if input.KeyCode == Enum.KeyCode.Q then
         if not posicaoSecundaria then
             posicaoSecundaria = root.CFrame
             root.CFrame = posicaoSecundaria * CFrame.new(0, 4, 0)
-            print("📍 Posição Secundária salva!")
             alternarParaInicial = true
+            notify("POSIÇÃO SALVA", "Posição secundária definida!", Color3.fromRGB(255, 215, 0))
         else
-            if alternarParaInicial then
-                root.CFrame = posicaoInicial * CFrame.new(0, 4, 0)
-                print("🚀 Teleportado para Posição Inicial")
-            else
-                root.CFrame = posicaoSecundaria * CFrame.new(0, 4, 0)
-                print("🚀 Teleportado para Posição Secundária")
-            end
+            root.CFrame = (alternarParaInicial and posicaoInicial or posicaoSecundaria) * CFrame.new(0, 4, 0)
             alternarParaInicial = not alternarParaInicial
+            task.wait(0.1)
+            simularCliqueE()
         end
-
-    elseif input.KeyCode == Enum.KeyCode.T then
-        serverHop()
-
     elseif input.KeyCode == Enum.KeyCode.F then
-        if flying then
-            stopVFly()
-        else
-            startVFly()
+        if flying then 
+            flying = false
+            if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+            if bv then bv:Destroy() end
+            if bg then bg:Destroy() end
+            humanoid.PlatformStand = false
+            notify("FLY", "Desativado", Color3.fromRGB(255, 80, 80))
+        else 
+            startVFly() 
+            notify("FLY", "Ativado", Color3.fromRGB(0, 255, 120))
         end
     end
 end)
@@ -337,5 +394,8 @@ player.CharacterAdded:Connect(function(newChar)
     pcall(enableInfiniteJump)
 end)
 
-print("🎮 Tudo pronto! A lista completa foi restaurada.");
+
+task.wait(0.5)
+startVFly()
+notify("SCRIPT CARREGADO", "Foco: ActiveBrainrots & EndPart", Color3.fromRGB(0, 180, 255))
 loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
