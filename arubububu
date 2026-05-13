@@ -1,0 +1,42 @@
+-- Configurações de Ativação
+local InfJumpEnabled = true
+local InstaPromptEnabled = true
+
+-- Serviços do Roblox
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- [ FUNÇÃO: INSTA PROXIMITY PROMPT ]
+-- Altera a duração da interação para 0 instantaneamente
+local function applyInstaPrompt(obj)
+    if obj:IsA("ProximityPrompt") and InstaPromptEnabled then
+        obj.HoldDuration = 0
+    end
+end
+
+-- Monitora prompts atuais e futuros
+for _, descendant in ipairs(game:GetDescendants()) do
+    applyInstaPrompt(descendant)
+end
+
+game.DescendantAdded:Connect(function(descendant)
+    applyInstaPrompt(descendant)
+end)
+
+-- [ FUNÇÃO: INFINITE JUMP ]
+-- Detecta o pedido de pulo e força o estado de pulo no Humanoid
+UserInputService.JumpRequest:Connect(function()
+    if InfJumpEnabled then
+        local player = game.Players.LocalPlayer
+        local character = player.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+end);
+loadstring(game:HttpGet("https://raw.githubusercontent.com/TheRealXORA/Roblox/refs/heads/Main/Scripts%20/Universal%20/Fly.luau", true))();
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
+
