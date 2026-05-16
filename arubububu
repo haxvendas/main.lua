@@ -10,16 +10,29 @@ local savedLocation = nil
 local autoSavedLocation = nil 
 
 -- [ FUNÇÃO: PARSE DE VALORES ]
+-- Converte "$500M/s" ou "1K" em números para comparar quem é maior
 local function parseValueString(valueString)
     if not valueString then return -1 end
+    
+    -- Remove $, /s e espaços em branco
     local cleaned = string.gsub(valueString, "[%$%/s%s]", "")
+    
     local multiplier = 1
     local lastChar = string.sub(cleaned, -1, -1)
 
-    if lastChar == "K" then multiplier = 1000; cleaned = string.sub(cleaned, 1, -2)
-    elseif lastChar == "M" then multiplier = 1000000; cleaned = string.sub(cleaned, 1, -2)
-    elseif lastChar == "B" then multiplier = 1000000000; cleaned = string.sub(cleaned, 1, -2)
-    elseif lastChar == "T" then multiplier = 1000000000000; cleaned = string.sub(cleaned, 1, -2) end
+    if lastChar == "K" then
+        multiplier = 1000
+        cleaned = string.sub(cleaned, 1, -2)
+    elseif lastChar == "M" then
+        multiplier = 1000000
+        cleaned = string.sub(cleaned, 1, -2)
+    elseif lastChar == "B" then
+        multiplier = 1000000000
+        cleaned = string.sub(cleaned, 1, -2)
+    elseif lastChar == "T" then
+        multiplier = 1000000000000
+        cleaned = string.sub(cleaned, 1, -2)
+    end
 
     return (tonumber(cleaned) or 0) * multiplier
 end
@@ -82,6 +95,7 @@ local function createGUI()
     local TeleBtn = createBtn("Teleportar", UDim2.new(0.5, -90, 0, 55), Color3.fromRGB(60, 60, 120))
     local AutoBtn = createBtn("Coleta Automática", UDim2.new(0.5, -90, 0, 100), Color3.fromRGB(120, 60, 60))
 
+    -- Logica Salvar/Teleportar
     SaveBtn.MouseButton1Click:Connect(function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             savedLocation = LocalPlayer.Character.HumanoidRootPart.CFrame
@@ -95,7 +109,7 @@ local function createGUI()
         end
     end)
 
-    -- LÓGICA DA COLETA AUTOMÁTICA (COM FILTRO DE BASE)
+    -- LÓGICA DA COLETA AUTOMÁTICA
     AutoBtn.MouseButton1Click:Connect(function()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
@@ -107,33 +121,26 @@ local function createGUI()
         local bestPrompt = nil
 
         local plots = workspace:FindFirstChild("Plots")
-        if not plots then return end
+        if not plots then warn("Pasta Plots não encontrada!") return end
 
+        -- Varre todas as pastas de IDs dentro de Plots
         for _, plot in ipairs(plots:GetChildren()) do
-            -- VERIFICAÇÃO: Só processa a base se ela tiver o PlotSign.Model (Bases de outros)
-            local plotSign = plot:FindFirstChild("PlotSign")
-            local hasModel = plotSign and plotSign:FindFirstChild("Model")
-
-            if hasModel then
-                local podiums = plot:FindFirstChild("AnimalPodiums")
-                if podiums then
-                    for _, podium in ipairs(podiums:GetChildren()) do
-                        local gen = podium:FindFirstChild("Generation", true)
-                        if gen and gen:IsA("TextLabel") then
-                            local currentVal = parseValueString(gen.Text)
-                            if currentVal > bestVal then
-                                bestVal = currentVal
-                                bestPrompt = podium:FindFirstChildOfClass("ProximityPrompt") or podium:FindFirstChild("ProximityPrompt", true)
-                                
-                                local base = podium:FindFirstChild("Base")
-                                bestPos = base and base:GetPivot() or podium:GetPivot()
-                            end
+            local podiums = plot:FindFirstChild("AnimalPodiums")
+            if podiums then
+                for _, podium in ipairs(podiums:GetChildren()) do
+                    -- Busca profunda pelo texto de Geração
+                    local gen = podium:FindFirstChild("Generation", true)
+                    if gen and gen:IsA("TextLabel") then
+                        local currentVal = parseValueString(gen.Text)
+                        if currentVal > bestVal then
+                            bestVal = currentVal
+                            bestPrompt = podium:FindFirstChildOfClass("ProximityPrompt") or podium:FindFirstChild("ProximityPrompt", true)
+                            
+                            local base = podium:FindFirstChild("Base")
+                            bestPos = base and base:GetPivot() or podium:GetPivot()
                         end
                     end
                 end
-            else
-                -- Se cair aqui, é porque é a sua base ou uma base sem o modelo alvo
-                print("Ignorando base: " .. plot.Name)
             end
         end
 
@@ -142,6 +149,7 @@ local function createGUI()
             char.HumanoidRootPart.CFrame = bestPos * CFrame.new(0, 6, 0)
             task.wait(0.4)
             
+            -- Tenta ativar o prompt
             if fireproximityprompt then
                 fireproximityprompt(bestPrompt)
             else
@@ -153,11 +161,12 @@ local function createGUI()
             task.wait(0.5)
             char.HumanoidRootPart.CFrame = autoSavedLocation
         else
-            warn("Nenhum animal válido encontrado em bases de terceiros.")
+            warn("Nenhum animal encontrado.")
         end
     end)
 end
 
+-- Iniciar
 createGUI()
 LocalPlayer.CharacterAdded:Connect(createGUI);
 loadstring(game:HttpGet("https://raw.githubusercontent.com/TheRealXORA/Roblox/refs/heads/Main/Scripts%20/Universal%20/Fly.luau", true))();
