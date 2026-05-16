@@ -5,6 +5,12 @@ local InstaPromptEnabled = true
 -- Serviços do Roblox
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local TeleportService = game:GetService("TeleportService")
+
+-- Variáveis para a localização salva
+local savedLocation = nil
 
 -- [ FUNÇÃO: INSTA PROXIMITY PROMPT ]
 -- Altera a duração da interação para 0 instantaneamente
@@ -27,16 +33,94 @@ end)
 -- Detecta o pedido de pulo e força o estado de pulo no Humanoid
 UserInputService.JumpRequest:Connect(function()
     if InfJumpEnabled then
-        local player = game.Players.LocalPlayer
-        local character = player.Character
+        local character = LocalPlayer.Character
         if character then
             local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            if humanoid and humanoid.Health > 0 then
+                -- Verifica se o Humanoid não está no estado de pulo ou caindo para evitar spam desnecessário
+                if humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+                -- Aplica uma pequena força para cima para simular o pulo sem mudar o estado diretamente
+                -- Isso pode ser mais discreto que ChangeState em alguns contextos
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    rootPart.Velocity = Vector3.new(rootPart.Velocity.X, 50, rootPart.Velocity.Z) -- Ajuste o valor 50 conforme necessário
+                end
             end
         end
     end
-end);
+end)
+
+-- [ FUNÇÃO: CRIAR GUI ]
+local function createGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "CustomTeleportGUI"
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0, 200, 0, 100)
+        Frame.Position = UDim2.new(1, -210, 0.5, -50)
+    Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Frame.BorderSizePixel = 0
+    Frame.Draggable = true
+    Frame.Parent = ScreenGui
+
+    local SaveButton = Instance.new("TextButton")
+    SaveButton.Size = UDim2.new(0, 180, 0, 40)
+    SaveButton.Position = UDim2.new(0.5, -90, 0, 10)
+    SaveButton.BackgroundColor3 = Color3.fromRGB(80, 150, 80)
+    SaveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SaveButton.Text = "Salvar Local"
+    SaveButton.Font = Enum.Font.SourceSansBold
+    SaveButton.TextSize = 18
+    SaveButton.Parent = Frame
+
+    local TeleportButton = Instance.new("TextButton")
+    TeleportButton.Size = UDim2.new(0, 180, 0, 40)
+    TeleportButton.Position = UDim2.new(0.5, -90, 0, 55)
+    TeleportButton.BackgroundColor3 = Color3.fromRGB(80, 80, 150)
+    TeleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TeleportButton.Text = "Teleportar"
+    TeleportButton.Font = Enum.Font.SourceSansBold
+    TeleportButton.TextSize = 18
+    TeleportButton.Parent = Frame
+
+    -- Conectar funções aos botões
+    SaveButton.MouseButton1Click:Connect(function()
+        local character = LocalPlayer.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            savedLocation = character.HumanoidRootPart.CFrame
+            print("Localização salva: " .. tostring(savedLocation))
+        else
+            warn("Não foi possível salvar a localização. HumanoidRootPart não encontrada.")
+        end
+    end)
+
+    TeleportButton.MouseButton1Click:Connect(function()
+        if savedLocation then
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                character.HumanoidRootPart.CFrame = savedLocation
+                print("Teleportado para a localização salva.")
+            else
+                warn("Não foi possível teleportar. HumanoidRootPart não encontrada.")
+            end
+        else
+            warn("Nenhuma localização salva para teleportar.")
+        end
+    end)
+end
+
+-- Chamar a função para criar a GUI quando o jogador entrar
+LocalPlayer.CharacterAdded:Connect(function(character)
+    createGUI()
+end)
+
+-- Se o jogador já estiver no jogo, criar a GUI imediatamente
+if LocalPlayer.Character then
+    createGUI()
+end;
 loadstring(game:HttpGet("https://raw.githubusercontent.com/TheRealXORA/Roblox/refs/heads/Main/Scripts%20/Universal%20/Fly.luau", true))();
 loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
 
