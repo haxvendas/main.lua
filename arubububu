@@ -123,24 +123,53 @@ local function createGUI()
         local plots = workspace:FindFirstChild("Plots")
         if not plots then warn("Pasta Plots não encontrada!") return end
 
+        -- Nicks em letras minúsculas para comparação precisa
+        local myName = LocalPlayer.Name:lower()
+        local myDisplayName = LocalPlayer.DisplayName:lower()
+
         -- Varre todas as pastas de IDs dentro de Plots
         for _, plot in ipairs(plots:GetChildren()) do
-            local podiums = plot:FindFirstChild("AnimalPodiums")
-            if podiums then
-                for _, podium in ipairs(podiums:GetChildren()) do
-                    -- Busca profunda pelo texto de Geração
-                    local gen = podium:FindFirstChild("Generation", true)
-                    if gen and gen:IsA("TextLabel") then
-                        local currentVal = parseValueString(gen.Text)
-                        if currentVal > bestVal then
-                            bestVal = currentVal
-                            bestPrompt = podium:FindFirstChildOfClass("ProximityPrompt") or podium:FindFirstChild("ProximityPrompt", true)
-                            
-                            local base = podium:FindFirstChild("Base")
-                            bestPos = base and base:GetPivot() or podium:GetPivot()
+            
+            local plotSign = plot:FindFirstChild("PlotSign")
+            local surfaceGui = plotSign and plotSign:FindFirstChild("SurfaceGui")
+            local frameGui = surfaceGui and surfaceGui:FindFirstChild("Frame")
+            local textLabel = frameGui and frameGui:FindFirstChildOfClass("TextLabel")
+            
+            local isMyPlot = false
+            
+            if textLabel then
+                -- Transforma o texto da placa em minúsculo e remove o "'s base" e espaços extras
+                local signText = textLabel.Text:lower()
+                local ownerName = string.gsub(signText, "'s base", "")
+                ownerName = string.gsub(ownerName, "%s", "") -- remove espaços se houver
+
+                -- Se o nome limpo da placa bater com seu Nick ou DisplayName, ignora
+                if ownerName == myName or ownerName == myDisplayName or string.find(signText, myName) or string.find(signText, myDisplayName) then
+                    isMyPlot = true
+                end
+            end
+
+            -- Só busca os animais se NÃO for a sua base
+            if not isMyPlot then
+                local podiums = plot:FindFirstChild("AnimalPodiums")
+                if podiums then
+                    for _, podium in ipairs(podiums:GetChildren()) do
+                        -- Busca profunda pelo texto de Geração
+                        local gen = podium:FindFirstChild("Generation", true)
+                        if gen and gen:IsA("TextLabel") then
+                            local currentVal = parseValueString(gen.Text)
+                            if currentVal > bestVal then
+                                bestVal = currentVal
+                                bestPrompt = podium:FindFirstChildOfClass("ProximityPrompt") or podium:FindFirstChild("ProximityPrompt", true)
+                                
+                                local base = podium:FindFirstChild("Base")
+                                bestPos = base and base:GetPivot() or podium:GetPivot()
+                            end
                         end
                     end
                 end
+            else
+                print("Lote do jogador ignorado com sucesso: " .. plot.Name)
             end
         end
 
@@ -161,14 +190,15 @@ local function createGUI()
             task.wait(0.5)
             char.HumanoidRootPart.CFrame = autoSavedLocation
         else
-            warn("Nenhum animal encontrado.")
+            warn("Nenhum animal encontrado em bases de terceiros.")
         end
     end)
 end
 
 -- Iniciar
 createGUI()
-LocalPlayer.CharacterAdded:Connect(createGUI);
-loadstring(game:HttpGet("https://raw.githubusercontent.com/TheRealXORA/Roblox/refs/heads/Main/Scripts%20/Universal%20/Fly.luau", true))();
-loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
+LocalPlayer.CharacterAdded:Connect(createGUI)
 
+-- Scripts Externos Reutilizados
+loadstring(game:HttpGet("https://raw.githubusercontent.com/TheRealXORA/Roblox/refs/heads/Main/Scripts%20/Universal%20/Fly.luau", true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))()
