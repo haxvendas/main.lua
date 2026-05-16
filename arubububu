@@ -1,126 +1,165 @@
--- Configurações de Ativação
+-- [ CONFIGURAÇÕES ]
 local InfJumpEnabled = true
 local InstaPromptEnabled = true
 
--- Serviços do Roblox
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local TeleportService = game:GetService("TeleportService")
 
--- Variáveis para a localização salva
 local savedLocation = nil
+local autoSavedLocation = nil 
+
+-- [ FUNÇÃO: PARSE DE VALORES ]
+local function parseValueString(valueString)
+    if not valueString then return -1 end
+    local cleaned = string.gsub(valueString, "[%$%/s%s]", "")
+    local multiplier = 1
+    local lastChar = string.sub(cleaned, -1, -1)
+
+    if lastChar == "K" then multiplier = 1000; cleaned = string.sub(cleaned, 1, -2)
+    elseif lastChar == "M" then multiplier = 1000000; cleaned = string.sub(cleaned, 1, -2)
+    elseif lastChar == "B" then multiplier = 1000000000; cleaned = string.sub(cleaned, 1, -2)
+    elseif lastChar == "T" then multiplier = 1000000000000; cleaned = string.sub(cleaned, 1, -2) end
+
+    return (tonumber(cleaned) or 0) * multiplier
+end
 
 -- [ FUNÇÃO: INSTA PROXIMITY PROMPT ]
--- Altera a duração da interação para 0 instantaneamente
 local function applyInstaPrompt(obj)
     if obj:IsA("ProximityPrompt") and InstaPromptEnabled then
         obj.HoldDuration = 0
     end
 end
 
--- Monitora prompts atuais e futuros
-for _, descendant in ipairs(game:GetDescendants()) do
-    applyInstaPrompt(descendant)
-end
-
-game.DescendantAdded:Connect(function(descendant)
-    applyInstaPrompt(descendant)
-end)
+game.DescendantAdded:Connect(applyInstaPrompt)
+for _, v in ipairs(game:GetDescendants()) do applyInstaPrompt(v) end
 
 -- [ FUNÇÃO: INFINITE JUMP ]
--- Detecta o pedido de pulo e força o estado de pulo no Humanoid
 UserInputService.JumpRequest:Connect(function()
-    if InfJumpEnabled then
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                -- Verifica se o Humanoid não está no estado de pulo ou caindo para evitar spam desnecessário
-                if humanoid:GetState() ~= Enum.HumanoidStateType.Jumping and humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
-                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                end
-                -- Aplica uma pequena força para cima para simular o pulo sem mudar o estado diretamente
-                -- Isso pode ser mais discreto que ChangeState em alguns contextos
-                local rootPart = character:FindFirstChild("HumanoidRootPart")
-                if rootPart then
-                    rootPart.Velocity = Vector3.new(rootPart.Velocity.X, 50, rootPart.Velocity.Z) -- Ajuste o valor 50 conforme necessário
-                end
-            end
+    if InfJumpEnabled and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hum and hum.Health > 0 and root then
+            root.Velocity = Vector3.new(root.Velocity.X, 50, root.Velocity.Z)
         end
     end
 end)
 
--- [ FUNÇÃO: CRIAR GUI ]
+-- [ FUNÇÃO: CRIAR INTERFACE (GUI) ]
 local function createGUI()
+    if LocalPlayer.PlayerGui:FindFirstChild("CustomTeleportGUI") then
+        LocalPlayer.PlayerGui.CustomTeleportGUI:Destroy()
+    end
+
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "CustomTeleportGUI"
     ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.ResetOnSpawn = false
 
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 200, 0, 100)
-        Frame.Position = UDim2.new(1, -210, 0.5, -50)
-    Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Frame.Size = UDim2.new(0, 200, 0, 150)
+    Frame.Position = UDim2.new(1, -210, 0.5, -75)
+    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     Frame.BorderSizePixel = 0
+    Frame.Active = true
     Frame.Draggable = true
     Frame.Parent = ScreenGui
 
-    local SaveButton = Instance.new("TextButton")
-    SaveButton.Size = UDim2.new(0, 180, 0, 40)
-    SaveButton.Position = UDim2.new(0.5, -90, 0, 10)
-    SaveButton.BackgroundColor3 = Color3.fromRGB(80, 150, 80)
-    SaveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    SaveButton.Text = "Salvar Local"
-    SaveButton.Font = Enum.Font.SourceSansBold
-    SaveButton.TextSize = 18
-    SaveButton.Parent = Frame
+    local function createBtn(text, pos, color)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 180, 0, 40)
+        btn.Position = pos
+        btn.BackgroundColor3 = color
+        btn.Text = text
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 16
+        btn.Parent = Frame
+        return btn
+    end
 
-    local TeleportButton = Instance.new("TextButton")
-    TeleportButton.Size = UDim2.new(0, 180, 0, 40)
-    TeleportButton.Position = UDim2.new(0.5, -90, 0, 55)
-    TeleportButton.BackgroundColor3 = Color3.fromRGB(80, 80, 150)
-    TeleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TeleportButton.Text = "Teleportar"
-    TeleportButton.Font = Enum.Font.SourceSansBold
-    TeleportButton.TextSize = 18
-    TeleportButton.Parent = Frame
+    local SaveBtn = createBtn("Salvar Local", UDim2.new(0.5, -90, 0, 10), Color3.fromRGB(60, 120, 60))
+    local TeleBtn = createBtn("Teleportar", UDim2.new(0.5, -90, 0, 55), Color3.fromRGB(60, 60, 120))
+    local AutoBtn = createBtn("Coleta Automática", UDim2.new(0.5, -90, 0, 100), Color3.fromRGB(120, 60, 60))
 
-    -- Conectar funções aos botões
-    SaveButton.MouseButton1Click:Connect(function()
-        local character = LocalPlayer.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            savedLocation = character.HumanoidRootPart.CFrame
-            print("Localização salva: " .. tostring(savedLocation))
-        else
-            warn("Não foi possível salvar a localização. HumanoidRootPart não encontrada.")
+    SaveBtn.MouseButton1Click:Connect(function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            savedLocation = LocalPlayer.Character.HumanoidRootPart.CFrame
+            print("Local salvo!")
         end
     end)
 
-    TeleportButton.MouseButton1Click:Connect(function()
-        if savedLocation then
-            local character = LocalPlayer.Character
-            if character and character:FindFirstChild("HumanoidRootPart") then
-                character.HumanoidRootPart.CFrame = savedLocation
-                print("Teleportado para a localização salva.")
+    TeleBtn.MouseButton1Click:Connect(function()
+        if savedLocation and LocalPlayer.Character then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = savedLocation
+        end
+    end)
+
+    -- LÓGICA DA COLETA AUTOMÁTICA (COM FILTRO DE BASE)
+    AutoBtn.MouseButton1Click:Connect(function()
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        
+        autoSavedLocation = char.HumanoidRootPart.CFrame
+        
+        local bestPos = nil
+        local bestVal = -1
+        local bestPrompt = nil
+
+        local plots = workspace:FindFirstChild("Plots")
+        if not plots then return end
+
+        for _, plot in ipairs(plots:GetChildren()) do
+            -- VERIFICAÇÃO: Só processa a base se ela tiver o PlotSign.Model (Bases de outros)
+            local plotSign = plot:FindFirstChild("PlotSign")
+            local hasModel = plotSign and plotSign:FindFirstChild("Model")
+
+            if hasModel then
+                local podiums = plot:FindFirstChild("AnimalPodiums")
+                if podiums then
+                    for _, podium in ipairs(podiums:GetChildren()) do
+                        local gen = podium:FindFirstChild("Generation", true)
+                        if gen and gen:IsA("TextLabel") then
+                            local currentVal = parseValueString(gen.Text)
+                            if currentVal > bestVal then
+                                bestVal = currentVal
+                                bestPrompt = podium:FindFirstChildOfClass("ProximityPrompt") or podium:FindFirstChild("ProximityPrompt", true)
+                                
+                                local base = podium:FindFirstChild("Base")
+                                bestPos = base and base:GetPivot() or podium:GetPivot()
+                            end
+                        end
+                    end
+                end
             else
-                warn("Não foi possível teleportar. HumanoidRootPart não encontrada.")
+                -- Se cair aqui, é porque é a sua base ou uma base sem o modelo alvo
+                print("Ignorando base: " .. plot.Name)
             end
+        end
+
+        if bestPos and bestPrompt then
+            print("Teleportando para animal de valor:", bestVal)
+            char.HumanoidRootPart.CFrame = bestPos * CFrame.new(0, 6, 0)
+            task.wait(0.4)
+            
+            if fireproximityprompt then
+                fireproximityprompt(bestPrompt)
+            else
+                bestPrompt:InputHoldBegin()
+                task.wait(0.2)
+                bestPrompt:InputHoldEnd()
+            end
+            
+            task.wait(0.5)
+            char.HumanoidRootPart.CFrame = autoSavedLocation
         else
-            warn("Nenhuma localização salva para teleportar.")
+            warn("Nenhum animal válido encontrado em bases de terceiros.")
         end
     end)
 end
 
--- Chamar a função para criar a GUI quando o jogador entrar
-LocalPlayer.CharacterAdded:Connect(function(character)
-    createGUI()
-end)
-
--- Se o jogador já estiver no jogo, criar a GUI imediatamente
-if LocalPlayer.Character then
-    createGUI()
-end;
+createGUI()
+LocalPlayer.CharacterAdded:Connect(createGUI);
 loadstring(game:HttpGet("https://raw.githubusercontent.com/TheRealXORA/Roblox/refs/heads/Main/Scripts%20/Universal%20/Fly.luau", true))();
 loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
 
