@@ -8,6 +8,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local savedLocation = nil
 local autoSavedLocation = nil 
+local isLooping = false -- Controla o estado do loop da coleta
 
 -- [ FUNÇÃO: SALVAMENTO AUTOMÁTICO INICIAL ]
 local function saveInitialLocation()
@@ -15,25 +16,21 @@ local function saveInitialLocation()
     local root = char:WaitForChild("HumanoidRootPart", 5)
     if root then
         autoSavedLocation = root.CFrame
-        print("Salva automaticamente a posição inicial pós-execução!")
-    else
-        warn("Aviso: Não foi possível salvar a posição inicial automaticamente (HumanoidRootPart não carregou a tempo).")
+        print("Posição inicial salva automaticamente!")
     end
 end
 
--- Executa o salvamento automático assim que o script roda
 task.spawn(saveInitialLocation)
 
--- Garante que se você morrer e renascer, o local inicial seja atualizado para o novo Spawn
 LocalPlayer.CharacterAdded:Connect(function(char)
     local root = char:WaitForChild("HumanoidRootPart", 5)
     if root then
         autoSavedLocation = root.CFrame
-        print("Posição inicial atualizada após o respawn!")
     end
 end)
 
 -- [ FUNÇÃO: PARSE DE VALORES ]
+-- Converte os sufixos (K, M, B, T) corretamente para números reais de comparação
 local function parseValueString(valueString)
     if not valueString then return -1 end
     
@@ -114,7 +111,7 @@ local function createGUI()
 
     local SaveBtn = createBtn("Salvar Local", UDim2.new(0.5, -90, 0, 10), Color3.fromRGB(60, 120, 60))
     local TeleBtn = createBtn("Teleportar", UDim2.new(0.5, -90, 0, 55), Color3.fromRGB(60, 60, 120))
-    local AutoBtn = createBtn("Coleta Automática", UDim2.new(0.5, -90, 0, 100), Color3.fromRGB(120, 60, 60))
+    local AutoBtn = createBtn("Coleta Automática", UDim2.new(0.5, -90, 0, 100), Color3.fromRGB(150, 80, 80))
 
     SaveBtn.MouseButton1Click:Connect(function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -129,84 +126,104 @@ local function createGUI()
         end
     end)
 
-    -- LÓGICA DA COLETA AUTOMÁTICA
+    -- LÓGICA DA COLETA AUTOMÁTICA EM LOOP
     AutoBtn.MouseButton1Click:Connect(function()
-        local char = LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        -- Inverte o estado do loop ao clicar
+        isLooping = not isLooping 
         
-        -- Se por algum motivo o autoSavedLocation sumir, salva a posição atual como prevenção de segurança
-        if not autoSavedLocation then
-            autoSavedLocation = char.HumanoidRootPart.CFrame
-        end
-        
-        local bestPos = nil
-        local bestVal = -1
-        local bestPrompt = nil
-
-        local plots = workspace:FindFirstChild("Plots")
-        if not plots then warn("Pasta Plots não encontrada!") return end
-
-        local myName = LocalPlayer.Name:lower()
-        local myDisplayName = LocalPlayer.DisplayName:lower()
-
-        for _, plot in ipairs(plots:GetChildren()) do
-            local plotSign = plot:FindFirstChild("PlotSign")
-            local surfaceGui = plotSign and plotSign:FindFirstChild("SurfaceGui")
-            local frameGui = surfaceGui and surfaceGui:FindFirstChild("Frame")
-            local textLabel = frameGui and frameGui:FindFirstChildOfClass("TextLabel")
+        if isLooping then
+            AutoBtn.BackgroundColor3 = Color3.fromRGB(80, 150, 80) -- Verde (Ativado)
+            AutoBtn.Text = "Coleta: ATIVADA"
             
-            local isMyPlot = false
-            
-            if textLabel then
-                local signText = textLabel.Text:lower()
-                local ownerName = string.gsub(signText, "'s base", "")
-                ownerName = string.gsub(ownerName, "%s", "")
+            -- Executa o loop em uma thread separada para não travar o jogo
+            task.spawn(function()
+                while isLooping do
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        
+                        -- Garante uma posição de retorno válida
+                        if not autoSavedLocation then
+                            autoSavedLocation = char.HumanoidRootPart.CFrame
+                        end
+                        
+                        local bestPos = nil
+                        local highestVal = -1
+                        local bestPrompt = nil
 
-                if ownerName == myName or ownerName == myDisplayName or string.find(signText, myName) or string.find(signText, myDisplayName) then
-                    isMyPlot = true
-                end
-            end
+                        local plots = workspace:FindFirstChild("Plots")
+                        if plots then
+                            local myName = LocalPlayer.Name:lower()
+                            local myDisplayName = LocalPlayer.DisplayName:lower()
 
-            if not isMyPlot then
-                local podiums = plot:FindFirstChild("AnimalPodiums")
-                if podiums then
-                    for _, podium in ipairs(podiums:GetChildren()) do
-                        local gen = podium:FindFirstChild("Generation", true)
-                        if gen and gen:IsA("TextLabel") then
-                            local currentVal = parseValueString(gen.Text)
-                            if currentVal > bestVal then
-                                bestVal = currentVal
-                                bestPrompt = podium:FindFirstChildOfClass("ProximityPrompt") or podium:FindFirstChild("ProximityPrompt", true)
+                            -- Primeiro varre e acha o melhor de TODOS os lotes válidos
+                            for _, plot in ipairs(plots:GetChildren()) do
+                                local plotSign = plot:FindFirstChild("PlotSign")
+                                local surfaceGui = plotSign and plotSign:FindFirstChild("SurfaceGui")
+                                local frameGui = surfaceGui and surfaceGui:FindFirstChild("Frame")
+                                local textLabel = frameGui and frameGui:FindFirstChildOfClass("TextLabel")
                                 
-                                local base = podium:FindFirstChild("Base")
-                                bestPos = base and base:GetPivot() or podium:GetPivot()
+                                local isMyPlot = false
+                                
+                                if textLabel then
+                                    local signText = textLabel.Text:lower()
+                                    local ownerName = string.gsub(signText, "'s base", "")
+                                    ownerName = string.gsub(ownerName, "%s", "")
+
+                                    if ownerName == myName or ownerName == myDisplayName or string.find(signText, myName) or string.find(signText, myDisplayName) then
+                                        isMyPlot = true
+                                    end
+                                end
+
+                                -- Só analisa se não for o seu lote
+                                if not isMyPlot then
+                                    local podiums = plot:FindFirstChild("AnimalPodiums")
+                                    if podiums then
+                                        for _, podium in ipairs(podiums:GetChildren()) do
+                                            local gen = podium:FindFirstChild("Generation", true)
+                                            if gen and gen:IsA("TextLabel") then
+                                                local currentVal = parseValueString(gen.Text)
+                                                
+                                                -- Atualiza se achar um valor estritamente maior
+                                                if currentVal > highestVal then
+                                                    highestVal = currentVal
+                                                    bestPrompt = podium:FindFirstChildOfClass("ProximityPrompt") or podium:FindFirstChild("ProximityPrompt", true)
+                                                    
+                                                    local base = podium:FindFirstChild("Base")
+                                                    bestPos = base and base:GetPivot() or podium:GetPivot()
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
                             end
                         end
-                    end
-                end
-            end
-        end
 
-        if bestPos and bestPrompt then
-            print("Teleportando para animal de valor:", bestVal)
-            char.HumanoidRootPart.CFrame = bestPos * CFrame.new(0, 6, 0)
-            task.wait(0.4)
-            
-            if fireproximityprompt then
-                fireproximityprompt(bestPrompt)
-            else
-                bestPrompt:InputHoldBegin()
-                task.wait(0.2)
-                bestPrompt:InputHoldEnd()
-            end
-            
-            task.wait(0.5)
-            
-            -- Retorna rigorosamente para o local definido na inicialização
-            char.HumanoidRootPart.CFrame = autoSavedLocation
-            print("Retornado para a posição inicial gravada no início.")
+                        -- Teleporta e coleta se achou o melhor alvo do servidor
+                        if bestPos and bestPrompt then
+                            char.HumanoidRootPart.CFrame = bestPos * CFrame.new(0, 6, 0)
+                            task.wait(0.4)
+                            
+                            if fireproximityprompt then
+                                fireproximityprompt(bestPrompt)
+                            else
+                                bestPrompt:InputHoldBegin()
+                                task.wait(0.2)
+                                bestPrompt:InputHoldEnd()
+                            end
+                            
+                            task.wait(0.4)
+                            char.HumanoidRootPart.CFrame = autoSavedLocation
+                        end
+                    end
+                    
+                    -- Tempo de espera entre cada ciclo de checagem/coleta (ajuste se quiser mais rápido)
+                    task.wait(1) 
+                end
+            end)
         else
-            warn("Nenhum animal encontrado em bases de terceiros.")
+            -- Se clicar de novo, desativa o loop
+            AutoBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 80) -- Vermelho (Desativado)
+            AutoBtn.Text = "Coleta Automática"
         end
     end)
 end
