@@ -30,7 +30,7 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 -- [ FUNÇÃO: PARSE DE VALORES ]
--- Converte os sufixos (K, M, B, T) corretamente para números reais de comparação
+-- Converte os sufixos ($500M/s, 1K, 2.5B, etc) em números reais para ordenar o rank
 local function parseValueString(valueString)
     if not valueString then return -1 end
     
@@ -126,36 +126,32 @@ local function createGUI()
         end
     end)
 
-    -- LÓGICA DA COLETA AUTOMÁTICA EM LOOP
+    -- LÓGICA DA COLETA AUTOMÁTICA COM SISTEMA DE RANKING
     AutoBtn.MouseButton1Click:Connect(function()
-        -- Inverte o estado do loop ao clicar
         isLooping = not isLooping 
         
         if isLooping then
             AutoBtn.BackgroundColor3 = Color3.fromRGB(80, 150, 80) -- Verde (Ativado)
-            AutoBtn.Text = "Coleta: ATIVADA"
+            AutoBtn.Text = "Coleta: RANKING"
             
-            -- Executa o loop em uma thread separada para não travar o jogo
             task.spawn(function()
                 while isLooping do
                     local char = LocalPlayer.Character
                     if char and char:FindFirstChild("HumanoidRootPart") then
                         
-                        -- Garante uma posição de retorno válida
                         if not autoSavedLocation then
                             autoSavedLocation = char.HumanoidRootPart.CFrame
                         end
                         
-                        local bestPos = nil
-                        local highestVal = -1
-                        local bestPrompt = nil
+                        -- Tabela para armazenar o Rank de alvos
+                        local animalRank = {}
 
                         local plots = workspace:FindFirstChild("Plots")
                         if plots then
                             local myName = LocalPlayer.Name:lower()
                             local myDisplayName = LocalPlayer.DisplayName:lower()
 
-                            -- Primeiro varre e acha o melhor de TODOS os lotes válidos
+                            -- 1. ETAPA: Escanear e coletar TODOS os animais válidos do servidor
                             for _, plot in ipairs(plots:GetChildren()) do
                                 local plotSign = plot:FindFirstChild("PlotSign")
                                 local surfaceGui = plotSign and plotSign:FindFirstChild("SurfaceGui")
@@ -174,7 +170,7 @@ local function createGUI()
                                     end
                                 end
 
-                                -- Só analisa se não for o seu lote
+                                -- Adiciona os animais ao Rank se não for o seu lote
                                 if not isMyPlot then
                                     local podiums = plot:FindFirstChild("AnimalPodiums")
                                     if podiums then
@@ -182,14 +178,18 @@ local function createGUI()
                                             local gen = podium:FindFirstChild("Generation", true)
                                             if gen and gen:IsA("TextLabel") then
                                                 local currentVal = parseValueString(gen.Text)
+                                                local prompt = podium:FindFirstChildOfClass("ProximityPrompt") or podium:FindFirstChild("ProximityPrompt", true)
                                                 
-                                                -- Atualiza se achar um valor estritamente maior
-                                                if currentVal > highestVal then
-                                                    highestVal = currentVal
-                                                    bestPrompt = podium:FindFirstChildOfClass("ProximityPrompt") or podium:FindFirstChild("ProximityPrompt", true)
-                                                    
-                                                    local base = podium:FindFirstChild("Base")
-                                                    bestPos = base and base:GetPivot() or podium:GetPivot()
+                                                local base = podium:FindFirstChild("Base")
+                                                local pos = base and base:GetPivot() or podium:GetPivot()
+                                                
+                                                -- Só guarda se tiver uma posição e um prompt ativo
+                                                if pos and prompt and currentVal > 0 then
+                                                    table.insert(animalRank, {
+                                                        value = currentVal,
+                                                        position = pos,
+                                                        prompt = prompt
+                                                    })
                                                 end
                                             end
                                         end
@@ -198,30 +198,54 @@ local function createGUI()
                             end
                         end
 
-                        -- Teleporta e coleta se achou o melhor alvo do servidor
-                        if bestPos and bestPrompt then
-                            char.HumanoidRootPart.CFrame = bestPos * CFrame.new(0, 6, 0)
-                            task.wait(0.4)
+                        -- 2. ETAPA: Ordenar o ranking do maior valor para o menor (Melhor pro Pior)
+                        table.sort(animalRank, function(a, b)
+                            return a.value > b.value
+                        end)
+
+                        -- 3. ETAPA: Teleportar e coletar seguindo a ordem do Rank
+                        if #animalRank > 0 then
+                            print("--- INICIANDO ROTA DE COLETA (", #animalRank, "Alvos Encontrados ) ---")
                             
-                            if fireproximityprompt then
-                                fireproximityprompt(bestPrompt)
-                            else
-                                bestPrompt:InputHoldBegin()
-                                task.wait(0.2)
-                                bestPrompt:InputHoldEnd()
+                            for index, animal in ipairs(animalRank) do
+                                -- Se você desligar o botão no meio do caminho, ele interrompe o percurso imediatamente
+                                if not isLooping then break end
+                                
+                                print("Rank #" .. index .. " | Valor: " .. animal.value)
+                                
+                                -- Teleporte até o animal
+                                char.HumanoidRootPart.CFrame = animal.position * CFrame.new(0, 6, 0)
+                                task.wait(0.35) -- Tempo para processar o teleporte
+                                
+                                -- Executa o click no Prompt
+                                if fireproximityprompt then
+                                    fireproximityprompt(animal.prompt)
+                                else
+                                    animal.prompt:InputHoldBegin()
+                                    task.wait(0.15)
+                                    animal.prompt:InputHoldEnd()
+                                end
+                                
+                                task.wait(0.2) -- Pausa rápida pós-coleta
                             end
                             
-                            task.wait(0.4)
-                            char.HumanoidRootPart.CFrame = autoSavedLocation
+                            -- 4. ETAPA: Voltar para a base inicial após completar o Rank atual
+                            if isLooping then
+                                char.HumanoidRootPart.CFrame = autoSavedLocation
+                                print("Rota completa! Retornando para descanso.")
+                            end
+                        else
+                            warn("Nenhum animal detectado para gerar o ranking.")
                         end
                     end
                     
-                    -- Tempo de espera entre cada ciclo de checagem/coleta (ajuste se quiser mais rápido)
-                    task.wait(1) 
+                    -- Tempo de espera para respirar antes de escanear o servidor e criar um novo Rank
+                    task.wait(2) 
                 end
             end)
         else
             -- Se clicar de novo, desativa o loop
+            isLooping = false
             AutoBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 80) -- Vermelho (Desativado)
             AutoBtn.Text = "Coleta Automática"
         end
