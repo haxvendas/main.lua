@@ -9,14 +9,35 @@ local LocalPlayer = Players.LocalPlayer
 local savedLocation = nil
 local autoSavedLocation = nil 
 
+-- [ FUNÇÃO: SALVAMENTO AUTOMÁTICO INICIAL ]
+local function saveInitialLocation()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart", 5)
+    if root then
+        autoSavedLocation = root.CFrame
+        print("Salva automaticamente a posição inicial pós-execução!")
+    else
+        warn("Aviso: Não foi possível salvar a posição inicial automaticamente (HumanoidRootPart não carregou a tempo).")
+    end
+end
+
+-- Executa o salvamento automático assim que o script roda
+task.spawn(saveInitialLocation)
+
+-- Garante que se você morrer e renascer, o local inicial seja atualizado para o novo Spawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    local root = char:WaitForChild("HumanoidRootPart", 5)
+    if root then
+        autoSavedLocation = root.CFrame
+        print("Posição inicial atualizada após o respawn!")
+    end
+end)
+
 -- [ FUNÇÃO: PARSE DE VALORES ]
--- Converte "$500M/s" ou "1K" em números para comparar quem é maior
 local function parseValueString(valueString)
     if not valueString then return -1 end
     
-    -- Remove $, /s e espaços em branco
     local cleaned = string.gsub(valueString, "[%$%/s%s]", "")
-    
     local multiplier = 1
     local lastChar = string.sub(cleaned, -1, -1)
 
@@ -95,11 +116,10 @@ local function createGUI()
     local TeleBtn = createBtn("Teleportar", UDim2.new(0.5, -90, 0, 55), Color3.fromRGB(60, 60, 120))
     local AutoBtn = createBtn("Coleta Automática", UDim2.new(0.5, -90, 0, 100), Color3.fromRGB(120, 60, 60))
 
-    -- Logica Salvar/Teleportar
     SaveBtn.MouseButton1Click:Connect(function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             savedLocation = LocalPlayer.Character.HumanoidRootPart.CFrame
-            print("Local salvo!")
+            print("Local salvo manualmente!")
         end
     end)
 
@@ -114,7 +134,10 @@ local function createGUI()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
         
-        autoSavedLocation = char.HumanoidRootPart.CFrame
+        -- Se por algum motivo o autoSavedLocation sumir, salva a posição atual como prevenção de segurança
+        if not autoSavedLocation then
+            autoSavedLocation = char.HumanoidRootPart.CFrame
+        end
         
         local bestPos = nil
         local bestVal = -1
@@ -123,13 +146,10 @@ local function createGUI()
         local plots = workspace:FindFirstChild("Plots")
         if not plots then warn("Pasta Plots não encontrada!") return end
 
-        -- Nicks em letras minúsculas para comparação precisa
         local myName = LocalPlayer.Name:lower()
         local myDisplayName = LocalPlayer.DisplayName:lower()
 
-        -- Varre todas as pastas de IDs dentro de Plots
         for _, plot in ipairs(plots:GetChildren()) do
-            
             local plotSign = plot:FindFirstChild("PlotSign")
             local surfaceGui = plotSign and plotSign:FindFirstChild("SurfaceGui")
             local frameGui = surfaceGui and surfaceGui:FindFirstChild("Frame")
@@ -138,23 +158,19 @@ local function createGUI()
             local isMyPlot = false
             
             if textLabel then
-                -- Transforma o texto da placa em minúsculo e remove o "'s base" e espaços extras
                 local signText = textLabel.Text:lower()
                 local ownerName = string.gsub(signText, "'s base", "")
-                ownerName = string.gsub(ownerName, "%s", "") -- remove espaços se houver
+                ownerName = string.gsub(ownerName, "%s", "")
 
-                -- Se o nome limpo da placa bater com seu Nick ou DisplayName, ignora
                 if ownerName == myName or ownerName == myDisplayName or string.find(signText, myName) or string.find(signText, myDisplayName) then
                     isMyPlot = true
                 end
             end
 
-            -- Só busca os animais se NÃO for a sua base
             if not isMyPlot then
                 local podiums = plot:FindFirstChild("AnimalPodiums")
                 if podiums then
                     for _, podium in ipairs(podiums:GetChildren()) do
-                        -- Busca profunda pelo texto de Geração
                         local gen = podium:FindFirstChild("Generation", true)
                         if gen and gen:IsA("TextLabel") then
                             local currentVal = parseValueString(gen.Text)
@@ -168,8 +184,6 @@ local function createGUI()
                         end
                     end
                 end
-            else
-                print("Lote do jogador ignorado com sucesso: " .. plot.Name)
             end
         end
 
@@ -178,7 +192,6 @@ local function createGUI()
             char.HumanoidRootPart.CFrame = bestPos * CFrame.new(0, 6, 0)
             task.wait(0.4)
             
-            -- Tenta ativar o prompt
             if fireproximityprompt then
                 fireproximityprompt(bestPrompt)
             else
@@ -188,7 +201,10 @@ local function createGUI()
             end
             
             task.wait(0.5)
+            
+            -- Retorna rigorosamente para o local definido na inicialização
             char.HumanoidRootPart.CFrame = autoSavedLocation
+            print("Retornado para a posição inicial gravada no início.")
         else
             warn("Nenhum animal encontrado em bases de terceiros.")
         end
