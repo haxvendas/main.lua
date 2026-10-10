@@ -3,12 +3,7 @@ local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local GuiService = game:GetService("GuiService")
 
--- Aguarda o player existir (essencial para autoexecute)
-local LocalPlayer = Players.LocalPlayer
-while not LocalPlayer do
-	Players.PlayerAdded:Wait()
-	LocalPlayer = Players.LocalPlayer
-end
+local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() and Players.LocalPlayer
 
 --------------------------------------------------------------------------------
 -- 1. SISTEMA DE ANTI-RECONNECT AUTOMÁTICO
@@ -39,7 +34,6 @@ GuiService.ErrorMessageChanged:Connect(function()
 	local errorType = GuiService:GetErrorType()
 	if errorType == Enum.ConnectionError.DisconnectErrors and not reconnectDisabledList[errorCode] then
 		print("Desconexão detectada! Tentando reconectar...")
-		
 		while task.wait(5) do
 			pcall(function()
 				TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId)
@@ -49,56 +43,39 @@ GuiService.ErrorMessageChanged:Connect(function()
 end)
 
 --------------------------------------------------------------------------------
--- 2. SISTEMA DE TRAVA EM CFRAME FIXO (AUTOEXECUTE OTIMIZADO)
+-- 2. SISTEMA DE TRAVA EM CFRAME FIXO (SEM BLOQUEIO DE INICIALIZAÇÃO)
 --------------------------------------------------------------------------------
 local FIXED_BASE_CFRAME = CFrame.new(138.611893, 7.79294777, 13.2871695, 0.011002074, -3.72350932e-08, 0.999939501, -4.03433233e-08, 1, 3.76812324e-08, -0.999939501, -4.07554559e-08, 0.011002074)
 local MAX_BASE_RADIUS = 2
 
--- Função que força o teleporte assim que possível
-local function forceTeleport()
-	pcall(function()
-		local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-		local hrp = char:WaitForChild("HumanoidRootPart", 2)
-		if hrp then
-			hrp.CFrame = FIXED_BASE_CFRAME
-		end
-	end)
+local function applyBaseCFrame(character)
+	local hrp = character:FindFirstChild("HumanoidRootPart") or character:WaitForChild("HumanoidRootPart", 3)
+	if hrp then
+		hrp.CFrame = FIXED_BASE_CFRAME
+	end
 end
 
--- Dispara o teleporte em background assim que o script é injetado pelo autoexecute
-task.spawn(function()
-	while true do
-		local char = LocalPlayer.Character
-		local hrp = char and char:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			hrp.CFrame = FIXED_BASE_CFRAME
-			break -- Sai do loop assim que conseguir teleportar com sucesso pela primeira vez
-		end
-		task.wait(0.5)
-	end
-end)
+-- Se o personagem já existir ao injetar
+if LocalPlayer.Character then
+	task.spawn(function() applyBaseCFrame(LocalPlayer.Character) end)
+end
 
--- Monitora respawns futuros
+-- Monitora novos spawns
 LocalPlayer.CharacterAdded:Connect(function(char)
 	task.spawn(function()
-		local hrp = char:WaitForChild("HumanoidRootPart", 5)
-		if hrp then
-			task.wait(0.1)
-			hrp.CFrame = FIXED_BASE_CFRAME
-		end
+		task.wait(0.1)
+		applyBaseCFrame(char)
 	end)
 end)
 
--- Loop principal de ancoragem (garante que nunca saia do lugar)
-task.spawn(function()
+-- Loop de ancoragem leve rodando em background absoluto
+task.defer(function()
 	while true do
 		pcall(function()
-			local character = LocalPlayer.Character
-			local hrp = character and character:FindFirstChild("HumanoidRootPart")
-
+			local char = LocalPlayer.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
 			if hrp then
-				local distanceFromBase = (hrp.Position - FIXED_BASE_CFRAME.Position).Magnitude
-				if distanceFromBase > MAX_BASE_RADIUS then
+				if (hrp.Position - FIXED_BASE_CFRAME.Position).Magnitude > MAX_BASE_RADIUS then
 					hrp.CFrame = FIXED_BASE_CFRAME
 				end
 			end
@@ -110,8 +87,8 @@ end)
 --------------------------------------------------------------------------------
 -- 3. CARREGAMENTO DO ANTI-AFK EXTERNO
 --------------------------------------------------------------------------------
-task.spawn(function()
-	task.wait(2) -- Aguarda estabilizar antes de puxar o loadstring
+task.defer(function()
+	task.wait(1)
 	pcall(function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))()
 	end)
