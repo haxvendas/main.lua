@@ -1,49 +1,55 @@
+-- SERVIÇOS
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local GuiService = game:GetService("GuiService")
 
+local LocalPlayer = Players.LocalPlayer
+
+--------------------------------------------------------------------------------
+-- 1. SISTEMA DE ANTI-RECONNECT AUTOMÁTICO
+--------------------------------------------------------------------------------
 local reconnectDisabledList = {
-    [Enum.ConnectionError.DisconnectLuaKick] = true,
-    [Enum.ConnectionError.DisconnectSecurityKeyMismatch] = true,
-    [Enum.ConnectionError.DisconnectNewSecurityKeyMismatch] = true,
-    [Enum.ConnectionError.DisconnectDuplicateTicket] = true,
-    [Enum.ConnectionError.DisconnectWrongVersion] = true,
-    [Enum.ConnectionError.DisconnectProtocolMismatch] = true,
-    [Enum.ConnectionError.DisconnectBadhash] = true,
-    [Enum.ConnectionError.DisconnectIllegalTeleport] = true,
-    [Enum.ConnectionError.DisconnectDuplicatePlayer] = true,
-    [Enum.ConnectionError.DisconnectCloudEditKick] = true,
-    [Enum.ConnectionError.DisconnectOnRemoteSysStats] = true,
-    [Enum.ConnectionError.DisconnectRaknetErrors] = true,
-    [Enum.ConnectionError.PlacelaunchFlooded] = true,
-    [Enum.ConnectionError.PlacelaunchHashException] = true,
-    [Enum.ConnectionError.PlacelaunchHashExpired] = true,
-    [Enum.ConnectionError.PlacelaunchUnauthorized] = true,
-    [Enum.ConnectionError.PlacelaunchUserLeft] = true,
-    [Enum.ConnectionError.PlacelaunchRestricted] = true,
+	[Enum.ConnectionError.DisconnectLuaKick] = true,
+	[Enum.ConnectionError.DisconnectSecurityKeyMismatch] = true,
+	[Enum.ConnectionError.DisconnectNewSecurityKeyMismatch] = true,
+	[Enum.ConnectionError.DisconnectDuplicateTicket] = true,
+	[Enum.ConnectionError.DisconnectWrongVersion] = true,
+	[Enum.ConnectionError.DisconnectProtocolMismatch] = true,
+	[Enum.ConnectionError.DisconnectBadhash] = true,
+	[Enum.ConnectionError.DisconnectIllegalTeleport] = true,
+	[Enum.ConnectionError.DisconnectDuplicatePlayer] = true,
+	[Enum.ConnectionError.DisconnectCloudEditKick] = true,
+	[Enum.ConnectionError.DisconnectOnRemoteSysStats] = true,
+	[Enum.ConnectionError.DisconnectRaknetErrors] = true,
+	[Enum.ConnectionError.PlacelaunchFlooded] = true,
+	[Enum.ConnectionError.PlacelaunchHashException] = true,
+	[Enum.ConnectionError.PlacelaunchHashExpired] = true,
+	[Enum.ConnectionError.PlacelaunchUnauthorized] = true,
+	[Enum.ConnectionError.PlacelaunchUserLeft] = true,
+	[Enum.ConnectionError.PlacelaunchRestricted] = true,
 }
 
 GuiService.ErrorMessageChanged:Connect(function()
-    local errorCode = GuiService:GetErrorCode()
-    local errorType = GuiService:GetErrorType()
-    if errorType == Enum.ConnectionError.DisconnectErrors and not reconnectDisabledList[errorCode] then
-        print("Manus AI: Desconexão detectada! Tentando reconectar...")
-        
-        while task.wait(5) do -- Espera 5 segundos antes de tentar reconectar para evitar spam e dar tempo para o Roblox processar.
-            pcall(function()
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId)
-            end)
-        end
-    end
-end);
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+	local errorCode = GuiService:GetErrorCode()
+	local errorType = GuiService:GetErrorType()
+	if errorType == Enum.ConnectionError.DisconnectErrors and not reconnectDisabledList[errorCode] then
+		print("Desconexão detectada! Tentando reconectar...")
+		
+		while task.wait(5) do
+			pcall(function()
+				TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId)
+			end)
+		end
+	end
+end)
 
--- CONFIGURAÇÕES
+--------------------------------------------------------------------------------
+-- 2. SISTEMA DE TRAVA EM CFRAME FIXO
+--------------------------------------------------------------------------------
 local FIXED_BASE_CFRAME = CFrame.new(138.611893, 7.79294777, 13.2871695, 0.011002074, -3.72350932e-08, 0.999939501, -4.03433233e-08, 1, 3.76812324e-08, -0.999939501, -4.07554559e-08, 0.011002074)
 local MAX_BASE_RADIUS = 2 -- Distância máxima permitida antes de reajustar a posição
 
--- 1. Teleporte imediato assim que o script é executado
+-- Teleporte imediato ao executar o script
 pcall(function()
 	local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 	local hrp = char:WaitForChild("HumanoidRootPart", 5)
@@ -52,7 +58,7 @@ pcall(function()
 	end
 end)
 
--- 2. Teleporte automático ao renascer / dar respawn
+-- Teleporte automático ao renascer / dar respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
 	local hrp = char:WaitForChild("HumanoidRootPart", 5)
 	if hrp then
@@ -61,7 +67,7 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 	end
 end)
 
--- 3. Loop contínuo de verificação de posição (trava de ancoragem)
+-- Loop contínuo de verificação de posição (trava de ancoragem)
 task.spawn(function()
 	while true do
 		pcall(function()
@@ -77,6 +83,11 @@ task.spawn(function()
 		end)
 		task.wait(0.1)
 	end
-end);
-loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))();
+end)
 
+--------------------------------------------------------------------------------
+-- 3. CARREGAMENTO DO ANTI-AFK EXTERNO
+--------------------------------------------------------------------------------
+pcall(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))()
+end)
