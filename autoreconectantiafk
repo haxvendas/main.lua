@@ -3,7 +3,7 @@ local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local GuiService = game:GetService("GuiService")
 
-local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() and Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 
 --------------------------------------------------------------------------------
 -- 1. SISTEMA DE ANTI-RECONNECT AUTOMÁTICO
@@ -43,33 +43,43 @@ GuiService.ErrorMessageChanged:Connect(function()
 end)
 
 --------------------------------------------------------------------------------
--- 2. SISTEMA DE TRAVA EM CFRAME FIXO (SEM BLOQUEIO DE INICIALIZAÇÃO)
+-- 2. SISTEMA DE TRAVA EM CFRAME FIXO (SEGURO PARA AUTOEXECUTE)
 --------------------------------------------------------------------------------
 local FIXED_BASE_CFRAME = CFrame.new(138.611893, 7.79294777, 13.2871695, 0.011002074, -3.72350932e-08, 0.999939501, -4.03433233e-08, 1, 3.76812324e-08, -0.999939501, -4.07554559e-08, 0.011002074)
 local MAX_BASE_RADIUS = 2
 
-local function applyBaseCFrame(character)
-	local hrp = character:FindFirstChild("HumanoidRootPart") or character:WaitForChild("HumanoidRootPart", 3)
-	if hrp then
-		hrp.CFrame = FIXED_BASE_CFRAME
-	end
+-- Função isolada para aplicar o CFrame sem quebrar o script
+local function applyBaseCFrame()
+	pcall(function()
+		local char = LocalPlayer.Character
+		if char then
+			local hrp = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart", 2)
+			if hrp then
+				hrp.CFrame = FIXED_BASE_CFRAME
+			end
+		end
+	end)
 end
 
--- Se o personagem já existir ao injetar
-if LocalPlayer.Character then
-	task.spawn(function() applyBaseCFrame(LocalPlayer.Character) end)
-end
-
--- Monitora novos spawns
+-- Monitora cada respawn de forma limpa
 LocalPlayer.CharacterAdded:Connect(function(char)
 	task.spawn(function()
-		task.wait(0.1)
-		applyBaseCFrame(char)
+		task.wait(0.3) -- Aguarda o personagem carregar os componentes físicos
+		applyBaseCFrame()
 	end)
 end)
 
--- Loop de ancoragem leve rodando em background absoluto
-task.defer(function()
+-- Executa na inicialização assim que o character nascer pela primeira vez
+task.spawn(function()
+	while not LocalPlayer.Character do
+		task.wait(0.2)
+	end
+	task.wait(0.3)
+	applyBaseCFrame()
+end)
+
+-- Loop de ancoragem rodando em background seguro (não trava o executor)
+task.spawn(function()
 	while true do
 		pcall(function()
 			local char = LocalPlayer.Character
@@ -80,15 +90,15 @@ task.defer(function()
 				end
 			end
 		end)
-		task.wait(0.1)
+		task.wait(0.15)
 	end
 end)
 
 --------------------------------------------------------------------------------
 -- 3. CARREGAMENTO DO ANTI-AFK EXTERNO
 --------------------------------------------------------------------------------
-task.defer(function()
-	task.wait(1)
+task.spawn(function()
+	task.wait(1.5)
 	pcall(function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/hassanxzayn-lua/Anti-afk/main/antiafkbyhassanxzyn"))()
 	end)
